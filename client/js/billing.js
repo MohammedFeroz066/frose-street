@@ -53,6 +53,12 @@
   const upiQrCodeCanvas = document.getElementById('upi-qr-code-canvas');
   const btnConfirmUpi = document.getElementById('btn-confirm-upi');
   const btnCancelUpi = document.getElementById('btn-cancel-upi');
+  const upiQrNote = document.getElementById('upi-qr-note');
+  const btnCopyUpi = document.getElementById('btn-copy-upi');
+  const settingsUpiVpa = document.getElementById('settings-upi-vpa');
+  const btnSaveVpa = document.getElementById('btn-save-vpa');
+  const vpaStatusMsg = document.getElementById('vpa-status-msg');
+  let currentUpiUri = '';
 
   const qtyPickerModal = document.getElementById('qty-picker-modal');
   const qtyItemName = document.getElementById('qty-item-name');
@@ -682,6 +688,17 @@
       if (cart.size > 0) dispatchOrder('cash');
     }
   });
+
+    // Expose billing harness for Playwright inspection and integration tests
+  window.__FROSE_BILLING__ = {
+    addToCart: (item, qty = 1) => addItemToCart(item, qty),
+    openUpiModal: () => openUpiModal(),
+    openSettingsDrawer: () => { if (settingsDrawerOverlay) settingsDrawerOverlay.classList.add('active'); },
+    closeSettingsDrawer: () => { if (settingsDrawerOverlay) settingsDrawerOverlay.classList.remove('active'); },
+    closeUpiModal: () => { if (upiQrModal) upiQrModal.classList.remove('active'); },
+    getCart: () => cart,
+    dispatchOrder: (pm) => dispatchOrder(pm),
+  };
 
   // Initialization
   loadStallProfile();

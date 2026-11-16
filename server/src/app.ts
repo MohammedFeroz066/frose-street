@@ -15,6 +15,7 @@ import { menuRoutes } from './modules/menu/menu.routes.js';
 import { orderRoutes } from './modules/orders/order.routes.js';
 import { websocketRoutes } from './modules/websocket/websocket.routes.js';
 import { gallaRoutes } from './modules/galla/galla.routes.js';
+import { paymentRoutes } from './modules/payments/payment.routes.js';
 import type { HealthCheckResponse } from '../../shared/types/index.js';
 
 export interface BuildAppOptions {
@@ -206,6 +207,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Phase 10: Daily Galla, Expenses & Z-Report Routes (/api/v1/galla)
   await app.register(gallaRoutes, { prefix: '/api/v1/galla' });
+
+  // Phase 16: UPI Dynamic QR & Payment Flow Routes (/api/v1/payments)
+  await app.register(paymentRoutes, { prefix: '/api/v1/payments' });
 
   // Test-only endpoint for verifying error handler
   if (config.NODE_ENV === 'test') {

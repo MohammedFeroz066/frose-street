@@ -15,7 +15,15 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Production Stylesheet -->
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=2.2.0">
+  <style>
+    /* Critical Armor: Keeps layout bounded, prevents FOUC and modal overflow */
+    .modal-overlay { display: none; position: fixed; inset: 0; z-index: 1000; }
+    .modal-overlay.active { display: flex !important; }
+    .brand-icon-emblem svg { width: 22px !important; height: 22px !important; max-width: 22px !important; max-height: 22px !important; }
+    .card-icon-container svg { width: 28px !important; height: 28px !important; max-width: 28px !important; max-height: 28px !important; }
+    svg { max-width: 100%; }
+  </style>
 </head>
 <body class="billing-page">
 
@@ -163,7 +171,7 @@
   <!-- ==========================================
        MODAL 2: DYNAMIC UPI QR SCANNER MODAL
        ========================================== -->
-  <div class="modal-overlay" id="upi-qr-modal">
+  <div class="modal-overlay" id="upi-qr-modal" style="display: none;">
     <div class="modal-card upi-qr-card">
       <div class="modal-icon-badge">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -184,6 +192,15 @@
         </div>
       </div>
 
+      <div style="display: flex; justify-content: center; margin: 10px 0 14px 0;">
+          <button id="btn-copy-upi" style="height: 34px; padding: 0 14px; font-size: 11px; font-weight: 700; border: 1.5px solid var(--border-light); background: #fff; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy UPI Pay Link</span>
+          </button>
+        </div>
       <div class="upi-action-row">
         <button class="btn-wizard-secondary" id="btn-cancel-upi">Cancel</button>
         <button class="btn-wizard-primary btn-confirm-upi" id="btn-confirm-upi">
@@ -199,7 +216,7 @@
   <!-- ==========================================
        MODAL 3: QUANTITY PICKER (LONG PRESS)
        ========================================== -->
-  <div class="modal-overlay" id="qty-picker-modal">
+  <div class="modal-overlay" id="qty-picker-modal" style="display: none;">
     <div class="modal-card qty-picker-card">
       <h3 class="modal-title" id="qty-item-name">Select Quantity</h3>
       <p class="modal-subtitle">Tap number for instant cart update</p>
@@ -236,6 +253,20 @@
       </div>
 
       <div class="drawer-body">
+
+        <!-- Vendor UPI VPA Setup Widget (Phase 16) -->
+        <div class="drawer-upi-settings-widget" style="background: var(--surface-subtle); border: 1.5px solid var(--border-light); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="font-size: 11px; font-weight: 800; color: var(--color-navy); text-transform: uppercase; letter-spacing: 0.5px;">Vendor UPI VPA Handle</span>
+            <span style="font-size: 10px; font-weight: 700; background: var(--color-saffron-light); color: var(--color-saffron-hover); padding: 2px 6px; border-radius: 4px;">NPCI 2.0</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Direct settlement to your bank account for Dynamic QR.</div>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="settings-upi-vpa" class="vpa-input" placeholder="e.g. momos@okhdfcbank" style="flex: 1; height: 38px; border: 1.5px solid var(--border-light); border-radius: 8px; padding: 0 10px; font-family: var(--font-mono); font-size: 12px; font-weight: 600;" />
+            <button id="btn-save-vpa" style="height: 38px; padding: 0 14px; background: var(--color-navy); color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Save</button>
+          </div>
+          <div id="vpa-status-msg" class="vpa-status-msg" style="font-size: 11px; margin-top: 6px; font-weight: 600; min-height: 16px;"></div>
+        </div>
         
         <!-- Live Galla Metric Widget -->
         <div class="drawer-galla-widget">
@@ -281,6 +312,6 @@
   </div>
 
   <!-- QR Code Generator Engine (Lightweight Inline QR Engine) -->
-  <script src="/js/billing.js"></script>
+  <script src="/js/billing.js?v=2.2.0"></script>
 </body>
 </html>

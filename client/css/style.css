@@ -3191,3 +3191,143 @@ html, body {
     padding: 10px 12px 12px 12px;
   }
 }
+
+
+/* ==========================================================================
+   PHASE 16: UPI DYNAMIC QR & PAYMENT FLOW
+   NPCI UPI 2.0 Deep Linking, Scannable QR Modal, and Vendor VPA Settings
+   ========================================================================== */
+
+.upi-qr-vpa-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.upi-vpa-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.upi-qr-vpa {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-navy);
+}
+
+.upi-note-pill {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  color: #B45309;
+  font-size: 11px;
+  font-weight: 700;
+  max-width: 90%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.upi-copy-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.btn-copy-upi {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-subtle);
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-navy);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-copy-upi:hover {
+  background: #E2E8F0;
+  border-color: var(--border-hover);
+}
+
+/* Settings Drawer: UPI VPA Setup Widget */
+.drawer-upi-settings-widget {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.vpa-input-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.vpa-input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-light);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-navy);
+  background: #FFFFFF;
+}
+
+.vpa-input:focus {
+  outline: none;
+  border-color: var(--color-navy);
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.1);
+}
+
+.btn-save-vpa {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--color-navy);
+  color: #FFFFFF;
+  border: none;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-save-vpa:hover {
+  background: #1E293B;
+}
+
+.vpa-status-msg {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.vpa-status-msg.error {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.vpa-status-msg.success {
+  background: #ECFDF5;
+  color: #047857;
+  border: 1px solid #A7F3D0;
+}

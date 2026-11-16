@@ -3,99 +3,207 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>FROSE Street — Lightning-Fast Mobile Street POS</title>
-  <meta name="description" content="Ultra-fast mobile POS for street food vendors, carts, and stalls. ₹1,000/mo.">
-  <meta name="theme-color" content="#0d1117">
+  <title>FROSE Street — Formal Enterprise Street Micro-POS</title>
+  <meta name="description" content="Ultra-fast, formal two-color enterprise POS for street food vendors, carts, and stalls.">
+  <meta name="theme-color" content="#F8FAFC">
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-container">
-    <!-- Header -->
+    
+    <!-- Top Header -->
     <header class="header">
-      <div class="logo-group">
-        <span class="logo-badge">STREET</span>
-        <h1 class="logo-title">FROSE <span class="gold-text">STREET</span></h1>
+      <div class="header-top-row">
+        <div class="stall-pill" id="stall-pill">
+          <span>🏪</span>
+          <span id="stall-name-text">Tibetan Momo & Chai Point</span>
+        </div>
+        <div class="status-badge" id="status-badge">
+          <span class="dot"></span>
+          <span id="status-text">Cloud Active</span>
+        </div>
       </div>
-      <p class="tagline">Ultra-Fast 3-Second Street Food POS</p>
+
+      <div class="logo-group">
+        <div class="logo-icon-badge">⚡</div>
+        <h1 class="logo-title">FROSE <span class="saffron-badge">STREET</span></h1>
+      </div>
+      <p class="tagline">Enterprise Street Micro-POS • street.frostech.com</p>
     </header>
 
-    <!-- Main Portal Selection Cards (The 3 Portals) -->
+    <!-- Main Portal Selection (The 3 Giant Portals) -->
     <main class="portal-selection">
-      <h2 class="section-title">Select Your Station</h2>
-      <p class="section-subtitle">Choose a portal to start operations</p>
+      <h2 class="section-title">Select Counter Operation</h2>
 
       <div class="portal-cards">
-        <!-- 1. Billing Counter -->
+        
+        <!-- Portal 1: Billing Counter -->
         <a href="/billing" class="portal-card billing-card" id="btn-billing">
-          <div class="card-icon-wrapper billing-icon">
-            <span class="card-icon">🧾</span>
-          </div>
-          <div class="card-content">
-            <div class="card-header-row">
+          <div class="card-left">
+            <div class="card-icon-wrapper">
+              <span class="card-icon">🧾</span>
+            </div>
+            <div class="card-content">
+              <div class="card-meta-row">
+                <span class="badge badge-saffron">PORTAL 01</span>
+                <span class="badge badge-slate">REGISTER</span>
+              </div>
               <h3 class="card-title">1. BILLING COUNTER</h3>
-              <span class="badge primary-badge">MAIN</span>
+              <p class="card-desc">Punch Orders • Cash & UPI • Daily Galla</p>
             </div>
-            <p class="card-desc">Start taking orders, tap-to-bill, dynamic UPI QR, token generation & daily Galla.</p>
           </div>
           <div class="card-arrow">→</div>
         </a>
 
-        <!-- 2. Packaging & Serving -->
+        <!-- Portal 2: Packaging & Serving -->
         <a href="/packaging" class="portal-card packaging-card" id="btn-packaging">
-          <div class="card-icon-wrapper packaging-icon">
-            <span class="card-icon">📦</span>
-          </div>
-          <div class="card-content">
-            <div class="card-header-row">
+          <div class="card-left">
+            <div class="card-icon-wrapper">
+              <span class="card-icon">📦</span>
+            </div>
+            <div class="card-content">
+              <div class="card-meta-row">
+                <span class="badge badge-slate">PORTAL 02</span>
+                <span class="badge badge-slate">READY LANE</span>
+              </div>
               <h3 class="card-title">2. PACKAGING & SERVING</h3>
-              <span class="badge warning-badge">ACTIVE</span>
+              <p class="card-desc">Coin Match • Packed Lane • Deliver</p>
             </div>
-            <p class="card-desc">Pack prepared food, match customer token number, and mark orders delivered.</p>
           </div>
           <div class="card-arrow">→</div>
         </a>
 
-        <!-- 3. Kitchen Display -->
+        <!-- Portal 3: Kitchen Display -->
         <a href="/kitchen" class="portal-card kitchen-card" id="btn-kitchen">
-          <div class="card-icon-wrapper kitchen-icon">
-            <span class="card-icon">🍳</span>
-          </div>
-          <div class="card-content">
-            <div class="card-header-row">
-              <h3 class="card-title">3. KITCHEN DISPLAY</h3>
-              <span class="badge optional-badge">OPTIONAL</span>
+          <div class="card-left">
+            <div class="card-icon-wrapper">
+              <span class="card-icon">🍳</span>
             </div>
-            <p class="card-desc">Large-card order queue for the cook. Knuckle-friendly "Ready" tap buttons.</p>
+            <div class="card-content">
+              <div class="card-meta-row">
+                <span class="badge badge-slate">PORTAL 03</span>
+                <span class="badge badge-slate">KDS</span>
+              </div>
+              <h3 class="card-title">3. KITCHEN DISPLAY</h3>
+              <p class="card-desc">Cook Screen • FIFO Queue • 1-Tap Ready</p>
+            </div>
           </div>
           <div class="card-arrow">→</div>
         </a>
-      </div>
-    </main>
 
-    <!-- Stall Status Bar -->
-    <section class="status-card">
-      <div class="status-indicator">
-        <span class="status-dot"></span>
-        <span class="status-text" id="status-text">Cloud Mode: Connected to street.frostech.com</span>
       </div>
-      <div class="mode-toggle-pill">
-        <span class="pill-label">Hotspot P2P Ready</span>
+
+      <!-- Quick Helper Pairing Banner -->
+      <div class="pairing-banner">
+        <div class="pairing-info">
+          <span class="pairing-icon">📲</span>
+          <div>
+            <div class="pairing-title">Pair Helper Device</div>
+            <div class="pairing-desc">Scan QR to connect cook or packer phone</div>
+          </div>
+        </div>
+        <button class="btn-pair" id="btn-open-pairing">Pair QR</button>
       </div>
-    </section>
+
+      <!-- Daily Galla Glance Drawer -->
+      <section class="galla-drawer" id="galla-drawer">
+        <div class="galla-header">
+          <span class="galla-title">Today's Daily Summary</span>
+          <span class="galla-token" id="galla-token-pill">Token #28</span>
+        </div>
+        <div class="galla-metrics-grid">
+          <div class="galla-metric-box">
+            <div class="metric-label">Total Sales</div>
+            <div class="metric-value" id="galla-total-sales">₹3,480</div>
+          </div>
+          <div class="galla-metric-box">
+            <div class="metric-label">In Cash Galla</div>
+            <div class="metric-value metric-cash" id="galla-cash-sales">₹1,950</div>
+          </div>
+          <div class="galla-metric-box">
+            <div class="metric-label">Via UPI</div>
+            <div class="metric-value metric-upi" id="galla-upi-sales">₹1,530</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
 
     <!-- Footer -->
     <footer class="footer">
       <div class="footer-links">
-        <a href="#onboarding" class="footer-link">New Stall? Register in 60s</a>
+        <button class="footer-link btn-link" id="btn-open-pin">Stall Sign In (PIN)</button>
         <span class="divider">•</span>
-        <a href="#plans" class="footer-link">₹999/mo Local | ₹1,499/mo Cloud</a>
+        <a href="#onboarding" class="footer-link">Register Stall</a>
+        <span class="divider">•</span>
+        <a href="#plans" class="footer-link">Pricing</a>
       </div>
       <p class="copyright">© 2026 FROSE Technologies • street.frostech.com</p>
     </footer>
+
+  </div>
+
+  <!-- Quick PIN Keypad Modal -->
+  <div class="modal-overlay" id="pin-modal">
+    <div class="modal-card">
+      <div class="pin-header">
+        <div class="pin-icon">⚡</div>
+        <h3 class="pin-title">Stall Authentication</h3>
+        <p class="pin-desc">Enter 4-digit PIN for instant access</p>
+      </div>
+
+      <div class="pin-dots-row">
+        <div class="pin-dot" id="dot-0"></div>
+        <div class="pin-dot" id="dot-1"></div>
+        <div class="pin-dot" id="dot-2"></div>
+        <div class="pin-dot" id="dot-3"></div>
+      </div>
+
+      <div class="numpad-grid">
+        <button class="numpad-key" data-key="1">1</button>
+        <button class="numpad-key" data-key="2">2</button>
+        <button class="numpad-key" data-key="3">3</button>
+        <button class="numpad-key" data-key="4">4</button>
+        <button class="numpad-key" data-key="5">5</button>
+        <button class="numpad-key" data-key="6">6</button>
+        <button class="numpad-key" data-key="7">7</button>
+        <button class="numpad-key" data-key="8">8</button>
+        <button class="numpad-key" data-key="9">9</button>
+        <button class="numpad-key key-action key-biometric" id="btn-biometric" title="Biometric Unlock">👆</button>
+        <button class="numpad-key" data-key="0">0</button>
+        <button class="numpad-key key-action key-backspace" id="btn-backspace" title="Delete">⌫</button>
+      </div>
+
+      <div class="modal-close-row">
+        <button class="btn-link" id="btn-close-pin">Cancel</button>
+        <button class="btn-link" id="btn-clear-pin">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Helper QR Pairing Modal -->
+  <div class="modal-overlay" id="pairing-modal">
+    <div class="modal-card">
+      <div class="pin-header">
+        <div class="pin-icon">📲</div>
+        <h3 class="pin-title">Pair Helper Device</h3>
+        <p class="pin-desc">Scan with cook or packer phone camera</p>
+      </div>
+
+      <div style="background: #F1F5F9; border: 2px dashed #CBD5E1; border-radius: 16px; padding: 24px; margin: 16px 0; text-align: center;">
+        <div style="font-size: 64px; line-height: 1;">📷</div>
+        <div style="font-family: var(--font-mono); font-size: 20px; font-weight: 800; color: var(--color-navy); margin-top: 10px;" id="pairing-code-text">
+          PAIR-8821
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Expires in 5 minutes • Single Use</div>
+      </div>
+
+      <button class="btn-pair" style="width: 100%; height: 44px;" id="btn-close-pairing">Done</button>
+    </div>
   </div>
 
   <script src="/js/app.js"></script>

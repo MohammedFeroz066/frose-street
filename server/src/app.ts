@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyWebsocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
 import path from 'node:path';
+import fs from 'node:fs';
 import { loadConfig, EnvironmentConfig } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { AppError } from './errors/app-error.js';
@@ -137,6 +138,31 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       status: 'ready',
       message: 'FROSE Street Kitchen Display Portal',
     });
+  });
+
+  // Registration & Onboarding Page Route
+  app.get('/register', async (_req, reply) => {
+    const registerPath = path.resolve(process.cwd(), 'client/register.html');
+    if (fs.existsSync(registerPath)) {
+      reply.type('text/html');
+      return reply.send(fs.readFileSync(registerPath, 'utf8'));
+    }
+    return reply.status(404).send({ error: 'Register page not found' });
+  });
+
+  // Login Page Route
+  app.get('/login', async (_req, reply) => {
+    const loginPath = path.resolve(process.cwd(), 'client/login.html');
+    if (fs.existsSync(loginPath)) {
+      reply.type('text/html');
+      return reply.send(fs.readFileSync(loginPath, 'utf8'));
+    }
+    const registerPath = path.resolve(process.cwd(), 'client/register.html');
+    if (fs.existsSync(registerPath)) {
+      reply.type('text/html');
+      return reply.send(fs.readFileSync(registerPath, 'utf8'));
+    }
+    return reply.status(404).send({ error: 'Login page not found' });
   });
 
   // Phase 5: Authentication Routes (/api/v1/auth)

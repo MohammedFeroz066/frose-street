@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FROSE Street — Formal Two-Color Light Design System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #F8FAFC;
+      color: #0F172A;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .formal-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+    }
+    .formal-btn {
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 6px -1px rgba(15, 23, 42, 0.08), 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+    }
+    .formal-btn:hover {
+      box-shadow: 0 6px 18px -2px rgba(15, 23, 42, 0.12);
+      transform: translateY(-1px);
+    }
+    .formal-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.08);
+    }
+    .phone-frame-light {
+      width: 400px;
+      min-height: 820px;
+      background: #FFFFFF;
+      border: 8px solid #0F172A;
+      border-radius: 46px;
+      box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.08);
+      position: relative;
+      overflow: hidden;
+    }
+    .phone-notch-light {
+      width: 130px;
+      height: 24px;
+      background: #0F172A;
+      border-bottom-left-radius: 16px;
+      border-bottom-right-radius: 16px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+    }
+  </style>
+</head>
+<body class="p-6 md:p-12 antialiased">
+
+  <!-- Header Banner -->
+  <header class="max-w-7xl mx-auto mb-16 border-b border-slate-200 pb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+    <div>
+      <div class="flex items-center gap-3 mb-2">
+        <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-300 text-slate-700 font-bold text-xs uppercase tracking-widest font-mono">
+          Formal Enterprise Edition
+        </span>
+        <span class="text-slate-500 text-sm">Two-Color System: Executive Navy & Saffron Amber</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+        FROSE <span class="text-amber-600">STREET</span> UI/UX System
+      </h1>
+      <p class="text-slate-600 text-base max-w-2xl mt-2 font-normal">
+        Clean, formal, high-legibility enterprise POS software designed for street counters, kiosks, and food courts. Light, bright, and distraction-free.
+      </p>
+    </div>
+    <div class="flex items-center gap-4 bg-white border border-slate-200 p-3.5 rounded-2xl shadow-sm">
+      <div class="w-3 h-3 rounded-full bg-blue-600"></div>
+      <div>
+        <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Formal Identity</div>
+        <div class="text-sm font-bold text-slate-900">Executive Navy (#0F172A) + Saffron (#D97706)</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SECTION 1: FORMAL BRAND LOGOS (LIGHT BACKGROUND) -->
+  <section class="max-w-7xl mx-auto mb-20" id="section-formal-logos">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-sm">1</span>
+      <h2 class="text-2xl font-extrabold text-slate-900">Formal Brand Logos & App Icons (Light Clean Canvas)</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Option A: Primary Horizontal Nav Lockup -->
+      <div class="formal-card rounded-3xl p-8 flex flex-col justify-between">
+        <div>
+          <div class="text-xs font-mono font-bold text-slate-500 uppercase mb-4 tracking-wider">Primary Nav Lockup (Screen Header)</div>
+          <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 flex items-center justify-center my-6">
+            <div class="flex items-center gap-3.5">
+              <!-- Navy & Saffron Emblem -->
+              <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shadow-md">
+                <span class="text-amber-400 text-2xl font-black">⚡</span>
+              </div>
+              <!-- Text Lockup -->
+              <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                  <span class="text-2xl font-black tracking-wider text-slate-900">FROSE</span>
+                  <span class="px-2.5 py-0.5 rounded-md bg-amber-500 text-slate-950 text-xs font-black tracking-widest uppercase">
+                    STREET
+                  </span>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-500 tracking-wider font-mono">ENTERPRISE POS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-500 border-t border-slate-100 pt-4">
+          <strong class="text-slate-800">Formal Aesthetic:</strong> Authoritative Deep Navy typography paired with a clean Saffron badge. Crisp legibility on light surfaces.
+        </div>
+      </div>
+
+      <!-- Option B: PWA Square Mobile App Launcher (512x512) -->
+      <div class="formal-card rounded-3xl p-8 flex flex-col justify-between">
+        <div>
+          <div class="text-xs font-mono font-bold text-slate-500 uppercase mb-4 tracking-wider">Mobile Homescreen Icon (512x512)</div>
+          <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 flex items-center justify-center my-6">
+            <div class="w-24 h-24 rounded-3xl bg-white border-2 border-slate-900 p-3 shadow-xl flex flex-col items-center justify-center relative">
+              <div class="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-amber-400 text-2xl shadow-sm">
+                ⚡
+              </div>
+              <span class="text-[11px] font-black tracking-widest text-slate-900 mt-1">FROSE</span>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-500 border-t border-slate-100 pt-4">
+          <strong class="text-slate-800">Use case:</strong> Android / iOS PWA homescreen icon. Stands out with executive clarity on light phone wallpapers.
+        </div>
+      </div>
+
+      <!-- Option C: Minimal Receipt & Thermal Stamp -->
+      <div class="formal-card rounded-3xl p-8 flex flex-col justify-between">
+        <div>
+          <div class="text-xs font-mono font-bold text-slate-500 uppercase mb-4 tracking-wider">Thermal Receipt & WhatsApp Stamp</div>
+          <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 flex items-center justify-center my-6">
+            <div class="border-2 border-slate-900 p-4 rounded-xl text-center bg-white text-slate-900 font-mono w-full">
+              <div class="text-xs font-bold uppercase tracking-widest">FROSE STREET POS</div>
+              <div class="text-[11px] text-slate-600">street.frostech.com</div>
+              <div class="text-[9px] mt-1 text-amber-700 font-bold uppercase">OFFICIAL FISCAL REGISTER</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-500 border-t border-slate-100 pt-4">
+          <strong class="text-slate-800">Use case:</strong> 58mm/80mm Bluetooth thermal printers and daily WhatsApp Z-report header.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 2: FORMAL TWO-COLOR PALETTE -->
+  <section class="max-w-7xl mx-auto mb-20" id="section-formal-palette">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-sm">2</span>
+      <h2 class="text-2xl font-extrabold text-slate-900">Formal Two-Color System Tokens</h2>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-6">
+      
+      <!-- Color 1: Executive Navy -->
+      <div class="formal-card rounded-2xl p-5">
+        <div class="h-20 w-full rounded-xl bg-[#0F172A] mb-3 flex items-end p-2.5 shadow-sm">
+          <span class="text-xs font-mono text-white font-bold">#0F172A</span>
+        </div>
+        <div class="text-base font-bold text-slate-900">Executive Navy (Primary 1)</div>
+        <div class="text-xs text-slate-500 mt-0.5">Corporate authority, typography, primary borders & titles.</div>
+      </div>
+
+      <!-- Color 2: Warm Saffron Amber -->
+      <div class="formal-card rounded-2xl p-5">
+        <div class="h-20 w-full rounded-xl bg-[#D97706] mb-3 flex items-end p-2.5 shadow-sm">
+          <span class="text-xs font-mono text-white font-bold">#D97706</span>
+        </div>
+        <div class="text-base font-bold text-slate-900">Saffron Amber (Primary 2)</div>
+        <div class="text-xs text-slate-500 mt-0.5">Action accents, active tokens, key tender triggers & badge pills.</div>
+      </div>
+
+      <!-- Canvas Neutral: Pure White -->
+      <div class="formal-card rounded-2xl p-5">
+        <div class="h-20 w-full rounded-xl bg-[#FFFFFF] border border-slate-300 mb-3 flex items-end p-2.5 shadow-sm">
+          <span class="text-xs font-mono text-slate-800 font-bold">#FFFFFF</span>
+        </div>
+        <div class="text-base font-bold text-slate-900">Pure White (Surface)</div>
+        <div class="text-xs text-slate-500 mt-0.5">Card surfaces, active buttons, clean and bright background.</div>
+      </div>
+
+      <!-- Canvas Neutral: Soft Slate Base -->
+      <div class="formal-card rounded-2xl p-5">
+        <div class="h-20 w-full rounded-xl bg-[#F8FAFC] border border-slate-300 mb-3 flex items-end p-2.5 shadow-sm">
+          <span class="text-xs font-mono text-slate-800 font-bold">#F8FAFC</span>
+        </div>
+        <div class="text-base font-bold text-slate-900">Soft Slate (Canvas Base)</div>
+        <div class="text-xs text-slate-500 mt-0.5">Subtle page backdrop, resting states, input backgrounds.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 3: HOME SCREEN (THE 3 PORTALS) IN FORMAL LIGHT THEME -->
+  <section class="max-w-7xl mx-auto mb-20" id="section-formal-home">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-sm">3</span>
+      <h2 class="text-2xl font-extrabold text-slate-900">Formal Light Home Screen & The 3 Portal Buttons</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+      
+      <!-- Phone Viewport -->
+      <div class="lg:col-span-5 flex justify-center">
+        <div class="phone-frame-light p-6 flex flex-col justify-between">
+          <div class="phone-notch-light"></div>
+
+          <!-- Top App Bar -->
+          <div class="pt-6 pb-4 border-b border-slate-200">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-amber-400 font-black text-lg shadow-sm">
+                  ⚡
+                </div>
+                <div>
+                  <div class="text-base font-black tracking-tight text-slate-900 leading-tight">
+                    FROSE <span class="text-amber-600">STREET</span>
+                  </div>
+                  <div class="text-xs text-slate-500 font-medium">Tibetan Momo & Chai Point</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-300 text-slate-800 text-xs font-bold">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Active
+              </div>
+            </div>
+          </div>
+
+          <!-- The 3 Formal Portal Buttons -->
+          <div class="my-auto py-5 space-y-4">
+            
+            <div class="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider px-1">
+              Select Counter Operation
+            </div>
+
+            <!-- Portal 1: Billing Counter Button -->
+            <a href="#billing" class="block w-full formal-btn bg-white border-2 border-slate-900 rounded-2xl p-4 text-left group">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-14 h-14 rounded-xl bg-slate-900 flex items-center justify-center text-2xl shadow-sm text-white font-black flex-shrink-0">
+                    🧾
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-black font-mono tracking-wider uppercase">PORTAL 01</span>
+                    </div>
+                    <div class="text-lg font-black text-slate-900 group-hover:text-blue-700 leading-tight mt-0.5">BILLING COUNTER</div>
+                    <div class="text-[12px] text-slate-500 font-medium">Punch Orders • Cash & UPI • Daily Galla</div>
+                  </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-slate-900 group-hover:text-white flex items-center justify-center text-slate-700 text-sm font-bold flex-shrink-0 transition">
+                  →
+                </div>
+              </div>
+            </a>
+
+            <!-- Portal 2: Packaging & Serving Button -->
+            <a href="#packaging" class="block w-full formal-btn bg-white border-2 border-slate-300 hover:border-slate-900 rounded-2xl p-4 text-left group">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-14 h-14 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-center text-2xl shadow-sm text-slate-800 font-black flex-shrink-0">
+                    📦
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-black font-mono tracking-wider uppercase">PORTAL 02</span>
+                    </div>
+                    <div class="text-lg font-black text-slate-900 group-hover:text-blue-700 leading-tight mt-0.5">PACKAGING & SERVING</div>
+                    <div class="text-[12px] text-slate-500 font-medium">Ready Lane • Coin Match • Deliver</div>
+                  </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-slate-900 group-hover:text-white flex items-center justify-center text-slate-700 text-sm font-bold flex-shrink-0 transition">
+                  →
+                </div>
+              </div>
+            </a>
+
+            <!-- Portal 3: Kitchen Display Button -->
+            <a href="#kitchen" class="block w-full formal-btn bg-white border-2 border-slate-300 hover:border-slate-900 rounded-2xl p-4 text-left group">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-14 h-14 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-center text-2xl shadow-sm text-slate-800 font-black flex-shrink-0">
+                    🍳
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-black font-mono tracking-wider uppercase">PORTAL 03</span>
+                    </div>
+                    <div class="text-lg font-black text-slate-900 group-hover:text-blue-700 leading-tight mt-0.5">KITCHEN DISPLAY</div>
+                    <div class="text-[12px] text-slate-500 font-medium">Cook Screen • FIFO Queue • 1-Tap Ready</div>
+                  </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-slate-100 group-hover:bg-slate-900 group-hover:text-white flex items-center justify-center text-slate-700 text-sm font-bold flex-shrink-0 transition">
+                  →
+                </div>
+              </div>
+            </a>
+
+            <!-- Helper Quick Pairing Strip -->
+            <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between mt-2">
+              <div class="flex items-center gap-2.5">
+                <span class="text-xl">📲</span>
+                <div>
+                  <div class="text-xs font-bold text-slate-900">Pair Helper Device</div>
+                  <div class="text-[11px] text-slate-500">Scan QR from cook or packer phone</div>
+                </div>
+              </div>
+              <button class="px-3 py-1.5 bg-white border border-slate-300 hover:border-slate-900 text-slate-900 text-xs font-bold rounded-xl shadow-xs">
+                Pair QR
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Bottom Galla Snapshot Drawer -->
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 mt-auto">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-600 uppercase font-mono tracking-wider">Today's Daily Summary</span>
+              <span class="text-[11px] font-bold text-amber-700 font-mono">Token #28</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-white border border-slate-200 p-2 rounded-xl shadow-2xs">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">Total Sales</div>
+                <div class="text-sm font-black text-slate-900">₹3,480</div>
+              </div>
+              <div class="bg-white border border-slate-200 p-2 rounded-xl shadow-2xs">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">Cash Galla</div>
+                <div class="text-sm font-black text-emerald-700">₹1,950</div>
+              </div>
+              <div class="bg-white border border-slate-200 p-2 rounded-xl shadow-2xs">
+                <div class="text-[10px] text-slate-500 uppercase font-bold">UPI Sales</div>
+                <div class="text-sm font-black text-amber-700">₹1,530</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Formal Sizing & Touch Architecture -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="formal-card rounded-3xl p-8">
+          <div class="text-xs font-mono font-bold text-amber-700 uppercase tracking-wider mb-2">Ergonomic Touch Targets</div>
+          <h3 class="text-2xl font-black text-slate-900 mb-4">Button Sizing & Formal Layout Specifications</h3>
+          <p class="text-slate-600 text-sm mb-6 leading-relaxed">
+            By combining high-contrast Executive Navy borders with clean White cards, the interface maintains razor-sharp clarity in outdoor lighting without fatiguing the cashier's eyes.
+          </p>
+
+          <div class="space-y-4">
+            
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-start gap-4">
+              <div class="px-3 py-1.5 rounded-lg bg-slate-900 text-white font-mono font-bold text-sm">
+                80px
+              </div>
+              <div>
+                <div class="text-sm font-bold text-slate-900">Generous 80px Touch Target Height</div>
+                <div class="text-xs text-slate-600 mt-0.5">
+                  Ample room for single-handed thumb tapping. 16px internal padding and 12px vertical card spacing eliminate accidental taps entirely.
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-start gap-4">
+              <div class="px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-mono font-bold text-sm">
+                2-Color
+              </div>
+              <div>
+                <div class="text-sm font-bold text-slate-900">Restrained Two-Color Visual Hierarchy</div>
+                <div class="text-xs text-slate-600 mt-0.5">
+                  Uses only <strong>Executive Navy (#0F172A)</strong> for structure, text, and active outlines, paired with <strong>Saffron Amber (#D97706)</strong> for calls-to-action and active tokens. Zero visual clutter.
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-start gap-4">
+              <div class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-800 font-mono font-bold text-sm">
+                Shadow
+              </div>
+              <div>
+                <div class="text-sm font-bold text-slate-900">Crisp Corporate Card Shadows</div>
+                <div class="text-xs text-slate-600 mt-0.5">
+                  Soft diffused elevation shadows distinguish active buttons from background surfaces, ensuring tactile visual depth without heavy dark gradients.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Single Hand Thumb Usability -->
+        <div class="bg-gradient-to-r from-slate-100 to-amber-50 border border-slate-200 rounded-3xl p-6 flex items-center justify-between">
+          <div>
+            <div class="text-sm font-bold text-slate-900">Full Single-Handed Operation</div>
+            <div class="text-xs text-slate-600 mt-0.5">All 3 primary portals sit in the thumb reach zone of standard 5.5" to 6.7" phones.</div>
+          </div>
+          <span class="px-3 py-1 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 font-bold font-mono">
+            Thumb-Zone ✓
+          </span>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 4: FORMAL CREDENTIALS & QUICK PIN KEYPAD -->
+  <section class="max-w-7xl mx-auto mb-20" id="section-formal-credentials">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-sm">4</span>
+      <h2 class="text-2xl font-extrabold text-slate-900">Formal Credentials Screen: 72px Quick PIN Keypad</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+      
+      <!-- Phone Viewport for PIN Keypad -->
+      <div class="lg:col-span-5 flex justify-center">
+        <div class="phone-frame-light p-6 flex flex-col justify-between">
+          <div class="phone-notch-light"></div>
+
+          <!-- Header -->
+          <div class="pt-6 pb-2 text-center">
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-slate-900 flex items-center justify-center text-amber-400 text-2xl shadow-sm mb-2">
+              ⚡
+            </div>
+            <h3 class="text-xl font-black text-slate-900">Stall Authentication</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Enter 4-digit PIN for <strong>+91 98765 43210</strong></p>
+          </div>
+
+          <!-- PIN Indicator Dots -->
+          <div class="flex items-center justify-center gap-4 my-4">
+            <div class="w-4 h-4 rounded-full bg-slate-900 ring-4 ring-slate-200"></div>
+            <div class="w-4 h-4 rounded-full bg-slate-900 ring-4 ring-slate-200"></div>
+            <div class="w-4 h-4 rounded-full bg-slate-200"></div>
+            <div class="w-4 h-4 rounded-full bg-slate-200"></div>
+          </div>
+
+          <!-- Giant 72px Tactile Light Numpad -->
+          <div class="grid grid-cols-3 gap-3 my-auto px-2">
+            
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">1</button>
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">2</button>
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">3</button>
+
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">4</button>
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">5</button>
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">6</button>
+
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">7</button>
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">8</button>
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">9</button>
+
+            <button class="formal-btn h-16 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-800 text-xl font-bold flex items-center justify-center hover:bg-amber-100" title="Biometric Unlock">
+              👆
+            </button>
+            <button class="formal-btn h-16 rounded-2xl bg-white border-2 border-slate-200 hover:border-slate-900 text-2xl font-black text-slate-900 active:bg-slate-900 active:text-white">0</button>
+            <button class="formal-btn h-16 rounded-2xl bg-slate-100 border-2 border-slate-200 text-xl font-bold text-rose-600 hover:bg-rose-50 active:bg-rose-600 active:text-white" title="Backspace">
+              ⌫
+            </button>
+
+          </div>
+
+          <!-- Switcher -->
+          <div class="border-t border-slate-200 pt-3 flex items-center justify-between text-xs text-slate-500">
+            <button class="hover:text-slate-900 font-medium">Use Password</button>
+            <button class="text-amber-700 font-bold hover:underline">Register New Stall</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Formal Auth Architecture -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="formal-card rounded-3xl p-8">
+          <div class="text-xs font-mono font-bold text-amber-700 uppercase tracking-wider mb-2">Fast Stall Sign-in</div>
+          <h3 class="text-2xl font-black text-slate-900 mb-4">Formal Enterprise Authentication Modes</h3>
+          <p class="text-slate-600 text-sm mb-6 leading-relaxed">
+            Fast, secure, keyboard-free login designed for busy counter operations. No slow keyboard popups, no password typing under customer gaze.
+          </p>
+
+          <div class="space-y-4">
+            
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">🔑</span>
+                  <span class="text-base font-bold text-slate-900">4-Digit Quick PIN Keypad</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-800 text-xs font-mono font-bold">1 Second</span>
+              </div>
+              <p class="text-xs text-slate-600">
+                Large 72px physical buttons on screen. Secure salted scrypt backend hashing with 5-attempt rate-limiting lockout.
+              </p>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">👆</span>
+                  <span class="text-base font-bold text-slate-900">Hardware Biometric Fingerprint (WebAuthn)</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-mono font-bold">Instant Touch</span>
+              </div>
+              <p class="text-xs text-slate-600">
+                Direct phone hardware authentication (FIDO2). 1-tap fingerprint or face unlock without entering any code.
+              </p>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">📷</span>
+                  <span class="text-base font-bold text-slate-900">Helper Device QR Scan</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-800 text-xs font-mono font-bold">Role Scoped</span>
+              </div>
+              <p class="text-xs text-slate-600">
+                Cooks and packers scan a single-use QR pairing token from the cashier phone, granting instant role-scoped access without master password exposure.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="formal-card rounded-3xl p-6 flex items-center justify-between">
+          <div>
+            <div class="text-sm font-bold text-slate-900">30-Second Stall Registration</div>
+            <div class="text-xs text-slate-600 mt-0.5">Phone Number + Business Name + Street Category (Momo, Chai, Dosa, Shawarma)</div>
+          </div>
+          <button class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm">
+            Register Flow
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="max-w-7xl mx-auto border-t border-slate-200 pt-8 pb-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
+    <div>FROSE Street Micro-POS • Formal Two-Color Enterprise System</div>
+    <div>street.frostech.com • Executive Navy + Saffron Amber</div>
+  </footer>
+
+</body>
+</html>

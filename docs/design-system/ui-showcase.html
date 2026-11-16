@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FROSE Street — Official UI/UX Design System & Screen Blueprint</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #07080A;
+      color: #F8FAFC;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .tactile-btn {
+      transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4), 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+    .tactile-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4), 0 3px 8px rgba(0, 0, 0, 0.3);
+    }
+    .phone-frame {
+      width: 400px;
+      min-height: 820px;
+      background: #0D0E14;
+      border: 3px solid #232838;
+      border-radius: 44px;
+      box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+    }
+    .phone-notch {
+      width: 140px;
+      height: 26px;
+      background: #000;
+      border-bottom-left-radius: 18px;
+      border-bottom-right-radius: 18px;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+    }
+    .glow-amber {
+      box-shadow: 0 0 35px -5px rgba(245, 158, 11, 0.25);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.25);
+    }
+    .glow-orange {
+      box-shadow: 0 0 35px -5px rgba(249, 115, 22, 0.25);
+    }
+  </style>
+</head>
+<body class="p-6 md:p-12 antialiased selection:bg-amber-500 selection:text-black">
+
+  <!-- Header & Title Banner -->
+  <header class="max-w-7xl mx-auto mb-16 border-b border-slate-800 pb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+    <div>
+      <div class="flex items-center gap-3 mb-2">
+        <span class="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-bold text-xs uppercase tracking-widest font-mono">
+          Phase 11 Blueprint
+        </span>
+        <span class="text-slate-500 text-sm">street.frostech.com</span>
+      </div>
+      <h1 class="text-4xl md:text-5xl font-black tracking-tight text-white flex items-center gap-3">
+        FROSE <span class="text-amber-500">STREET</span> UI/UX System
+      </h1>
+      <p class="text-slate-400 text-base max-w-2xl mt-2 font-normal">
+        Sunlight-readable, tactile, greasy-thumb-optimized design system built exclusively for Indian street food carts, kiosks, and quick-service stalls.
+      </p>
+    </div>
+    <div class="flex items-center gap-4 bg-slate-900/80 border border-slate-800 p-3 rounded-2xl">
+      <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+      <div>
+        <div class="text-xs text-slate-400 uppercase font-bold tracking-wider">Design Standard</div>
+        <div class="text-sm font-semibold text-white">72px+ Touch Targets • Zero-Glare Onyx</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SECTION 1: LOGO DESIGN OPTIONS & ASSETS -->
+  <section class="max-w-7xl mx-auto mb-20" id="section-logos">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-amber-500 text-black flex items-center justify-center font-black text-sm">1</span>
+      <h2 class="text-2xl font-extrabold text-white">Brand Logo Lockups & App Icons</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Option A: Primary Horizontal Nav Logo -->
+      <div class="bg-[#12141D] border border-slate-800/80 rounded-3xl p-8 flex flex-col justify-between hover:border-amber-500/40 transition">
+        <div>
+          <div class="text-xs font-mono font-bold text-amber-400 uppercase mb-4 tracking-wider">Primary Nav Lockup (Screen Header)</div>
+          <div class="bg-[#0A0B10] border border-slate-800 rounded-2xl p-6 flex items-center justify-center my-6">
+            <div class="flex items-center gap-3">
+              <!-- Cart Badge Icon -->
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                <span class="text-2xl">⚡</span>
+              </div>
+              <!-- Text Lockup -->
+              <div class="flex flex-col">
+                <div class="flex items-center gap-2">
+                  <span class="text-2xl font-black tracking-wider text-white">FROSE</span>
+                  <span class="px-2 py-0.5 rounded-md bg-amber-500 text-black text-xs font-black tracking-widest uppercase">
+                    STREET
+                  </span>
+                </div>
+                <span class="text-[11px] font-semibold text-slate-400 tracking-wider font-mono">MICRO-POS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-400 border-t border-slate-800/60 pt-4">
+          <strong class="text-white">Use case:</strong> Top navigation bar across Billing, Packaging, and Kitchen screens. Crisp contrast on dark carbon surfaces.
+        </div>
+      </div>
+
+      <!-- Option B: PWA Square App Icon (Homescreen Launcher) -->
+      <div class="bg-[#12141D] border border-slate-800/80 rounded-3xl p-8 flex flex-col justify-between hover:border-amber-500/40 transition">
+        <div>
+          <div class="text-xs font-mono font-bold text-emerald-400 uppercase mb-4 tracking-wider">PWA Mobile Homescreen Icon (512x512)</div>
+          <div class="bg-[#0A0B10] border border-slate-800 rounded-2xl p-6 flex items-center justify-center my-6">
+            <!-- 96px App Icon Mockup -->
+            <div class="w-24 h-24 rounded-3xl bg-gradient-to-b from-[#1C1F2B] to-[#0E1017] border-2 border-amber-500/40 p-3 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden group">
+              <div class="absolute inset-0 bg-gradient-to-tr from-amber-500/10 to-transparent"></div>
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-2xl shadow-md">
+                ⚡
+              </div>
+              <span class="text-[11px] font-black tracking-widest text-white mt-1">FROSE</span>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-400 border-t border-slate-800/60 pt-4">
+          <strong class="text-white">Use case:</strong> Android / iOS PWA Add to Home Screen icon. Distinctive, recognisable among dozens of stall apps.
+        </div>
+      </div>
+
+      <!-- Option C: Thermal Print & High-Contrast Monochrome Logo -->
+      <div class="bg-[#12141D] border border-slate-800/80 rounded-3xl p-8 flex flex-col justify-between hover:border-amber-500/40 transition">
+        <div>
+          <div class="text-xs font-mono font-bold text-slate-400 uppercase mb-4 tracking-wider">Thermal Receipt & WhatsApp Stamp</div>
+          <div class="bg-[#0A0B10] border border-slate-800 rounded-2xl p-6 flex items-center justify-center my-6">
+            <div class="border-2 border-dashed border-slate-600 p-4 rounded-xl text-center bg-white text-black font-mono">
+              <div class="text-xs font-bold uppercase tracking-widest">⚡ FROSE STREET ⚡</div>
+              <div class="text-[10px] text-slate-600">street.frostech.com</div>
+              <div class="text-[9px] mt-1 text-slate-500">TAMPER-PROOF TOKEN POS</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-xs text-slate-400 border-t border-slate-800/60 pt-4">
+          <strong class="text-white">Use case:</strong> 58mm/80mm Bluetooth thermal slips and WhatsApp daily Z-report header.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 2: COLOR PALETTE & SUNLIGHT DESIGN TOKENS -->
+  <section class="max-w-7xl mx-auto mb-20" id="section-palette">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-amber-500 text-black flex items-center justify-center font-black text-sm">2</span>
+      <h2 class="text-2xl font-extrabold text-white">Color Palette & Sunlight-Readable Tokens</h2>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+      
+      <!-- Token 1: Deep Carbon Onyx -->
+      <div class="bg-[#12141D] border border-slate-800 rounded-2xl p-4">
+        <div class="h-16 w-full rounded-xl bg-[#0B0C10] border border-slate-700/60 mb-3 flex items-end p-2">
+          <span class="text-[10px] font-mono text-slate-400">#0B0C10</span>
+        </div>
+        <div class="text-sm font-bold text-white">Deep Carbon</div>
+        <div class="text-xs text-slate-400">Primary Surface (Anti-Glare)</div>
+      </div>
+
+      <!-- Token 2: Elevated Card Surface -->
+      <div class="bg-[#12141D] border border-slate-800 rounded-2xl p-4">
+        <div class="h-16 w-full rounded-xl bg-[#161922] border border-slate-700/60 mb-3 flex items-end p-2">
+          <span class="text-[10px] font-mono text-slate-400">#161922</span>
+        </div>
+        <div class="text-sm font-bold text-white">Elevated Slate</div>
+        <div class="text-xs text-slate-400">Cards & Modals</div>
+      </div>
+
+      <!-- Token 3: Solar Amber -->
+      <div class="bg-[#12141D] border border-slate-800 rounded-2xl p-4">
+        <div class="h-16 w-full rounded-xl bg-[#F59E0B] mb-3 flex items-end p-2">
+          <span class="text-[10px] font-mono text-black font-bold">#F59E0B</span>
+        </div>
+        <div class="text-sm font-bold text-white">Solar Amber</div>
+        <div class="text-xs text-slate-400">Billing & Core Action</div>
+      </div>
+
+      <!-- Token 4: Emerald Ready -->
+      <div class="bg-[#12141D] border border-slate-800 rounded-2xl p-4">
+        <div class="h-16 w-full rounded-xl bg-[#10B981] mb-3 flex items-end p-2">
+          <span class="text-[10px] font-mono text-black font-bold">#10B981</span>
+        </div>
+        <div class="text-sm font-bold text-white">Emerald Ready</div>
+        <div class="text-xs text-slate-400">Packaging & Paid State</div>
+      </div>
+
+      <!-- Token 5: Flame Kitchen -->
+      <div class="bg-[#12141D] border border-slate-800 rounded-2xl p-4">
+        <div class="h-16 w-full rounded-xl bg-[#F97316] mb-3 flex items-end p-2">
+          <span class="text-[10px] font-mono text-black font-bold">#F97316</span>
+        </div>
+        <div class="text-sm font-bold text-white">Flame Orange</div>
+        <div class="text-xs text-slate-400">Kitchen KDS & Cooking</div>
+      </div>
+
+      <!-- Token 6: Crisp White Contrast -->
+      <div class="bg-[#12141D] border border-slate-800 rounded-2xl p-4">
+        <div class="h-16 w-full rounded-xl bg-[#FFFFFF] mb-3 flex items-end p-2">
+          <span class="text-[10px] font-mono text-black font-bold">#FFFFFF</span>
+        </div>
+        <div class="text-sm font-bold text-white">Pure White</div>
+        <div class="text-xs text-slate-400">Tokens, Prices & Titles</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 3: HOME SCREEN (THE 3 PORTALS LANDING HUB) & BUTTON SPECIFICATIONS -->
+  <section class="max-w-7xl mx-auto mb-20" id="section-home">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-amber-500 text-black flex items-center justify-center font-black text-sm">3</span>
+      <h2 class="text-2xl font-extrabold text-white">Home Screen & The 3 Giant Tactile Portal Buttons</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+      
+      <!-- Phone Frame Viewport -->
+      <div class="lg:col-span-5 flex justify-center">
+        <div class="phone-frame p-5 flex flex-col justify-between">
+          <div class="phone-notch"></div>
+          
+          <!-- Top App Bar in Phone -->
+          <div class="pt-6 pb-4 border-b border-slate-800/80">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center text-lg shadow-md shadow-amber-500/20">
+                  ⚡
+                </div>
+                <div>
+                  <div class="text-sm font-black tracking-wide text-white leading-tight">FROSE <span class="text-amber-400">STREET</span></div>
+                  <div class="text-[11px] text-slate-400 font-medium">Tibetan Momo Stall</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Cloud
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Portals List -->
+          <div class="my-auto py-4 space-y-4">
+            
+            <div class="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest mb-1 px-1">
+              Select Operating Screen
+            </div>
+
+            <!-- Portal 1: Billing Counter Button -->
+            <a href="#billing" class="block w-full tactile-btn bg-gradient-to-r from-[#1E190E] via-[#2A2012] to-[#1E190E] border-2 border-amber-500/70 border-b-4 border-b-amber-600 rounded-2xl p-4 text-left group glow-amber">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-14 h-14 rounded-xl bg-amber-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 text-black font-black flex-shrink-0">
+                    🧾
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono font-bold text-amber-400 tracking-wider uppercase">PORTAL 01</div>
+                    <div class="text-lg font-black text-white group-hover:text-amber-300 leading-tight">BILLING COUNTER</div>
+                    <div class="text-[12px] text-amber-200/70 mt-0.5">Punch • Cash & UPI • Daily Galla</div>
+                  </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 text-sm font-bold flex-shrink-0">
+                  →
+                </div>
+              </div>
+            </a>
+
+            <!-- Portal 2: Packaging & Serving Button -->
+            <a href="#packaging" class="block w-full tactile-btn bg-gradient-to-r from-[#0E1E17] via-[#122A1E] to-[#0E1E17] border-2 border-emerald-500/70 border-b-4 border-b-emerald-600 rounded-2xl p-4 text-left group glow-emerald">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-14 h-14 rounded-xl bg-emerald-500 flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/30 text-black font-black flex-shrink-0">
+                    📦
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono font-bold text-emerald-400 tracking-wider uppercase">PORTAL 02</div>
+                    <div class="text-lg font-black text-white group-hover:text-emerald-300 leading-tight">PACKAGING & SERVING</div>
+                    <div class="text-[12px] text-emerald-200/70 mt-0.5">Ready Lane • Coin Match • Deliver</div>
+                  </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-sm font-bold flex-shrink-0">
+                  →
+                </div>
+              </div>
+            </a>
+
+            <!-- Portal 3: Kitchen Display Button -->
+            <a href="#kitchen" class="block w-full tactile-btn bg-gradient-to-r from-[#1E140E] via-[#2A1910] to-[#1E140E] border-2 border-orange-500/70 border-b-4 border-b-orange-600 rounded-2xl p-4 text-left group glow-orange">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-14 h-14 rounded-xl bg-orange-500 flex items-center justify-center text-2xl shadow-lg shadow-orange-500/30 text-black font-black flex-shrink-0">
+                    🍳
+                  </div>
+                  <div>
+                    <div class="text-xs font-mono font-bold text-orange-400 tracking-wider uppercase">PORTAL 03</div>
+                    <div class="text-lg font-black text-white group-hover:text-orange-300 leading-tight">KITCHEN DISPLAY</div>
+                    <div class="text-[12px] text-orange-200/70 mt-0.5">Cook Queue • Always Awake • Ready</div>
+                  </div>
+                </div>
+                <div class="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 text-sm font-bold flex-shrink-0">
+                  →
+                </div>
+              </div>
+            </a>
+
+            <!-- Device Quick Pairing Banner -->
+            <div class="mt-4 p-3 bg-slate-900/90 border border-dashed border-slate-700 rounded-2xl flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="text-xl">📲</span>
+                <div>
+                  <div class="text-xs font-bold text-white">Connect Helper Phone</div>
+                  <div class="text-[11px] text-slate-400">Scan QR to pair cook or packer</div>
+                </div>
+              </div>
+              <button class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl border border-slate-700">
+                Pair QR
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Bottom Galla Snapshot Drawer in Phone -->
+          <div class="bg-[#141620] border border-slate-800 rounded-2xl p-3.5 mt-auto">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-400 uppercase font-mono tracking-wider">Today's Galla Glance</span>
+              <span class="text-[11px] font-bold text-amber-400 font-mono">Token #28</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-[#0A0B10] p-2 rounded-xl">
+                <div class="text-[10px] text-slate-400">Total Sales</div>
+                <div class="text-sm font-black text-white">₹3,480</div>
+              </div>
+              <div class="bg-[#0A0B10] p-2 rounded-xl">
+                <div class="text-[10px] text-slate-400">In Cash Galla</div>
+                <div class="text-sm font-black text-emerald-400">₹1,950</div>
+              </div>
+              <div class="bg-[#0A0B10] p-2 rounded-xl">
+                <div class="text-[10px] text-slate-400">Via UPI</div>
+                <div class="text-sm font-black text-amber-400">₹1,530</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Button Anatomy & Ergonomics Blueprint Specification -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="bg-[#12141D] border border-slate-800 rounded-3xl p-8">
+          <div class="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider mb-2">Tactile Touch Architecture</div>
+          <h3 class="text-2xl font-black text-white mb-4">Button Sizing & Physical Ergonomics</h3>
+          <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+            Street food stalls operate in high-friction physical environments: cooks have flour or oil on their hands, cashiers are multitasking between counting change and greeting customers, and bright direct sunlight washes out standard subtle mobile UIs.
+          </p>
+
+          <div class="space-y-4">
+            
+            <!-- Spec 1: Height & Minimum Target -->
+            <div class="bg-[#0B0C10] border border-slate-800 rounded-2xl p-4 flex items-start gap-4">
+              <div class="px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono font-bold text-sm">
+                84px
+              </div>
+              <div>
+                <div class="text-sm font-bold text-white">Extreme Height Touch Target</div>
+                <div class="text-xs text-slate-400 mt-0.5">
+                  Standard web buttons are 40px–48px. FROSE Street uses a mandatory <strong class="text-white">84px vertical touch surface</strong> with 16px vertical padding, ensuring 100% blind-tap accuracy without looking down.
+                </div>
+              </div>
+            </div>
+
+            <!-- Spec 2: 3D Mechanical Affordance -->
+            <div class="bg-[#0B0C10] border border-slate-800 rounded-2xl p-4 flex items-start gap-4">
+              <div class="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-bold text-sm">
+                4px 3D
+              </div>
+              <div>
+                <div class="text-sm font-bold text-white">4px Mechanical Bottom Border & Instant Feedback</div>
+                <div class="text-xs text-slate-400 mt-0.5">
+                  Embossed 4px solid colored base border (`border-b-4`). When tapped, translates down 3px with haptic vibration, giving instant tactile feedback even through greasy thumbs.
+                </div>
+              </div>
+            </div>
+
+            <!-- Spec 3: Color-Coded Workflow -->
+            <div class="bg-[#0B0C10] border border-slate-800 rounded-2xl p-4 flex items-start gap-4">
+              <div class="px-3 py-1.5 rounded-lg bg-orange-500/10 border border-orange-500/30 text-orange-400 font-mono font-bold text-sm">
+                3 Colors
+              </div>
+              <div>
+                <div class="text-sm font-bold text-white">Role-Differentiated Chromatic Identification</div>
+                <div class="text-xs text-slate-400 mt-0.5">
+                  <span class="text-amber-400 font-bold">Amber (Billing)</span> vs <span class="text-emerald-400 font-bold">Emerald (Packaging)</span> vs <span class="text-orange-400 font-bold">Flame (Kitchen)</span>. Staff can distinguish roles across the cart from 10 feet away.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Touch Area Heatmap Card -->
+        <div class="bg-gradient-to-r from-amber-500/10 via-transparent to-emerald-500/10 border border-slate-800 rounded-3xl p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-xs font-mono font-bold text-white uppercase tracking-wider">Natural Thumb Zone Compliant</div>
+              <div class="text-sm text-slate-400 mt-1">Buttons positioned in the lower 60% of the screen for natural single-handed thumb operation.</div>
+            </div>
+            <div class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-amber-300 font-bold font-mono">
+              Thumb-Optimized
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 4: CREDENTIALS & AUTHENTICATION SCREENS -->
+  <section class="max-w-7xl mx-auto mb-20" id="section-credentials">
+    <div class="flex items-center gap-3 mb-6">
+      <span class="w-8 h-8 rounded-lg bg-amber-500 text-black flex items-center justify-center font-black text-sm">4</span>
+      <h2 class="text-2xl font-extrabold text-white">Credentials Screen: Quick PIN Keypad & Biometrics</h2>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+      
+      <!-- Phone Frame Viewport for PIN Keypad -->
+      <div class="lg:col-span-5 flex justify-center">
+        <div class="phone-frame p-6 flex flex-col justify-between">
+          <div class="phone-notch"></div>
+
+          <!-- Top Brand Header -->
+          <div class="pt-6 pb-2 text-center">
+            <div class="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 mb-2">
+              ⚡
+            </div>
+            <h3 class="text-xl font-black text-white">Stall Fast Login</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Enter 4-digit PIN for <strong>+91 98765 43210</strong></p>
+          </div>
+
+          <!-- PIN Dots Indicator -->
+          <div class="flex items-center justify-center gap-4 my-4">
+            <div class="w-4 h-4 rounded-full bg-amber-400 ring-4 ring-amber-400/20 shadow-md shadow-amber-500"></div>
+            <div class="w-4 h-4 rounded-full bg-amber-400 ring-4 ring-amber-400/20 shadow-md shadow-amber-500"></div>
+            <div class="w-4 h-4 rounded-full bg-slate-700"></div>
+            <div class="w-4 h-4 rounded-full bg-slate-700"></div>
+          </div>
+
+          <!-- Giant 72px Tactile Numpad -->
+          <div class="grid grid-cols-3 gap-3.5 my-auto px-2">
+            
+            <!-- Keys 1 to 9 -->
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">1</button>
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">2</button>
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">3</button>
+
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">4</button>
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">5</button>
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">6</button>
+
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">7</button>
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">8</button>
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">9</button>
+
+            <!-- Bottom Row: Biometrics, 0, Backspace -->
+            <button class="tactile-btn h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xl font-bold flex items-center justify-center hover:bg-amber-500/20" title="Biometric Fingerprint">
+              👆
+            </button>
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-2xl font-black text-white hover:bg-[#1E2232] active:bg-amber-500 active:text-black">0</button>
+            <button class="tactile-btn h-16 rounded-2xl bg-[#161924] border border-slate-700/80 text-xl font-bold text-rose-400 hover:bg-[#1E2232] active:bg-rose-500 active:text-white" title="Backspace">
+              ⌫
+            </button>
+
+          </div>
+
+          <!-- Quick Switcher -->
+          <div class="border-t border-slate-800 pt-3 flex items-center justify-between text-xs text-slate-400">
+            <button class="hover:text-white">Use Password</button>
+            <button class="text-amber-400 font-bold hover:underline">Register New Stall</button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Credentials Architecture Specifications -->
+      <div class="lg:col-span-7 space-y-6">
+        <div class="bg-[#12141D] border border-slate-800 rounded-3xl p-8">
+          <div class="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider mb-2">Zero-Keyboard Friction</div>
+          <h3 class="text-2xl font-black text-white mb-4">Credentials & Authentication Modes</h3>
+          <p class="text-slate-400 text-sm mb-6 leading-relaxed">
+            Street vendors cannot tolerate full keyboard popups that obstruct half the screen when punching orders or logging in every morning. FROSE Street implements 3 fast-entry mechanisms:
+          </p>
+
+          <div class="space-y-4">
+            
+            <!-- Auth Mode 1: 4-Digit Quick PIN -->
+            <div class="bg-[#0B0C10] border border-slate-800 rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">🔑</span>
+                  <span class="text-base font-bold text-white">4-Digit Quick PIN Keypad</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-xs font-mono font-bold">1 Second Entry</span>
+              </div>
+              <p class="text-xs text-slate-400">
+                Large 64px physical buttons on-screen. Never triggers mobile OS software keyboard. Salted scrypt verification with automatic daily lockout protection after 5 consecutive incorrect attempts.
+              </p>
+            </div>
+
+            <!-- Auth Mode 2: WebAuthn Biometrics -->
+            <div class="bg-[#0B0C10] border border-slate-800 rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">👆</span>
+                  <span class="text-base font-bold text-white">1-Tap Fingerprint / Face Unlock (WebAuthn)</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-mono font-bold">Instant Touch</span>
+              </div>
+              <p class="text-xs text-slate-400">
+                Leverages phone hardware security chip (FIDO2 / WebAuthn). The stall owner touches their phone's physical fingerprint reader to authenticate instantly without typing any characters.
+              </p>
+            </div>
+
+            <!-- Auth Mode 3: QR Device Pairing for Helpers -->
+            <div class="bg-[#0B0C10] border border-slate-800 rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">📷</span>
+                  <span class="text-base font-bold text-white">QR Scan for Cook & Packer (Zero Typing)</span>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 text-xs font-mono font-bold">5-Min Single Use</span>
+              </div>
+              <p class="text-xs text-slate-400">
+                Helpers scan a 5-minute single-use QR from the owner's billing phone camera. Issues role-scoped tokens directly without exposing the master password or owner PIN.
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Registration Onboarding Preview -->
+        <div class="bg-[#12141D] border border-slate-800 rounded-3xl p-6 flex items-center justify-between">
+          <div>
+            <div class="text-sm font-bold text-white">30-Second Stall Onboarding</div>
+            <div class="text-xs text-slate-400 mt-0.5">Phone Number + Stall Name + Business Category (Momo, Chai, Shawarma, Dosa)</div>
+          </div>
+          <button class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black text-xs font-black rounded-xl">
+            Register Flow
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Summary Footer -->
+  <footer class="max-w-7xl mx-auto border-t border-slate-800/80 pt-8 pb-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-mono">
+    <div>FROSE Street Micro-POS • Phase 11 UI/UX Specification</div>
+    <div>street.frostech.com • Fastify + PostgreSQL + PWA</div>
+  </footer>
+
+</body>
+</html>

@@ -2329,3 +2329,523 @@ html, body {
     gap: 8px;
   }
 }
+
+
+/* ==========================================================================
+   PHASE 14: KITCHEN DISPLAY PORTAL (KDS)
+   Formal Two-Color Enterprise SaaS Design: Executive Navy (#0F172A) & Saffron Amber (#D97706)
+   Ergonomics: Knuckle-friendly action buttons (min-height >= 72px)
+   Border Age Colors: RED (0-3m), ORANGE (3-10m), BLACK/SLATE (10m+)
+   Financial Blindness: Zero currency/price displays
+   ========================================================================== */
+
+.kitchen-page {
+  background-color: var(--canvas-bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Sticky Reconnecting Banner */
+.kds-reconnect-banner {
+  background: #FEF3C7;
+  border-bottom: 2px solid #F59E0B;
+  padding: 10px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  animation: slideBanner 0.2s ease-out;
+}
+
+.kds-reconnect-banner .banner-inner {
+  max-width: 1360px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.banner-pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #DC2626;
+  animation: pulseDot 1s infinite;
+  flex-shrink: 0;
+}
+
+.banner-text {
+  font-family: var(--font-main);
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400E;
+  flex: 1;
+}
+
+.btn-banner-retry {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #F59E0B;
+  color: #FFFFFF;
+  border: none;
+  font-family: var(--font-main);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-banner-retry:hover {
+  background: #D97706;
+}
+
+/* Kitchen Top Header */
+.kitchen-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: #FFFFFF;
+  border-bottom: 1.5px solid var(--border-light);
+  box-shadow: 0 1px 6px rgba(15, 23, 42, 0.04);
+}
+
+.badge-kitchen {
+  background: #DC2626;
+  color: #FFFFFF;
+}
+
+.kds-header-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kds-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border-light);
+  background: var(--surface-subtle);
+}
+
+.kds-stat-pill.pill-pending {
+  border-color: #F59E0B;
+  background: #FFFBEB;
+}
+
+.kds-stat-pill.pill-pending .kds-stat-label {
+  color: #B45309;
+}
+
+.kds-stat-pill.pill-pending .kds-stat-val {
+  color: #B45309;
+}
+
+.kds-stat-pill.pill-done {
+  border-color: #10B981;
+  background: #ECFDF5;
+}
+
+.kds-stat-pill.pill-done .kds-stat-label {
+  color: #047857;
+}
+
+.kds-stat-pill.pill-done .kds-stat-val {
+  color: #047857;
+}
+
+.kds-stat-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.kds-stat-val {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* Wake Lock Screen Indicator */
+.kds-wakelock-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 16px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.kds-wakelock-pill .wakelock-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94A3B8;
+}
+
+.kds-wakelock-pill.active {
+  background: #F0FDF4;
+  border-color: #86EFAC;
+  color: #15803D;
+}
+
+.kds-wakelock-pill.active .wakelock-dot {
+  background: #22C55E;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+}
+
+/* KDS Main Viewport */
+.kds-viewport {
+  flex: 1;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 20px;
+  width: 100%;
+}
+
+/* Order Queue Responsive Grid */
+.kds-order-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* Kitchen Order Card */
+.kds-card {
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 2px solid var(--border-light);
+  border-left-width: 8px; /* High-contrast age indicator */
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out, box-shadow 0.2s ease;
+}
+
+.kds-card:hover {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+/* Slide-out animation on MARK READY */
+.kds-card.slide-out {
+  transform: translateX(115%) scale(0.95);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Card Age Statuses */
+/* 1. FRESH: 0-3 mins -> RED border (#EF4444) */
+.kds-card.age-fresh {
+  border-left-color: #EF4444;
+}
+.kds-card.age-fresh .kds-tag-timer {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+/* 2. COOKING: 3-10 mins -> ORANGE border (#F59E0B) */
+.kds-card.age-cooking {
+  border-left-color: #F59E0B;
+}
+.kds-card.age-cooking .kds-tag-timer {
+  background: #FFFBEB;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+}
+
+/* 3. OVERDUE: 10+ mins -> BLACK / SLATE DARK border (#0F172A) */
+.kds-card.age-overdue {
+  border-left-color: #0F172A;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.16);
+}
+.kds-card.age-overdue .kds-tag-timer {
+  background: #0F172A;
+  color: #FFFFFF;
+  border: 1px solid #0F172A;
+  font-weight: 800;
+  animation: pulseTimer 1.2s infinite alternate;
+}
+
+@keyframes pulseTimer {
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+
+/* Card Header */
+.kds-card-header {
+  padding: 16px 18px;
+  background: #FAFBFD;
+  border-bottom: 1.5px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kds-token-box {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.kds-token-prefix {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.kds-token-num {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--color-navy);
+  letter-spacing: -0.02em;
+}
+
+.kds-header-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kds-tag {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.kds-tag-type.tag-dinein {
+  background: #F1F5F9;
+  color: var(--color-navy);
+}
+
+.kds-tag-type.tag-takeaway {
+  background: #FFF7ED;
+  color: #C2410C;
+  border: 1px solid #FFEDD5;
+}
+
+.kds-tag-timer {
+  font-family: var(--font-mono);
+}
+
+/* Card Body */
+.kds-card-body {
+  padding: 16px 18px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kds-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kds-item-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-navy);
+  line-height: 1.35;
+}
+
+.kds-item-qty {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 900;
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 3px 8px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.kds-item-name {
+  flex: 1;
+  word-break: break-word;
+}
+
+.kds-item-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: #B45309;
+}
+
+.kds-order-note-box {
+  background: #FFFBEB;
+  border: 1.5px solid #FDE68A;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400E;
+  margin-top: auto;
+}
+
+.kds-order-note-box svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Card Footer: Large Knuckle-Friendly MARK READY Action */
+.kds-card-footer {
+  padding: 14px 18px 18px 18px;
+  border-top: 1.5px solid var(--border-light);
+  background: #FFFFFF;
+}
+
+.btn-mark-ready {
+  width: 100%;
+  min-height: 74px; /* Knuckle-friendly touch target >= 72px */
+  background: #059669;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 14px;
+  font-family: var(--font-main);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.btn-mark-ready:hover {
+  background: #047857;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(5, 150, 105, 0.35);
+}
+
+.btn-mark-ready:active {
+  transform: scale(0.97);
+}
+
+/* Empty State */
+.kds-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 20px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  border: 2px dashed var(--border-hover);
+  max-width: 600px;
+  margin: 40px auto 0 auto;
+}
+
+.empty-icon-wrap {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #FFFBEB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.empty-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-navy);
+  margin-bottom: 8px;
+}
+
+.empty-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+/* Toast */
+.kds-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #0F172A;
+  color: #FFFFFF;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-family: var(--font-main);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.25);
+  z-index: 200;
+  animation: slideToast 0.25s ease-out;
+}
+
+@keyframes slideToast {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ==========================================================================
+   KDS RESPONSIVE ADAPTATIONS (MOBILE, TABLET, DESKTOP)
+   ========================================================================== */
+
+/* Tablet (max-width: 1024px) */
+@media (max-width: 1024px) {
+  .kds-order-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* Mobile (max-width: 640px) */
+@media (max-width: 640px) {
+  .kds-viewport {
+    padding: 12px;
+  }
+  .kds-order-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .btn-mark-ready {
+    min-height: 72px;
+    font-size: 16px;
+  }
+  .kds-token-num {
+    font-size: 24px;
+  }
+  .kds-card-header {
+    padding: 12px 14px;
+  }
+  .kds-card-body {
+    padding: 14px;
+  }
+  .kds-card-footer {
+    padding: 12px 14px 14px 14px;
+  }
+  .d-none-mobile {
+    display: none !important;
+  }
+}

@@ -140,7 +140,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     });
   });
 
-  app.get('/kitchen', async (_req, reply) => {
+  app.get('/kitchen', async (req, reply) => {
+    const accept = req.headers.accept || '';
+    if (accept.includes('text/html')) {
+      const kitchenPath = path.resolve(process.cwd(), 'client/kitchen.html');
+      if (fs.existsSync(kitchenPath)) {
+        reply.type('text/html');
+        return reply.send(fs.readFileSync(kitchenPath, 'utf8'));
+      }
+    }
     return reply.status(200).send({
       portal: 'kitchen',
       status: 'ready',

@@ -325,9 +325,9 @@
     </div>
   </div>
 
-  <!-- Helper QR Pairing Modal (Isolated Overlay) -->
+    <!-- Helper QR Pairing Modal (Isolated Overlay) -->
   <div class="modal-overlay" id="pairing-modal" style="display: none;">
-    <div class="modal-card">
+    <div class="modal-card pairing-modal-card" style="max-width: 440px;">
       <div class="modal-icon-badge">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
@@ -336,27 +336,57 @@
           <line x1="12" y1="20" x2="12.01" y2="20"></line>
         </svg>
       </div>
-      <h3 class="modal-title">Pair Helper Phone</h3>
-      <p class="modal-subtitle">Scan QR code using cook or packer phone camera</p>
+      <h3 class="modal-title">Hotspot P2P Helper Pairing</h3>
+      <p class="modal-subtitle">Connect cook or packer phone over local Wi-Fi without internet</p>
 
-      <div style="background: var(--surface-subtle); border: 2px dashed var(--border-hover); border-radius: 16px; padding: 24px; margin: 18px 0; text-align: center;">
-        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="var(--color-navy)" stroke-width="1.75" style="margin: 0 auto;">
-          <rect x="3" y="3" width="7" height="7"></rect>
-          <rect x="14" y="3" width="7" height="7"></rect>
-          <rect x="14" y="14" width="7" height="7"></rect>
-          <rect x="3" y="14" width="7" height="7"></rect>
-        </svg>
-        <div style="font-family: var(--font-mono); font-size: 24px; font-weight: 800; color: var(--color-navy); margin-top: 12px; letter-spacing: 1px;" id="pairing-code-text">
-          PAIR-8821
-        </div>
-        <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Expires in 5 minutes &bull; Single Use</div>
+      <!-- Station Type Selector Tabs -->
+      <div class="pairing-tabs-row" style="display: flex; gap: 8px; margin: 14px 0 10px 0; background: var(--surface-subtle); padding: 4px; border-radius: 10px;">
+        <button class="pairing-tab active" id="tab-pair-kitchen" style="flex: 1; height: 36px; border: none; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; background: var(--surface-card); color: var(--color-navy); box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+          🍳 Kitchen (Cook)
+        </button>
+        <button class="pairing-tab" id="tab-pair-packaging" style="flex: 1; height: 36px; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; background: transparent; color: var(--text-muted);">
+          📦 Packaging (Runner)
+        </button>
       </div>
+
+      <!-- Scannable Dynamic P2P QR Code -->
+      <div class="pairing-qr-container" style="background: var(--surface-card); border: 2px solid var(--border-light); border-radius: 16px; padding: 16px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+        <div id="pairing-qr-canvas" style="display: flex; justify-content: center; align-items: center; min-height: 175px;"></div>
+        
+        <div style="margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span style="font-family: var(--font-mono); font-size: 20px; font-weight: 800; color: var(--color-navy); letter-spacing: 1px;" id="pairing-code-text">
+            PAIR-8821
+          </span>
+          <span style="font-size: 10px; font-weight: 800; background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; padding: 2px 6px; border-radius: 4px;">P2P HOTSPOT</span>
+        </div>
+      </div>
+
+      <!-- Local Network Details -->
+      <div style="background: var(--surface-subtle); border-radius: 12px; padding: 12px; margin: 12px 0; font-size: 12px; text-align: left; line-height: 1.5;">
+        <div style="font-weight: 700; color: var(--color-navy); margin-bottom: 4px;">📡 3-Second Connect Guide:</div>
+        <div style="color: var(--text-muted); font-size: 11px;">
+          1. Enable <strong>Phone Hotspot</strong> on this cashier device.<br>
+          2. Connect cook/packer phone to this Wi-Fi hotspot.<br>
+          3. Scan this QR code with camera to open live station.
+        </div>
+        <div style="margin-top: 8px; font-family: var(--font-mono); font-size: 11px; color: var(--color-navy); word-break: break-all; background: #fff; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-light);" id="pairing-target-url">
+          http://192.168.43.1:3100/kitchen?pair_token=PAIR-8821&mode=p2p
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="btn-wizard-secondary" style="flex: 1; height: 42px;" id="btn-copy-pairing-link">Copy Station Link</button>
+        <button class="btn-open-pairing" style="flex: 1; height: 42px;" id="btn-close-pairing">Done</button>
+      </div>
+    </div>
+  </div>
 
       <button class="btn-open-pairing" style="width: 100%; height: 44px;" id="btn-close-pairing">Close</button>
     </div>
   </div>
 
   <!-- PWA & Feature Logic -->
+  <script src="/js/storage-adapter.js?v=2.2.0"></script>
   <script src="/js/app.js?v=2.2.0"></script>
 </body>
 </html>

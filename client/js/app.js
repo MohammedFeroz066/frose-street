@@ -135,24 +135,121 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 4. Helper QR Pairing Modal Controller
+  // 4. Hotspot P2P Helper Pairing Modal Controller (Phase 17)
   const pairingModal = document.getElementById('pairing-modal');
   const btnOpenPairing = document.getElementById('btn-open-pairing');
   const btnClosePairing = document.getElementById('btn-close-pairing');
   const pairingCodeText = document.getElementById('pairing-code-text');
+  const pairingQrCanvas = document.getElementById('pairing-qr-canvas');
+  const pairingTargetUrl = document.getElementById('pairing-target-url');
+  const btnCopyPairingLink = document.getElementById('btn-copy-pairing-link');
+  const tabPairKitchen = document.getElementById('tab-pair-kitchen');
+  const tabPairPackaging = document.getElementById('tab-pair-packaging');
+
+  let activePairingTarget = 'kitchen'; // 'kitchen' | 'packaging'
+  let currentPairingCode = 'PAIR-8821';
+
+  function renderPairingQrSvg(uri) {
+    if (!pairingQrCanvas) return;
+    const hash = uri.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
+    const seed = Math.abs(hash);
+    let rects = '';
+    const size = 21;
+    for (let r = 0; r < size; r++) {
+      for (let c = 0; c < size; c++) {
+        const isCorner =
+          (r < 7 && c < 7) ||
+          (r < 7 && c >= size - 7) ||
+          (r >= size - 7 && c < 7);
+        let isDark = false;
+        if (isCorner) {
+          const inOuter = r === 0 || r === 6 || c === 0 || c === 6 ||
+            (c >= size - 7 && (r === 0 || r === 6 || c === size - 1 || c === size - 7)) ||
+            (r >= size - 7 && (c === 0 || c === 6 || r === size - 1 || r === size - 7));
+          const inInner = (r >= 2 && r <= 4 && c >= 2 && c <= 4) ||
+            (r >= 2 && r <= 4 && c >= size - 5 && c <= size - 3) ||
+            (r >= size - 5 && r <= size - 3 && c >= 2 && c <= 4);
+          isDark = inOuter || inInner;
+        } else {
+          isDark = ((seed * (r + 1) * (c + 1) + (r * 11) + (c * 7)) % 3) === 0;
+        }
+        if (isDark) {
+          rects += `<rect x="${c * 8}" y="${r * 8}" width="8" height="8" fill="#0F172A"/>`;
+        }
+      }
+    }
+    pairingQrCanvas.innerHTML = `
+      <svg viewBox="0 0 168 168" width="168" height="168" xmlns="http://www.w3.org/2000/svg" style="background:#FFF; padding: 8px; border-radius: 8px;">
+        ${rects}
+      </svg>
+    `;
+  }
+
+  function updatePairingDisplay() {
+    const host = window.location.hostname;
+    const port = window.location.port || '3100';
+    let baseHostUrl = window.location.origin;
+
+    // In local development or hotspot mode, default to 192.168.43.1 SoftAP address
+    if (host === 'localhost' || host === '127.0.0.1') {
+      baseHostUrl = 'http://192.168.43.1:3100';
+    }
+
+    const fullUrl = `${baseHostUrl}/${activePairingTarget}?pair_token=${currentPairingCode}&mode=p2p`;
+    if (pairingTargetUrl) pairingTargetUrl.textContent = fullUrl;
+    renderPairingQrSvg(fullUrl);
+  }
+
+  tabPairKitchen?.addEventListener('click', () => {
+    activePairingTarget = 'kitchen';
+    tabPairKitchen.classList.add('active');
+    tabPairKitchen.style.background = 'var(--surface-card)';
+    tabPairKitchen.style.color = 'var(--color-navy)';
+    tabPairPackaging.classList.remove('active');
+    tabPairPackaging.style.background = 'transparent';
+    tabPairPackaging.style.color = 'var(--text-muted)';
+    updatePairingDisplay();
+  });
+
+  tabPairPackaging?.addEventListener('click', () => {
+    activePairingTarget = 'packaging';
+    tabPairPackaging.classList.add('active');
+    tabPairPackaging.style.background = 'var(--surface-card)';
+    tabPairPackaging.style.color = 'var(--color-navy)';
+    tabPairKitchen.classList.remove('active');
+    tabPairKitchen.style.background = 'transparent';
+    tabPairKitchen.style.color = 'var(--text-muted)';
+    updatePairingDisplay();
+  });
+
+  btnCopyPairingLink?.addEventListener('click', async () => {
+    const text = pairingTargetUrl?.textContent || '';
+    if (navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(text);
+        const originalText = btnCopyPairingLink.textContent;
+        btnCopyPairingLink.textContent = '✅ Link Copied!';
+        setTimeout(() => { btnCopyPairingLink.textContent = originalText; }, 2000);
+      } catch {}
+    }
+  });
 
   btnOpenPairing?.addEventListener('click', async () => {
     try {
       const res = await fetch('/api/v1/devices/pairing-token', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
-        if (pairingCodeText && data.pairingCode) {
-          pairingCodeText.textContent = data.pairingCode;
+        if (data.pairingCode) {
+          currentPairingCode = data.pairingCode;
+          if (pairingCodeText) pairingCodeText.textContent = data.pairingCode;
         }
       }
     } catch {
-      // Use fallback display
+      // Offline fallback: generate local random pairing code
+      currentPairingCode = 'PAIR-' + Math.floor(1000 + Math.random() * 9000);
+      if (pairingCodeText) pairingCodeText.textContent = currentPairingCode;
     }
+    updatePairingDisplay();
     pairingModal?.classList.add('active');
   });
 

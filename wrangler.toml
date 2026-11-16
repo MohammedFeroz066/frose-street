@@ -2,15 +2,8 @@
 name = "frose-street"
 pages_build_output_dir = "./client"
 compatibility_date = "2026-11-16"
-compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ENVIRONMENT = "production"
 DOMAIN = "street.frostech.com"
 API_URL = "https://api.street.frostech.com/v1"
-
-# Production environment settings
-[env.production]
-routes = [
-  { pattern = "street.frostech.com", custom_domain = true }
-]

@@ -8,6 +8,7 @@ export interface AuthTokenPayload {
   role: StaffRole;
   edition: BackendEdition;
   staffId?: string;
+  deviceId?: string;
   iat?: number;
   exp?: number;
 }

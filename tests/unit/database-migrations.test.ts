@@ -9,7 +9,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
   const migrationsDir = path.resolve(__dirname, '../../server/src/db/migrations');
 
   describe('TEST 1: Migration Files & Compilation', () => {
-    it('should have all 8 migration files on disk', () => {
+    it('should have all 9 migration files on disk', () => {
       const files = [
         '001_create_vendors.ts',
         '002_create_staff.ts',
@@ -19,6 +19,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
         '006_create_expenses.ts',
         '007_create_subscriptions.ts',
         '008_add_auth_credentials.ts',
+        '009_create_devices.ts',
       ];
 
       files.forEach((file) => {
@@ -96,6 +97,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
         '006_create_expenses',
         '007_create_subscriptions',
         '008_add_auth_credentials',
+        '009_create_devices',
       ]);
     });
   });
@@ -109,6 +111,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
         '005_create_daily_summaries.ts',
         '006_create_expenses.ts',
         '007_create_subscriptions.ts',
+        '009_create_devices.ts',
       ];
 
       dependentMigrations.forEach((file) => {
@@ -129,6 +132,9 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
 
       const menuContent = fs.readFileSync(path.join(migrationsDir, '003_create_menu_items.ts'), 'utf8');
       expect(menuContent).toContain('idx_menu_items_display_order');
+
+      const devicesContent = fs.readFileSync(path.join(migrationsDir, '009_create_devices.ts'), 'utf8');
+      expect(devicesContent).toContain('idx_devices_vendor_active');
     });
   });
 });

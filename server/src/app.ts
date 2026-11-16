@@ -9,6 +9,7 @@ import { loadConfig, EnvironmentConfig } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { AppError } from './errors/app-error.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
+import { deviceRoutes } from './modules/devices/device.routes.js';
 import type { HealthCheckResponse } from '../../shared/types/index.js';
 
 export interface BuildAppOptions {
@@ -133,6 +134,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Phase 5: Authentication Routes (/api/v1/auth)
   await app.register(authRoutes, { prefix: '/api/v1/auth' });
+
+  // Phase 6: Device Pairing Routes (/api/v1/devices)
+  await app.register(deviceRoutes, { prefix: '/api/v1/devices' });
 
   // Test-only endpoint for verifying error handler
   if (config.NODE_ENV === 'test') {

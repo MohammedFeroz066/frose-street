@@ -2,6 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import { AppError } from '../../errors/app-error.js';
 import { STREET_MENU_PRESETS } from './menu.presets.js';
+import { WebSocketHub } from '../websocket/websocket.hub.js';
 
 export interface CreateMenuItemInput {
   name: string;
@@ -216,12 +217,17 @@ export class MenuService {
       .where('vendor_id', '=', vendorId)
       .execute();
 
-    return {
+    const result = {
       id: existing.id,
       name: existing.name,
       isAvailable: newStatus,
       statusText: newStatus ? 'In Stock' : 'Out of Stock',
     };
+
+    // Broadcast availability change to cashier counter in real time
+    WebSocketHub.broadcast(vendorId, 'menu:availability_changed', result);
+
+    return result;
   }
 
   /**

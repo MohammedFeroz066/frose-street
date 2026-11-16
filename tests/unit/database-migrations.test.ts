@@ -9,7 +9,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
   const migrationsDir = path.resolve(__dirname, '../../server/src/db/migrations');
 
   describe('TEST 1: Migration Files & Compilation', () => {
-    it('should have all 7 migration files on disk', () => {
+    it('should have all 8 migration files on disk', () => {
       const files = [
         '001_create_vendors.ts',
         '002_create_staff.ts',
@@ -18,6 +18,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
         '005_create_daily_summaries.ts',
         '006_create_expenses.ts',
         '007_create_subscriptions.ts',
+        '008_add_auth_credentials.ts',
       ];
 
       files.forEach((file) => {
@@ -81,7 +82,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
   });
 
   describe('TEST 3: Migration Provider & Ordering', () => {
-    it('should register all 7 migrations in correct sequential order', async () => {
+    it('should register all migrations in correct sequential order', async () => {
       const provider = new StaticMigrationProvider();
       const migrations = await provider.getMigrations();
 
@@ -94,6 +95,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
         '005_create_daily_summaries',
         '006_create_expenses',
         '007_create_subscriptions',
+        '008_add_auth_credentials',
       ]);
     });
   });

@@ -8,6 +8,7 @@ import * as m004 from './migrations/004_create_orders_and_order_items.js';
 import * as m005 from './migrations/005_create_daily_summaries.js';
 import * as m006 from './migrations/006_create_expenses.js';
 import * as m007 from './migrations/007_create_subscriptions.js';
+import * as m008 from './migrations/008_add_auth_credentials.js';
 
 export const allMigrations: Record<string, Migration> = {
   '001_create_vendors': m001,
@@ -17,6 +18,7 @@ export const allMigrations: Record<string, Migration> = {
   '005_create_daily_summaries': m005,
   '006_create_expenses': m006,
   '007_create_subscriptions': m007,
+  '008_add_auth_credentials': m008,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

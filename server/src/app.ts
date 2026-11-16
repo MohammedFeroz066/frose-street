@@ -8,6 +8,7 @@ import path from 'node:path';
 import { loadConfig, EnvironmentConfig } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { AppError } from './errors/app-error.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
 import type { HealthCheckResponse } from '../../shared/types/index.js';
 
 export interface BuildAppOptions {
@@ -129,6 +130,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       message: 'FROSE Street Kitchen Display Portal',
     });
   });
+
+  // Phase 5: Authentication Routes (/api/v1/auth)
+  await app.register(authRoutes, { prefix: '/api/v1/auth' });
 
   // Test-only endpoint for verifying error handler
   if (config.NODE_ENV === 'test') {

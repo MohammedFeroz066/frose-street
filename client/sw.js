@@ -1,21 +1,23 @@
 /**
- * FROSE Street Service Worker (Phase 14 Production)
+ * FROSE Street Service Worker (Phase 15 Production)
  * Network-first strategy for navigation / HTML (ensures live updates always load)
  * Cache-first for immutable static icons, stale-while-revalidate for CSS/JS
  */
 
-const CACHE_NAME = 'frose-street-v6-kitchen-portal';
+const CACHE_NAME = 'frose-street-v7-packaging-portal';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/register.html',
   '/billing.html',
   '/kitchen.html',
+  '/packaging.html',
   '/css/style.css',
   '/js/app.js',
   '/js/register.js',
   '/js/billing.js',
   '/js/kitchen.js',
+  '/js/packaging.js',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
@@ -24,7 +26,7 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('⚡ Pre-caching offline PWA assets (v6)');
+      console.log('⚡ Pre-caching offline PWA assets (v7)');
       return cache.addAll(PRECACHE_ASSETS);
     })
   );

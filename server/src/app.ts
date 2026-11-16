@@ -116,7 +116,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   // Portal routing aliases
-  app.get('/billing', async (_req, reply) => {
+  app.get('/billing', async (req, reply) => {
+    const accept = req.headers.accept || '';
+    if (accept.includes('text/html')) {
+      const billingPath = path.resolve(process.cwd(), 'client/billing.html');
+      if (fs.existsSync(billingPath)) {
+        reply.type('text/html');
+        return reply.send(fs.readFileSync(billingPath, 'utf8'));
+      }
+    }
     return reply.status(200).send({
       portal: 'billing',
       status: 'ready',

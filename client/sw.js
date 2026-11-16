@@ -1,10 +1,10 @@
 /**
- * FROSE Street Service Worker (Phase 15 Production)
+ * FROSE Street Service Worker (Phase 16 Production)
  * Network-first strategy for navigation / HTML (ensures live updates always load)
  * Cache-first for immutable static icons, stale-while-revalidate for CSS/JS
  */
 
-const CACHE_NAME = 'frose-street-v7-packaging-portal';
+const CACHE_NAME = 'frose-street-v9-production';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -26,7 +26,7 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('⚡ Pre-caching offline PWA assets (v7)');
+      console.log('⚡ Pre-caching offline PWA assets (v8)');
       return cache.addAll(PRECACHE_ASSETS);
     })
   );
@@ -75,10 +75,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-while-revalidate / cache-first for other assets
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
+  // Network-first for CSS and JS assets (ensures immediate design updates, offline safe)
+  if (
+    event.request.destination === 'style' ||
+    event.request.destination === 'script' ||
+    event.request.url.includes('/css/') ||
+    event.request.url.includes('/js/')
+  ) {
+    event.respondWith(
+      fetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
@@ -86,9 +91,22 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => cachedResponse);
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
 
-      return cachedResponse || fetchPromise;
+  // Cache-first for images, fonts, and other immutable assets
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+      return fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        }
+        return networkResponse;
+      });
     })
   );
 });

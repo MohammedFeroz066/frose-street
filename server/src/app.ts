@@ -11,6 +11,7 @@ import { AppError } from './errors/app-error.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { deviceRoutes } from './modules/devices/device.routes.js';
 import { menuRoutes } from './modules/menu/menu.routes.js';
+import { orderRoutes } from './modules/orders/order.routes.js';
 import type { HealthCheckResponse } from '../../shared/types/index.js';
 
 export interface BuildAppOptions {
@@ -141,6 +142,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Phase 7: Menu Management Routes (/api/v1/menu)
   await app.register(menuRoutes, { prefix: '/api/v1/menu' });
+
+  // Phase 8: Order & Token Engine Routes (/api/v1/orders)
+  await app.register(orderRoutes, { prefix: '/api/v1/orders' });
 
   // Test-only endpoint for verifying error handler
   if (config.NODE_ENV === 'test') {

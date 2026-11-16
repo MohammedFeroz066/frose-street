@@ -1,0 +1,32 @@
+{
+  "phase": 11,
+  "subphase": "intro-animation-and-formal-light-portals",
+  "status": "PASS",
+  "domain": "street.frosetech.com",
+  "designSystem": {
+    "palette": {
+      "canvas": "#F8FAFC",
+      "surface": "#FFFFFF",
+      "navy": "#0F172A",
+      "saffron": "#D97706"
+    },
+    "rainbowBordersRemoved": true,
+    "darkThemeRemoved": true,
+    "logoAnimationIntegrated": true
+  },
+  "tests": {
+    "total": 149,
+    "passed": 149,
+    "failed": 0,
+    "skipped": 0,
+    "suites": 11
+  },
+  "serviceWorker": {
+    "cacheName": "frose-street-v3-formal-intro",
+    "htmlStrategy": "network-first"
+  },
+  "cloudflare": {
+    "wranglerTomlCleaned": true,
+    "nodeVersion": 20
+  }
+}

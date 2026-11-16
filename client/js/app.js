@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. Quick PIN Modal & Keypad Controller
   const pinModal = document.getElementById('pin-modal');
   const btnOpenPin = document.getElementById('btn-open-pin');
+  const btnFooterPin = document.getElementById('btn-footer-pin');
   const btnClosePin = document.getElementById('btn-close-pin');
   const btnClearPin = document.getElementById('btn-clear-pin');
   const btnBackspace = document.getElementById('btn-backspace');
@@ -116,7 +117,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updatePinDots();
   });
 
-  btnOpenPin?.addEventListener('click', () => {
+  btnOpenPin?.addEventListener('click', () => { enteredPin = ''; updatePinDots(); pinModal?.classList.add('active'); });
+  btnFooterPin?.addEventListener('click', () => {
     enteredPin = '';
     updatePinDots();
     pinModal?.classList.add('active');

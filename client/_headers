@@ -1,0 +1,26 @@
+# Security & Cache Headers for Cloudflare Pages (street.frostech.com)
+
+# Default headers for all assets
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(self), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Access-Control-Allow-Origin: *
+
+# Service Worker must NEVER be cached by CDN or browser
+/sw.js
+  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
+
+# Web App Manifest
+/manifest.json
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=86400
+
+# Static CSS & JS (1 week cache with revalidation)
+/css/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+/js/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400

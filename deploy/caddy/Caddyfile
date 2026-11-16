@@ -1,0 +1,32 @@
+# Caddyfile for FROSE Street Backend API & Reverse Proxy
+# Auto-provisions and renews Let's Encrypt / ZeroSSL TLS certificates
+
+api.street.frostech.com {
+    encode gzip zstd
+
+    # Security & CORS Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Access-Control-Allow-Origin "https://street.frostech.com"
+        Access-Control-Allow-Credentials "true"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, Cookie, X-Requested-With"
+    }
+
+    # Preflight OPTIONS handling
+    @options {
+        method OPTIONS
+    }
+    respond @options 204
+
+    # Reverse proxy to Fastify API server with WebSocket support
+    reverse_proxy localhost:3100 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}

@@ -1,0 +1,66 @@
+services:
+  # FROSE Street Fastify Backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frose-street-api
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    environment:
+      - NODE_ENV=production
+      - PORT=3100
+      - HOST=0.0.0.0
+      - DATABASE_URL=postgresql://frose_street_user:frose_street_secure_pass@db:5432/frose_street
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-frose-street-prod-jwt-secret-key-32chars}
+      - CORS_ORIGIN=https://street.frostech.com
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - frose-street-net
+
+  # PostgreSQL 16 Database
+  db:
+    image: postgres:16-alpine
+    container_name: frose-street-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: frose_street
+      POSTGRES_USER: frose_street_user
+      POSTGRES_PASSWORD: frose_street_secure_pass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "55433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frose_street_user -d frose_street"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - frose-street-net
+
+  # Redis 7 Cache & Rate Limiting
+  redis:
+    image: redis:7-alpine
+    container_name: frose-street-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - frose-street-net
+
+networks:
+  frose-street-net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:

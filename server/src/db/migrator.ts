@@ -9,6 +9,7 @@ import * as m005 from './migrations/005_create_daily_summaries.js';
 import * as m006 from './migrations/006_create_expenses.js';
 import * as m007 from './migrations/007_create_subscriptions.js';
 import * as m008 from './migrations/008_add_auth_credentials.js';
+import * as m009 from './migrations/009_create_devices.js';
 
 export const allMigrations: Record<string, Migration> = {
   '001_create_vendors': m001,
@@ -19,6 +20,7 @@ export const allMigrations: Record<string, Migration> = {
   '006_create_expenses': m006,
   '007_create_subscriptions': m007,
   '008_add_auth_credentials': m008,
+  '009_create_devices': m009,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {
@@ -60,14 +62,14 @@ export async function migrateDown(db: Kysely<Database>) {
 
   results?.forEach((it) => {
     if (it.status === 'Success') {
-      console.log(`⏪ Reverted migration "${it.migrationName}" successfully`);
+      console.log(`⏪ Reverted migration "${it.migrationName}"`);
     } else if (it.status === 'Error') {
       console.error(`❌ Failed to revert migration "${it.migrationName}"`);
     }
   });
 
   if (error) {
-    console.error('Migration rollback failed:', error);
+    console.error('Rollback failed:', error);
     throw error;
   }
 

@@ -1,7 +1,7 @@
-import type { ColumnType, Generated } from 'kysely';
+import type { Generated } from 'kysely';
 
-export type Timestamp = ColumnType<Date, Date | string, Date | string>;
-export type MoneyPaise = ColumnType<bigint, bigint | number, bigint | number>;
+export type Timestamp = Date | string;
+export type MoneyPaise = number | bigint;
 
 export interface VendorsTable {
   id: Generated<string>;
@@ -11,7 +11,7 @@ export interface VendorsTable {
   business_type: string;
   city: string | null;
   edition: 'cloud' | 'local';
-  subscription_status: 'trial' | 'active' | 'expired' | 'suspended';
+  subscription_status: 'trial' | 'active' | 'expired';
   subscription_expires_at: Timestamp | null;
   daily_token_counter: number;
   token_reset_date: string;
@@ -30,6 +30,17 @@ export interface StaffTable {
   is_active: boolean;
   password_hash: string | null;
   quick_pin_hash: string | null;
+  created_at: Generated<Timestamp>;
+}
+
+export interface DevicesTable {
+  id: Generated<string>;
+  vendor_id: string;
+  device_name: string;
+  role: 'cook' | 'packer' | 'cashier';
+  token_hash: string;
+  is_active: boolean;
+  last_seen_at: Timestamp | null;
   created_at: Generated<Timestamp>;
 }
 
@@ -60,18 +71,17 @@ export interface MenuItemsTable {
 export interface OrdersTable {
   id: Generated<string>;
   vendor_id: string;
-  token_number: number;
-  status: 'placed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
-  payment_method: 'upi' | 'cash';
-  payment_status: 'pending' | 'paid' | 'failed';
-  total_paise: MoneyPaise;
-  upi_transaction_id: string | null;
+  token_no: number;
+  customer_name: string | null;
   customer_phone: string | null;
+  total_paise: MoneyPaise;
+  payment_method: 'cash' | 'upi' | 'split';
+  payment_status: 'paid' | 'pending';
+  order_status: 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
   notes: string | null;
-  placed_at: Generated<Timestamp>;
-  ready_at: Timestamp | null;
-  delivered_at: Timestamp | null;
-  created_by_staff_id: string | null;
+  source: 'pos' | 'qr_customer' | 'online';
+  created_at: Generated<Timestamp>;
+  updated_at: Generated<Timestamp>;
 }
 
 export interface OrderItemsTable {
@@ -82,6 +92,7 @@ export interface OrderItemsTable {
   quantity: number;
   unit_price_paise: MoneyPaise;
   line_total_paise: MoneyPaise;
+  notes: string | null;
 }
 
 export interface DailySummariesTable {
@@ -94,16 +105,15 @@ export interface DailySummariesTable {
   upi_sales_paise: MoneyPaise;
   total_expenses_paise: MoneyPaise;
   net_paise: MoneyPaise;
-  cancelled_orders: number;
-  top_selling_item: string | null;
   created_at: Generated<Timestamp>;
 }
 
 export interface ExpensesTable {
   id: Generated<string>;
   vendor_id: string;
+  title: string;
   amount_paise: MoneyPaise;
-  description: string;
+  category: string;
   expense_date: string;
   created_at: Generated<Timestamp>;
 }
@@ -124,6 +134,7 @@ export interface SubscriptionsTable {
 export interface Database {
   vendors: VendorsTable;
   staff: StaffTable;
+  devices: DevicesTable;
   biometric_credentials: BiometricCredentialsTable;
   menu_items: MenuItemsTable;
   orders: OrdersTable;

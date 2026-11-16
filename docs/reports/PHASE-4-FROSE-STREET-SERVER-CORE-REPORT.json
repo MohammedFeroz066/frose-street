@@ -1,0 +1,60 @@
+{
+  "phase": 4,
+  "title": "Fastify Server Core & Health Check",
+  "project": "FROSE Street",
+  "domain": "street.frostech.com",
+  "repository": "https://github.com/MohammedFeroz066/frose-street",
+  "status": "PASS",
+  "timestamp": "2026-11-16T14:29:00+05:30",
+  "errorStandard": "RFC_7807_PROBLEM_DETAILS",
+  "rateLimiting": "100_REQ_PER_MIN_PER_IP",
+  "tests": {
+    "total": 33,
+    "passed": 33,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 454
+  },
+  "acceptanceCriteria": [
+    {
+      "id": "TEST_1",
+      "description": "Server health check returns 200 with metadata",
+      "status": "PASS"
+    },
+    {
+      "id": "TEST_2",
+      "description": "404 handler returns structured RFC 7807 JSON",
+      "status": "PASS"
+    },
+    {
+      "id": "TEST_3",
+      "description": "Custom AppError returns matching status and structured JSON",
+      "status": "PASS"
+    },
+    {
+      "id": "TEST_4",
+      "description": "Unhandled errors return 500 without leaking stack traces",
+      "status": "PASS"
+    },
+    {
+      "id": "TEST_5",
+      "description": "CORS headers correctly emitted for street.frostech.com",
+      "status": "PASS"
+    },
+    {
+      "id": "TEST_6",
+      "description": "X-Response-Time header injected on responses",
+      "status": "PASS"
+    },
+    {
+      "id": "TEST_7",
+      "description": "Requests beyond rate limit return 429 Too Many Requests",
+      "status": "PASS"
+    },
+    {
+      "id": "TEST_8",
+      "description": "Graceful shutdown closes app cleanly",
+      "status": "PASS"
+    }
+  ]
+}

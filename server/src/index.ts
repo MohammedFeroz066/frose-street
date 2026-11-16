@@ -1,9 +1,27 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './config/env.js';
+import { closeDatabase } from './db/database.js';
 
 async function main() {
   const config = loadConfig();
   const app = await buildApp({ logger: true });
+
+  const shutdown = async (signal: string) => {
+    console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+    try {
+      await app.close();
+      console.log('🔌 Fastify HTTP and WebSocket server closed.');
+      await closeDatabase();
+      console.log('🗄️ Database connection pool drained.');
+      process.exit(0);
+    } catch (err) {
+      console.error('Error during shutdown:', err);
+      process.exit(1);
+    }
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 
   try {
     await app.listen({ port: config.PORT, host: config.HOST });

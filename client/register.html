@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Vendor Registration & 60-Second Onboarding — FROSE Street</title>
+  
+  <!-- SEO & SaaS Metadata -->
+  <meta name="description" content="Register your street food stall in 60 seconds. Instant menu preset seeding, dynamic UPI QR setup, and ultra-fast touch billing.">
+  <meta name="theme-color" content="#0F172A">
+
+  <!-- Inter & Plus Jakarta Sans Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Production Stylesheet -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="registration-page">
+
+  <!-- Top Enterprise Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      
+      <!-- Geometric Monogram Brand Identity -->
+      <a href="/" class="brand-monogram-lockup" title="Return to Portal Hub">
+        <div class="brand-vector-mark">
+          <svg viewBox="0 0 40 40" width="38" height="38" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="10" fill="#0F172A"/>
+            <!-- Geometric Monogram F -->
+            <path d="M12 10H28V15H17.5V18.5H25.5V23.5H17.5V30H12V10Z" fill="#FFFFFF"/>
+            <rect x="23" y="10" width="5" height="5" fill="#D97706"/>
+            <rect x="20.5" y="18.5" width="5" height="5" fill="#D97706"/>
+          </svg>
+        </div>
+        <div class="brand-text-block">
+          <div class="brand-name-row">
+            <span class="brand-title">FROSE</span>
+            <span class="brand-edition-badge">STREET</span>
+          </div>
+          <span class="brand-subtitle">60-Second Vendor Onboarding</span>
+        </div>
+      </a>
+
+      <!-- Header Right Action -->
+      <div class="header-right-meta">
+        <a href="/" class="btn-text-nav">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span>Portals Hub</span>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Registration Container -->
+  <main class="page-viewport onboarding-viewport">
+    <div class="onboarding-card">
+
+      <!-- Wizard Step Progress Indicator -->
+      <div class="wizard-stepper">
+        <div class="step-item active" id="step-pill-1">
+          <div class="step-circle">1</div>
+          <div class="step-label">Stall Profile</div>
+        </div>
+        <div class="step-line" id="line-1-2"></div>
+        <div class="step-item" id="step-pill-2">
+          <div class="step-circle">2</div>
+          <div class="step-label">Menu Presets</div>
+        </div>
+        <div class="step-line" id="line-2-3"></div>
+        <div class="step-item" id="step-pill-3">
+          <div class="step-circle">3</div>
+          <div class="step-label">PIN & Launch</div>
+        </div>
+      </div>
+
+      <!-- Registration Form -->
+      <form id="onboarding-form" novalidate onsubmit="return false;">
+
+        <!-- ==========================================
+             STEP 1: STALL & OWNER PROFILE
+             ========================================== -->
+        <section class="wizard-step-section active" id="step-section-1">
+          <div class="step-header">
+            <h1 class="step-title">Tell us about your stall</h1>
+            <p class="step-desc">Enter your business details to configure your digital token engine and dynamic UPI QR.</p>
+          </div>
+
+          <div class="form-group-grid">
+            
+            <!-- Stall / Business Name -->
+            <div class="form-field full-width">
+              <label for="stall-name" class="field-label">
+                Stall / Business Name <span class="required-star">*</span>
+              </label>
+              <div class="input-wrapper">
+                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                  <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <input type="text" id="stall-name" name="stallName" class="form-input" placeholder="e.g. Royal Momos & Chai" required autocomplete="organization">
+              </div>
+              <span class="field-hint">This name prints on customer token slips and digital receipts.</span>
+            </div>
+
+            <!-- Owner Mobile Number -->
+            <div class="form-field">
+              <label for="phone-number" class="field-label">
+                Owner Mobile Number <span class="required-star">*</span>
+              </label>
+              <div class="input-wrapper">
+                <span class="input-prefix">+91</span>
+                <input type="tel" id="phone-number" name="phone" class="form-input phone-input" placeholder="9876543210" maxlength="10" required autocomplete="tel">
+              </div>
+              <span class="field-hint">10-digit number for login and daily shift alerts.</span>
+            </div>
+
+            <!-- Business Category Dropdown -->
+            <div class="form-field">
+              <label for="business-type" class="field-label">Stall Category</label>
+              <div class="input-wrapper">
+                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+                <select id="business-type" name="businessType" class="form-select">
+                  <option value="momos_fastfood">🥟 Momos & Chinese Cart</option>
+                  <option value="tea_stall">☕ Chai Tapri & Snacks</option>
+                  <option value="chaat">🥘 Chaat & Pani Puri Counter</option>
+                  <option value="rolls_shawarma">🌯 Shawarma & Kathi Rolls</option>
+                  <option value="south_indian">🥞 South Indian Tiffin</option>
+                  <option value="burger_cafe">🍔 Fast Food & Burgers</option>
+                  <option value="other_food">🍽️ Other Street Food / QSR</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- City Location -->
+            <div class="form-field">
+              <label for="city-name" class="field-label">City / Location</label>
+              <div class="input-wrapper">
+                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <input type="text" id="city-name" name="city" class="form-input" placeholder="e.g. Hyderabad" value="Hyderabad">
+              </div>
+            </div>
+
+            <!-- Dynamic UPI ID -->
+            <div class="form-field">
+              <label for="upi-id" class="field-label">
+                Stall UPI VPA (for Instant QR) <span class="required-star">*</span>
+              </label>
+              <div class="input-wrapper">
+                <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                  <line x1="2" y1="10" x2="22" y2="10"></line>
+                </svg>
+                <input type="text" id="upi-id" name="upiId" class="form-input" placeholder="e.g. royalmomos@upi" required>
+              </div>
+              <span class="field-hint">Payments go straight to your bank account with zero middleman hold.</span>
+            </div>
+
+          </div>
+
+          <!-- Step 1 Actions -->
+          <div class="wizard-actions-row">
+            <a href="/" class="btn-wizard-secondary">Cancel</a>
+            <button type="button" class="btn-wizard-primary" id="btn-goto-step-2">
+              <span>Next: Street Menu Setup</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             STEP 2: 1-TAP STREET MENU PRESET SEEDING
+             ========================================== -->
+        <section class="wizard-step-section" id="step-section-2">
+          <div class="step-header">
+            <h2 class="step-title">Select your street food menu preset</h2>
+            <p class="step-desc">Pick your stall category to automatically seed standard dishes, emojis, and integer paise pricing in 1 tap.</p>
+          </div>
+
+          <!-- Preset Cards Grid -->
+          <div class="presets-selector-grid" id="presets-grid">
+            
+            <!-- 1. Momos & Chinese -->
+            <div class="preset-choice-card selected" data-preset="momos_chinese">
+              <div class="preset-card-top">
+                <div class="preset-emoji-icon">🥟</div>
+                <div class="preset-badge">POPULAR</div>
+              </div>
+              <h3 class="preset-name">Momos & Chinese</h3>
+              <p class="preset-description">Steamed Momos, Fried Momos, Veg Noodles, Chilli Chicken, Manchurian & Fried Rice.</p>
+              <div class="preset-item-count">6 Pre-Configured Dishes</div>
+            </div>
+
+            <!-- 2. Chai & Nashta -->
+            <div class="preset-choice-card" data-preset="chai_nashta">
+              <div class="preset-card-top">
+                <div class="preset-emoji-icon">☕</div>
+                <div class="preset-badge">TAPRI</div>
+              </div>
+              <h3 class="preset-name">Chai & Nashta</h3>
+              <p class="preset-description">Masala Chai, Irani Chai, Aloo Samosa, Bun Maska, Osmania Biscuit & Poha.</p>
+              <div class="preset-item-count">6 Pre-Configured Dishes</div>
+            </div>
+
+            <!-- 3. Chaat & Pani Puri -->
+            <div class="preset-choice-card" data-preset="chaat_panipuri">
+              <div class="preset-card-top">
+                <div class="preset-emoji-icon">🥘</div>
+                <div class="preset-badge">STREET</div>
+              </div>
+              <h3 class="preset-name">Chaat & Pani Puri</h3>
+              <p class="preset-description">Pani Puri, Sev Puri, Dahi Puri, Papdi Chaat, Aloo Tikki & Bhel Puri.</p>
+              <div class="preset-item-count">6 Pre-Configured Dishes</div>
+            </div>
+
+            <!-- 4. Shawarma & Rolls -->
+            <div class="preset-choice-card" data-preset="shawarma_rolls">
+              <div class="preset-card-top">
+                <div class="preset-emoji-icon">🌯</div>
+                <div class="preset-badge">GRILL</div>
+              </div>
+              <h3 class="preset-name">Shawarma & Rolls</h3>
+              <p class="preset-description">Chicken Shawarma, Jumbo Shawarma, Paneer Roll, Egg Roll & French Fries.</p>
+              <div class="preset-item-count">5 Pre-Configured Dishes</div>
+            </div>
+
+            <!-- 5. South Indian Tiffin -->
+            <div class="preset-choice-card" data-preset="south_indian_tiffin">
+              <div class="preset-card-top">
+                <div class="preset-emoji-icon">🥞</div>
+                <div class="preset-badge">BREAKFAST</div>
+              </div>
+              <h3 class="preset-name">South Indian Tiffin</h3>
+              <p class="preset-description">Idli Sambar, Medu Vada, Masala Dosa, Plain Dosa, Onion Uttapam & Filter Coffee.</p>
+              <div class="preset-item-count">6 Pre-Configured Dishes</div>
+            </div>
+
+            <!-- 6. Burgers & Fries -->
+            <div class="preset-choice-card" data-preset="burgers_fries">
+              <div class="preset-card-top">
+                <div class="preset-emoji-icon">🍔</div>
+                <div class="preset-badge">FAST FOOD</div>
+              </div>
+              <h3 class="preset-name">Burgers & Fries</h3>
+              <p class="preset-description">Crispy Veg Burger, Chicken Cheese Burger, Peri Peri Fries & Cold Beverage.</p>
+              <div class="preset-item-count">5 Pre-Configured Dishes</div>
+            </div>
+
+          </div>
+
+          <!-- Live Billing Screen Preview of Seeded Items -->
+          <div class="preset-live-preview-box">
+            <div class="preview-box-header">
+              <div class="preview-title-group">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                  <line x1="8" y1="21" x2="16" y2="21"></line>
+                  <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span class="preview-title">Live Billing Grid Preview</span>
+              </div>
+              <span class="preview-count" id="preview-item-count">6 Items Configured</span>
+            </div>
+
+            <div class="preview-items-grid" id="preset-items-preview">
+              <!-- Dynamically populated via JS from presets -->
+            </div>
+            
+            <p class="preview-note">Prices and items can be edited or customized anytime from Settings.</p>
+          </div>
+
+          <!-- Step 2 Actions -->
+          <div class="wizard-actions-row">
+            <button type="button" class="btn-wizard-secondary" id="btn-back-to-step-1">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span>Back</span>
+            </button>
+            <button type="button" class="btn-wizard-primary" id="btn-goto-step-3">
+              <span>Next: Security & Terminal Activation</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+        </section>
+
+
+        <!-- ==========================================
+             STEP 3: 4-DIGIT PIN & EDITION ACTIVATION
+             ========================================== -->
+        <section class="wizard-step-section" id="step-section-3">
+          <div class="step-header">
+            <h2 class="step-title">Counter PIN & Edition</h2>
+            <p class="step-desc">Set up a 4-digit staff PIN for 1-tap counter unlock without typing slow passwords on greasy fingers.</p>
+          </div>
+
+          <!-- 4-Digit Quick PIN Input -->
+          <div class="pin-setup-container">
+            <label for="quick-pin" class="field-label" style="text-align: center; display: block; font-size: 15px;">
+              Create 4-Digit Staff PIN <span class="required-star">*</span>
+            </label>
+            
+            <div class="pin-input-box">
+              <input type="password" id="quick-pin" name="quickPin" class="pin-display-field" maxlength="4" placeholder="••••" pattern="[0-9]{4}" inputmode="numeric" required autocomplete="off">
+            </div>
+
+            <p class="pin-explainer">Used by cashier, cooks, and packers to unlock the station instantly.</p>
+          </div>
+
+          <!-- Edition Selector -->
+          <div class="edition-selection-group">
+            <div class="edition-group-label">Choose Deployment Edition</div>
+            
+            <div class="edition-cards-grid">
+              
+              <!-- Cloud Edition -->
+              <label class="edition-radio-card selected" id="edition-card-cloud">
+                <input type="radio" name="edition" value="cloud" checked class="edition-radio-input">
+                <div class="edition-card-inner">
+                  <div class="edition-badge-row">
+                    <span class="edition-name">Cloud Connected</span>
+                    <span class="edition-tag tag-recommended">RECOMMENDED</span>
+                  </div>
+                  <div class="edition-price">&#8377;1,499<span class="per-month">/mo</span></div>
+                  <ul class="edition-perks">
+                    <li>Multi-device live sync over 4G/5G</li>
+                    <li>Automatic real-time Cloud backup</li>
+                    <li>Remote Owner Dashboard & WhatsApp summaries</li>
+                    <li>14-day free trial included</li>
+                  </ul>
+                </div>
+              </label>
+
+              <!-- Local Edition -->
+              <label class="edition-radio-card" id="edition-card-local">
+                <input type="radio" name="edition" value="local" class="edition-radio-input">
+                <div class="edition-card-inner">
+                  <div class="edition-badge-row">
+                    <span class="edition-name">Local Offline</span>
+                    <span class="edition-tag">STANDALONE</span>
+                  </div>
+                  <div class="edition-price">&#8377;999<span class="per-month">/mo</span></div>
+                  <ul class="edition-perks">
+                    <li>Offline-first Local LAN / Hotspot P2P sync</li>
+                    <li>Zero internet required during shifts</li>
+                    <li>Local SQLite persistence</li>
+                    <li>14-day free trial included</li>
+                  </ul>
+                </div>
+              </label>
+
+            </div>
+          </div>
+
+          <!-- Submission Feedback Alert Banner -->
+          <div class="onboarding-alert" id="onboarding-alert" style="display: none;"></div>
+
+          <!-- Step 3 Actions -->
+          <div class="wizard-actions-row">
+            <button type="button" class="btn-wizard-secondary" id="btn-back-to-step-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+              <span>Back</span>
+            </button>
+            <button type="button" class="btn-wizard-primary btn-submit-onboarding" id="btn-register-submit">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Activate Stall & Launch Billing Counter</span>
+            </button>
+          </div>
+        </section>
+
+      </form>
+
+      <!-- Already Registered Footer Link -->
+      <div class="onboarding-switch-footer">
+        <span>Already have an account?</span>
+        <a href="/" class="login-switch-link">Sign in with PIN on Portal Hub</a>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Professional Footer -->
+  <footer class="page-footer">
+    <nav class="footer-nav">
+      <a href="/" class="footer-link">Portals Hub</a>
+      <span class="footer-bullet">&bull;</span>
+      <span class="footer-link active">&#8377;999/mo Local &bull; &#8377;1,499/mo Cloud</span>
+    </nav>
+    <p class="footer-copy">&copy; 2026 FROSE Technologies &bull; Enterprise Street Food Micro-POS &bull; street.frostech.com</p>
+  </footer>
+
+  <!-- Script for Wizard Interaction & API Integration -->
+  <script src="/js/register.js"></script>
+</body>
+</html>

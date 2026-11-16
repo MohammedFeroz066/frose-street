@@ -74,6 +74,72 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   });
 
   /**
+   * POST /api/v1/auth/register-stall
+   * 60-second vendor onboarding endpoint with Quick PIN & Automatic Menu Preset Seeding
+   */
+  app.post('/register-stall', async (request, reply) => {
+    try {
+      const db = getDatabase();
+      const body = request.body as any;
+
+      if (!body || !body.phone) {
+        throw AppError.badRequest('Please enter a valid 10-digit mobile number', 'INVALID_PHONE');
+      }
+
+      if (!body.businessName || body.businessName.trim().length === 0) {
+        throw AppError.badRequest('Stall / Business name is required', 'MISSING_BUSINESS_NAME');
+      }
+
+      const { vendor, staff, seededItemsCount } = await AuthService.registerVendor(db, {
+        phone: body.phone,
+        password: body.password,
+        businessName: body.businessName,
+        ownerName: body.ownerName,
+        businessType: body.businessType,
+        city: body.city,
+        edition: body.edition,
+        upiId: body.upiId,
+        quickPin: body.quickPin,
+        presetKey: body.presetKey,
+      });
+
+      const token = signJwt(
+        {
+          sub: vendor.id,
+          phone: vendor.phone,
+          businessName: vendor.business_name,
+          role: 'owner',
+          edition: vendor.edition,
+          staffId: staff.id,
+        },
+        config.JWT_SECRET,
+      );
+
+      setAuthCookie(reply, token);
+
+      return reply.status(201).send({
+        status: 'success',
+        message: 'Stall registered and seeded successfully',
+        vendor: {
+          id: vendor.id,
+          phone: vendor.phone,
+          businessName: vendor.business_name,
+          ownerName: vendor.owner_name,
+          businessType: vendor.business_type,
+          edition: vendor.edition,
+          subscriptionStatus: vendor.subscription_status,
+          subscriptionExpiresAt: vendor.subscription_expires_at,
+          hasQuickPin: !!vendor.quick_pin_hash,
+        },
+        token,
+        seededItemsCount,
+      });
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  /**
    * POST /api/v1/auth/login
    * Authenticates vendor with Phone Number & Password
    */

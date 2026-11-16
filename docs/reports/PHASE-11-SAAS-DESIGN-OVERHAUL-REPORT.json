@@ -1,0 +1,17 @@
+{
+  "phase": 11,
+  "subphase": "saas-design-all-ratios",
+  "status": "PASS",
+  "domain": "street.frosetech.com",
+  "logo": "geometric-vector-monogram-f",
+  "ratios": {
+    "mobile": "390x844",
+    "tablet": "820x1180",
+    "desktop": "1440x900"
+  },
+  "tests": {
+    "total": 149,
+    "passed": 149,
+    "failed": 0
+  }
+}

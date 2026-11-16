@@ -1,0 +1,32 @@
+{
+  "phase": 14,
+  "name": "Frontend — Kitchen Display Portal (KDS)",
+  "route": "/kitchen",
+  "status": "PASS",
+  "timestamp": "2026-11-16T18:00:00+05:30",
+  "branch": "feature/phase-14-kitchen-portal",
+  "summary": {
+    "totalTestSuites": 14,
+    "totalTestsPassed": 177,
+    "totalTestsFailed": 0,
+    "typescriptErrors": 0
+  },
+  "acceptanceCriteria": [
+    { "id": "AC-01", "name": "Content Negotiation on /kitchen", "verdict": "PASS" },
+    { "id": "AC-02", "name": "Knuckle-Friendly Touch Height >= 72px", "verdict": "PASS" },
+    { "id": "AC-03", "name": "Dynamic Age Color Tiers", "verdict": "PASS" },
+    { "id": "AC-04", "name": "Strict Financial Blindness", "verdict": "PASS" },
+    { "id": "AC-05", "name": "QR Device Pairing Auto-Authentication", "verdict": "PASS" },
+    { "id": "AC-06", "name": "Real-Time Ticket Ingestion & Acoustic Bell", "verdict": "PASS" },
+    { "id": "AC-07", "name": "Knuckle MARK READY Slide-out", "verdict": "PASS" },
+    { "id": "AC-08", "name": "Wake Lock Screen Keep-Awake", "verdict": "PASS" },
+    { "id": "AC-09", "name": "Reconnection Alert & Auto-Retry", "verdict": "PASS" },
+    { "id": "AC-10", "name": "Service Worker Pre-caching", "verdict": "PASS" }
+  ],
+  "visualEvidence": [
+    "docs/walkthroughs/screenshots/phase-14/frose_kds_mobile_390x844.png",
+    "docs/walkthroughs/screenshots/phase-14/frose_kds_mobile_reconnect_390x844.png",
+    "docs/walkthroughs/screenshots/phase-14/frose_kds_tablet_820x1180.png",
+    "docs/walkthroughs/screenshots/phase-14/frose_kds_desktop_1440x900.png"
+  ]
+}

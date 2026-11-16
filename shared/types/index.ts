@@ -83,7 +83,43 @@ export interface Order {
   items: OrderItem[];
 }
 
+export interface Expense {
+  id: string;
+  vendorId: string;
+  amountPaise: number;
+  amountRupees: number;
+  description: string;
+  title?: string;
+  category: string;
+  paymentMethod: 'cash' | 'upi';
+  expenseDate: string;
+  createdAt: string;
+}
+
+export interface GallaSummary {
+  summaryDate: string;
+  totalOrders: number;
+  cancelledOrders: number;
+  totalSalesPaise: number;
+  cashSalesPaise: number;
+  upiSalesPaise: number;
+  totalExpensesPaise: number;
+  cashExpensesPaise: number;
+  upiExpensesPaise: number;
+  cashInDrawerPaise: number;
+  netProfitPaise: number;
+  topSellingItem: string | null;
+  totalSalesRupees: number;
+  cashSalesRupees: number;
+  upiSalesRupees: number;
+  totalExpensesRupees: number;
+  cashInDrawerRupees: number;
+  netProfitRupees: number;
+  isDayClosed: boolean;
+}
+
 export interface DailySummary {
+  id?: string;
   vendorId: string;
   summaryDate: string;
   totalOrders: number;
@@ -93,7 +129,8 @@ export interface DailySummary {
   totalExpensesPaise: number;
   netPaise: number;
   cancelledOrders: number;
-  topSellingItem?: string;
+  topSellingItem?: string | null;
+  createdAt?: string;
 }
 
 export interface HealthCheckResponse {

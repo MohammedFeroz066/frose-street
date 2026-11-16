@@ -13,6 +13,7 @@ import { deviceRoutes } from './modules/devices/device.routes.js';
 import { menuRoutes } from './modules/menu/menu.routes.js';
 import { orderRoutes } from './modules/orders/order.routes.js';
 import { websocketRoutes } from './modules/websocket/websocket.routes.js';
+import { gallaRoutes } from './modules/galla/galla.routes.js';
 import type { HealthCheckResponse } from '../../shared/types/index.js';
 
 export interface BuildAppOptions {
@@ -48,12 +49,15 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
       if (
-        config.CORS_ORIGIN.includes('*') ||
-        config.CORS_ORIGIN.some((allowed) => allowed === origin || allowed === '*')
+        origin.includes('street.frostech.com') ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.startsWith('http://192.168.') ||
+        origin.startsWith('http://10.')
       ) {
         return cb(null, true);
       }
-      return cb(null, true);
+      return cb(new Error('CORS origin denied'), false);
     },
     credentials: true,
   });
@@ -149,6 +153,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Phase 9: Real-Time WebSocket Routes (/api/v1/ws)
   await app.register(websocketRoutes, { prefix: '/api/v1/ws' });
+
+  // Phase 10: Daily Galla, Expenses & Z-Report Routes (/api/v1/galla)
+  await app.register(gallaRoutes, { prefix: '/api/v1/galla' });
 
   // Test-only endpoint for verifying error handler
   if (config.NODE_ENV === 'test') {

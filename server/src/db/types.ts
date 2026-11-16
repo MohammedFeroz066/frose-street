@@ -15,6 +15,8 @@ export interface VendorsTable {
   subscription_expires_at: Timestamp | null;
   daily_token_counter: number;
   token_reset_date: string;
+  password_hash: string | null;
+  quick_pin_hash: string | null;
   created_at: Generated<Timestamp>;
   updated_at: Generated<Timestamp>;
 }
@@ -26,6 +28,18 @@ export interface StaffTable {
   role: 'owner' | 'cashier' | 'cook' | 'packer';
   phone: string | null;
   is_active: boolean;
+  password_hash: string | null;
+  quick_pin_hash: string | null;
+  created_at: Generated<Timestamp>;
+}
+
+export interface BiometricCredentialsTable {
+  id: Generated<string>;
+  vendor_id: string;
+  credential_id: string;
+  public_key: string;
+  counter: number;
+  device_name: string | null;
   created_at: Generated<Timestamp>;
 }
 
@@ -110,6 +124,7 @@ export interface SubscriptionsTable {
 export interface Database {
   vendors: VendorsTable;
   staff: StaffTable;
+  biometric_credentials: BiometricCredentialsTable;
   menu_items: MenuItemsTable;
   orders: OrdersTable;
   order_items: OrderItemsTable;

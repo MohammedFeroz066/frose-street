@@ -105,16 +105,19 @@ export interface DailySummariesTable {
   upi_sales_paise: MoneyPaise;
   total_expenses_paise: MoneyPaise;
   net_paise: MoneyPaise;
+  cancelled_orders: Generated<number> | number;
+  top_selling_item: string | null;
   created_at: Generated<Timestamp>;
 }
 
 export interface ExpensesTable {
   id: Generated<string>;
   vendor_id: string;
-  title: string;
+  description: string;
   amount_paise: MoneyPaise;
-  category: string;
-  expense_date: string;
+  category: Generated<string> | string;
+  payment_method: Generated<string> | string;
+  expense_date: Generated<string> | string;
   created_at: Generated<Timestamp>;
 }
 

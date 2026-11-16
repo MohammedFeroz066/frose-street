@@ -1,0 +1,33 @@
+{
+  "phase": 10,
+  "name": "Daily Galla, Expenses, and Day-End Z-Report",
+  "status": "PASS",
+  "branch": "feature/phase-10-daily-galla-expenses-zreport",
+  "timestamp": "2026-11-16T15:39:00+05:30",
+  "tests": {
+    "total": 133,
+    "passed": 133,
+    "failed": 0,
+    "suites": 10
+  },
+  "typecheck": {
+    "status": "PASS",
+    "errors": 0
+  },
+  "endpoints": [
+    "POST /api/v1/galla/expenses",
+    "GET /api/v1/galla/expenses",
+    "DELETE /api/v1/galla/expenses/:id",
+    "GET /api/v1/galla/summary",
+    "POST /api/v1/galla/close-day",
+    "POST /api/v1/galla/z-report",
+    "GET /api/v1/galla/z-reports",
+    "GET /api/v1/galla/history"
+  ],
+  "monetaryFormat": "strict_integer_paise",
+  "security": {
+    "financialBlindness": true,
+    "cashierCloseDayBlocked": true,
+    "cooksPackersBlocked": true
+  }
+}

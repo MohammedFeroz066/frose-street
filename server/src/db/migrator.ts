@@ -10,6 +10,7 @@ import * as m006 from './migrations/006_create_expenses.js';
 import * as m007 from './migrations/007_create_subscriptions.js';
 import * as m008 from './migrations/008_add_auth_credentials.js';
 import * as m009 from './migrations/009_create_devices.js';
+import * as m010 from './migrations/010_update_expenses_table.js';
 
 export const allMigrations: Record<string, Migration> = {
   '001_create_vendors': m001,
@@ -21,6 +22,7 @@ export const allMigrations: Record<string, Migration> = {
   '007_create_subscriptions': m007,
   '008_add_auth_credentials': m008,
   '009_create_devices': m009,
+  '010_update_expenses_table': m010,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

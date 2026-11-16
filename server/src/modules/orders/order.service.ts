@@ -2,6 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import type { StaffRole } from '../../../../shared/types/index.js';
 import { AppError } from '../../errors/app-error.js';
+import { WebSocketHub } from '../websocket/websocket.hub.js';
 
 export interface CreateOrderItemInput {
   menuItemId: string;
@@ -167,7 +168,7 @@ export class OrderService {
       });
     }
 
-    return {
+    const createdOrder = {
       id: order.id,
       vendorId: order.vendor_id,
       tokenNo: order.token_no,
@@ -184,6 +185,11 @@ export class OrderService {
       items: insertedLineItems,
       createdAt: order.created_at,
     };
+
+    // Sub-500ms Real-Time broadcast to Kitchen Display & Packaging Station
+    WebSocketHub.broadcast(vendorId, 'order:new', createdOrder);
+
+    return createdOrder;
   }
 
   /**
@@ -251,13 +257,18 @@ export class OrderService {
       .where('vendor_id', '=', vendorId)
       .execute();
 
-    return {
+    const result = {
       id: order.id,
       tokenNo: order.token_no,
       previousStatus: currentStatus,
       newStatus,
       updatedAt: new Date().toISOString(),
     };
+
+    // Broadcast status change in real time to connected screens
+    WebSocketHub.broadcast(vendorId, 'order:status_changed', result);
+
+    return result;
   }
 
   /**

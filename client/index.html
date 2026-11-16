@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FROSE Street — Lightning-Fast Mobile Street POS</title>
+  <meta name="description" content="Ultra-fast mobile POS for street food vendors, carts, and stalls. ₹1,000/mo.">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-group">
+        <span class="logo-badge">STREET</span>
+        <h1 class="logo-title">FROSE <span class="gold-text">STREET</span></h1>
+      </div>
+      <p class="tagline">Ultra-Fast 3-Second Street Food POS</p>
+    </header>
+
+    <!-- Main Portal Selection Cards (The 3 Portals) -->
+    <main class="portal-selection">
+      <h2 class="section-title">Select Your Station</h2>
+      <p class="section-subtitle">Choose a portal to start operations</p>
+
+      <div class="portal-cards">
+        <!-- 1. Billing Counter -->
+        <a href="/billing" class="portal-card billing-card" id="btn-billing">
+          <div class="card-icon-wrapper billing-icon">
+            <span class="card-icon">🧾</span>
+          </div>
+          <div class="card-content">
+            <div class="card-header-row">
+              <h3 class="card-title">1. BILLING COUNTER</h3>
+              <span class="badge primary-badge">MAIN</span>
+            </div>
+            <p class="card-desc">Start taking orders, tap-to-bill, dynamic UPI QR, token generation & daily Galla.</p>
+          </div>
+          <div class="card-arrow">→</div>
+        </a>
+
+        <!-- 2. Packaging & Serving -->
+        <a href="/packaging" class="portal-card packaging-card" id="btn-packaging">
+          <div class="card-icon-wrapper packaging-icon">
+            <span class="card-icon">📦</span>
+          </div>
+          <div class="card-content">
+            <div class="card-header-row">
+              <h3 class="card-title">2. PACKAGING & SERVING</h3>
+              <span class="badge warning-badge">ACTIVE</span>
+            </div>
+            <p class="card-desc">Pack prepared food, match customer token number, and mark orders delivered.</p>
+          </div>
+          <div class="card-arrow">→</div>
+        </a>
+
+        <!-- 3. Kitchen Display -->
+        <a href="/kitchen" class="portal-card kitchen-card" id="btn-kitchen">
+          <div class="card-icon-wrapper kitchen-icon">
+            <span class="card-icon">🍳</span>
+          </div>
+          <div class="card-content">
+            <div class="card-header-row">
+              <h3 class="card-title">3. KITCHEN DISPLAY</h3>
+              <span class="badge optional-badge">OPTIONAL</span>
+            </div>
+            <p class="card-desc">Large-card order queue for the cook. Knuckle-friendly "Ready" tap buttons.</p>
+          </div>
+          <div class="card-arrow">→</div>
+        </a>
+      </div>
+    </main>
+
+    <!-- Stall Status Bar -->
+    <section class="status-card">
+      <div class="status-indicator">
+        <span class="status-dot"></span>
+        <span class="status-text" id="status-text">Cloud Mode: Connected to street.frostech.com</span>
+      </div>
+      <div class="mode-toggle-pill">
+        <span class="pill-label">Hotspot P2P Ready</span>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#onboarding" class="footer-link">New Stall? Register in 60s</a>
+        <span class="divider">•</span>
+        <a href="#plans" class="footer-link">₹999/mo Local | ₹1,499/mo Cloud</a>
+      </div>
+      <p class="copyright">© 2026 FROSE Technologies • street.frostech.com</p>
+    </footer>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

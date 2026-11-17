@@ -4,12 +4,13 @@
  * Cache-first for immutable static icons, stale-while-revalidate for CSS/JS
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v2';
+const CACHE_NAME = 'frose-street-v9-production-authwall';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/login.html',
   '/register.html',
+  '/admin.html',
   '/billing.html',
   '/kitchen.html',
   '/packaging.html',
@@ -19,6 +20,7 @@ const PRECACHE_ASSETS = [
   '/js/bluetooth-printer.js',
   '/js/whatsapp-service.js',
   '/js/app.js',
+  '/js/admin.js',
   '/js/register.js',
   '/js/billing.js',
   '/js/kitchen.js',

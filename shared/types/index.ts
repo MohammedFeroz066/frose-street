@@ -19,7 +19,7 @@ export type PortalType = 'billing' | 'packaging' | 'kitchen';
 
 export type BackendEdition = 'cloud' | 'local';
 
-export type StaffRole = 'owner' | 'cashier' | 'cook' | 'packer';
+export type StaffRole = 'superadmin' | 'owner' | 'cashier' | 'cook' | 'packer';
 
 export type OrderStatus = 'placed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
 

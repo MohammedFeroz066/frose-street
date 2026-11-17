@@ -203,14 +203,14 @@
     <form id="form-pwd-login">
       <div class="form-group">
         <label class="form-label" for="login-phone">Mobile Number</label>
-        <input class="form-input" type="tel" id="login-phone" placeholder="10-digit mobile number" value="9177177475" maxlength="10" required autocomplete="tel" />
+        <input class="form-input" type="tel" id="login-phone" placeholder="10-digit mobile number" maxlength="10" required autocomplete="tel" />
       </div>
       <div class="form-group">
         <label class="form-label" for="login-password">Password</label>
-        <input class="form-input" type="password" id="login-password" placeholder="Enter password (e.g. Feroz@123)" required autocomplete="current-password" />
+        <input class="form-input" type="password" id="login-password" placeholder="Enter password" required autocomplete="current-password" />
       </div>
       <button class="btn-submit-login" type="submit" id="btn-submit-pwd">Sign In to Counter</button>
-      <div style="font-size: 12px; color: #64748B; margin-top: 10px; text-align: center;">Credentials: <strong>9177177475</strong> &bull; <strong>Feroz@123</strong> (or PIN <strong>1234</strong>)</div>
+      
     </form>
 
     <!-- Tab 2: Quick PIN Login -->
@@ -286,6 +286,14 @@
           if (data.vendor.businessName) localStorage.setItem('frose_stall_name', data.vendor.businessName);
           if (data.vendor.phone) localStorage.setItem('frose_stall_phone', data.vendor.phone);
           if (data.vendor.upiId) localStorage.setItem('frose_vendor_vpa', data.vendor.upiId);
+        }
+        var isSuper = data.isSuperadmin || data.role === 'superadmin' || (data.vendor && (data.vendor.role === 'superadmin' || data.vendor.isSuperadmin));
+        if (isSuper) {
+          showAlert('✅ Super Admin authenticated! Opening platform console...', 'success');
+          setTimeout(() => {
+            window.location.href = '/admin';
+          }, 500);
+          return;
         }
         showAlert('✅ Login successful! Launching billing...', 'success');
         setTimeout(() => {

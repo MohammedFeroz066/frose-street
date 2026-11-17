@@ -363,26 +363,6 @@
   }
 
   // --- 7. FETCH LIVE QUEUES ---
-  async function ensureAuthenticated() {
-    if (localStorage.getItem('frose_auth_token')) return;
-    try {
-      const res = await fetch('/api/v1/auth/pin-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: '1234' }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.token) {
-          localStorage.setItem('frose_auth_token', data.token);
-          if (data.vendor?.businessName) {
-            localStorage.setItem('frose_stall_name', data.vendor.businessName);
-            if (stallNameEl) stallNameEl.textContent = data.vendor.businessName;
-          }
-        }
-      }
-    } catch {}
-  }
 
   async function fetchLiveOrders() {
     try {
@@ -613,11 +593,12 @@
     // Check QR pairing
     checkUrlPairing();
 
-    // Auto-authenticate default stall if no token present
-    ensureAuthenticated().then(() => {
-      fetchLiveOrders();
-      initWebSocket();
-    });
+    if (!localStorage.getItem('frose_auth_token')) {
+      window.location.replace('/login');
+      return;
+    }
+    fetchLiveOrders();
+    initWebSocket();
   }
 
   function escapeHtml(str) {

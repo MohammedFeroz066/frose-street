@@ -6,6 +6,24 @@
   <title>FROSE Street — Formal Enterprise Street Micro-POS</title>
   <meta name="description" content="Ultra-fast, formal two-color enterprise POS for street food vendors, carts, and stalls.">
   <meta name="theme-color" content="#FFFFFF">
+    <script>
+    (function() {
+      var token = localStorage.getItem('frose_auth_token');
+      if (!token) {
+        window.location.replace('/login');
+        return;
+      }
+      try {
+        var vendorStr = localStorage.getItem('frose_current_vendor');
+        if (vendorStr) {
+          var vendor = JSON.parse(vendorStr);
+          if (vendor && (vendor.isSuperadmin || vendor.role === 'superadmin')) {
+            window.location.replace('/admin');
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/css/style.css?v=2.3.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">

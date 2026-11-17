@@ -31,16 +31,88 @@ if (!memoryVendors.has(DEFAULT_DEMO_VENDOR_ID)) {
     subscription_expires_at: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
     password_hash: DEMO_PASSWORD_HASH,
     quick_pin_hash: DEMO_PIN_HASH,
+    is_superadmin: true,
+    role: 'superadmin',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
   memoryVendors.set(DEFAULT_DEMO_VENDOR_ID, primaryVendor);
+
+  // Dedicated Super Admin master account (Phone: 9999999999 / Password: Feroz@123)
+  memoryVendors.set('v-admin-master', {
+    id: 'v-admin-master',
+    phone: '9999999999',
+    business_name: 'FROSE Platform HQ',
+    owner_name: 'Super Admin',
+    business_type: 'Platform Management',
+    city: 'Hyderabad',
+    edition: 'cloud',
+    subscription_status: 'active',
+    subscription_expires_at: new Date(Date.now() + 3650 * 24 * 3600 * 1000).toISOString(),
+    password_hash: DEMO_PASSWORD_HASH,
+    quick_pin_hash: DEMO_PIN_HASH,
+    is_superadmin: true,
+    role: 'superadmin',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  // Sample multi-restaurant stalls for Super Admin platform overview
+  memoryVendors.set('v-stall-demo-02', {
+    id: 'v-stall-demo-02',
+    phone: '9848012345',
+    business_name: 'Al-Bake Shawarma Express',
+    owner_name: 'Mirza Baig',
+    business_type: 'Shawarma & Grills',
+    city: 'Hyderabad',
+    edition: 'cloud',
+    subscription_status: 'active',
+    subscription_expires_at: new Date(Date.now() + 45 * 24 * 3600 * 1000).toISOString(),
+    password_hash: DEMO_PASSWORD_HASH,
+    quick_pin_hash: DEMO_PIN_HASH,
+    created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  memoryVendors.set('v-stall-demo-03', {
+    id: 'v-stall-demo-03',
+    phone: '9848098765',
+    business_name: 'Chai Shai & Bun Maska',
+    owner_name: 'Suresh Patel',
+    business_type: 'Tea & Snacks',
+    city: 'Secunderabad',
+    edition: 'cloud',
+    subscription_status: 'trial',
+    subscription_expires_at: new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString(),
+    password_hash: DEMO_PASSWORD_HASH,
+    quick_pin_hash: DEMO_PIN_HASH,
+    created_at: new Date(Date.now() - 9 * 24 * 3600 * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+
+  memoryVendors.set('v-stall-demo-04', {
+    id: 'v-stall-demo-04',
+    phone: '9848055555',
+    business_name: 'Dosa Corner King',
+    owner_name: 'Ramu Naidu',
+    business_type: 'South Indian Tiffins',
+    city: 'Vijayawada',
+    edition: 'cloud',
+    subscription_status: 'expired',
+    subscription_expires_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
+    password_hash: DEMO_PASSWORD_HASH,
+    quick_pin_hash: DEMO_PIN_HASH,
+    created_at: new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString(),
+    updated_at: new Date().toISOString(),
+  });
 
   // Legacy demo phone alias
   memoryVendors.set('v-stall-demo-legacy', {
     ...primaryVendor,
     id: 'v-stall-demo-legacy',
     phone: '9876543210',
+    is_superadmin: false,
+    role: 'owner',
   });
 
   memoryStaff.set('staff-demo-01', {
@@ -202,6 +274,7 @@ export function createMemoryDb(): Kysely<Database> {
     updateTable: (table: string) => {
       let updateVals: any = {};
       let whereConditions: { col: string; op: string; val: any }[] = [];
+      let isReturning = false;
       const chain = {
         set: (v: any) => {
           updateVals = { ...v };
@@ -211,10 +284,14 @@ export function createMemoryDb(): Kysely<Database> {
           whereConditions.push({ col, op, val });
           return chain;
         },
-        returningAll: () => chain,
+        returningAll: () => {
+          isReturning = true;
+          return chain;
+        },
         execute: async () => {
           const targetMap = getTableMap(table);
           let updatedCount = 0n;
+          const updatedRows: any[] = [];
 
           for (const [id, row] of targetMap.entries()) {
             let match = true;
@@ -225,14 +302,23 @@ export function createMemoryDb(): Kysely<Database> {
               }
             }
             if (match) {
-              targetMap.set(id, { ...row, ...updateVals });
+              const updated = { ...row, ...updateVals };
+              targetMap.set(id, updated);
+              updatedRows.push(updated);
               updatedCount++;
             }
+          }
+          if (isReturning) {
+            return updatedRows;
           }
           return [{ numUpdatedRows: updatedCount }];
         },
         executeTakeFirstOrThrow: async () => {
+          isReturning = true;
           const rows = await chain.execute();
+          if (!rows || rows.length === 0) {
+            throw new Error(`Record not found in ${table}`);
+          }
           return rows[0];
         },
       };

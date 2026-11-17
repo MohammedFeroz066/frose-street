@@ -6,6 +6,14 @@
   <title>Kitchen Display (KDS) — FROSE Street</title>
   <meta name="description" content="Ultra-fast, knuckle-friendly kitchen display order queue for street food cooks.">
   <meta name="theme-color" content="#0F172A">
+    <script>
+    (function() {
+      var token = localStorage.getItem('frose_auth_token');
+      if (!token) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/css/style.css?v=2.3.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -6,6 +6,14 @@
   <title>Packaging & Serving — FROSE Street</title>
   <meta name="description" content="Ultra-fast packaging lane, token matching, and customer food handover portal.">
   <meta name="theme-color" content="#0F172A">
+    <script>
+    (function() {
+      var token = localStorage.getItem('frose_auth_token');
+      if (!token) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/css/style.css?v=2.3.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -17,6 +17,7 @@ import { websocketRoutes, handleWsConnection, httpWsFallback } from './modules/w
 import { gallaRoutes } from './modules/galla/galla.routes.js';
 import { paymentRoutes } from './modules/payments/payment.routes.js';
 import { subscriptionRoutes } from './modules/subscriptions/subscription.routes.js';
+import { adminRoutes } from './modules/admin/admin.routes.js';
 import type { HealthCheckResponse } from '../../shared/types/index.js';
 
 export interface BuildAppOptions {
@@ -188,6 +189,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return reply.status(404).send({ error: 'Register page not found' });
   });
 
+  // Super Admin Portal Route
+  app.get('/admin', async (_req, reply) => {
+    const adminPath = path.resolve(process.cwd(), 'client/admin.html');
+    if (fs.existsSync(adminPath)) {
+      reply.type('text/html');
+      return reply.send(fs.readFileSync(adminPath, 'utf8'));
+    }
+    return reply.status(404).send({ error: 'Super Admin page not found' });
+  });
+
   // Login Page Route
   app.get('/login', async (_req, reply) => {
     const loginPath = path.resolve(process.cwd(), 'client/login.html');
@@ -232,6 +243,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Phase 18: Subscription, SaaS Licensing & Renewal Routes (/api/v1/subscriptions)
   await app.register(subscriptionRoutes, { prefix: '/api/v1/subscriptions' });
+
+  // Phase 21: Super Admin Multi-Restaurant Management Routes (/api/v1/admin)
+  await app.register(adminRoutes, { prefix: '/api/v1/admin' });
 
   // Test-only endpoint for verifying error handler
   if (config.NODE_ENV === 'test') {

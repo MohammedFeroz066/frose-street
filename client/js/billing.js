@@ -1227,36 +1227,15 @@
     updateSubscriptionUI: (s) => updateSubscriptionUI(s),
   };
 
-  async function ensureAuthenticated() {
-    if (localStorage.getItem('frose_auth_token')) return;
-    try {
-      const res = await fetch('/api/v1/auth/pin-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: '1234' }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.token) {
-          localStorage.setItem('frose_auth_token', data.token);
-          if (data.vendor?.businessName) {
-            localStorage.setItem('frose_stall_name', data.vendor.businessName);
-          }
-          if (data.vendor?.upiId) {
-            localStorage.setItem('frose_vendor_vpa', data.vendor.upiId);
-          }
-        }
-      }
-    } catch {}
-  }
-
   // Initialization
-  ensureAuthenticated().then(() => {
+  if (!localStorage.getItem('frose_auth_token')) {
+    window.location.replace('/login');
+  } else {
     loadStallProfile();
     loadMenu();
     updateCartUI();
     checkSubscriptionStatus();
     initBluetoothAndWhatsApp();
-  });
+  }
 
 })();

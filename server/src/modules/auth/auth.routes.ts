@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { AuthService } from './auth.service.js';
+import type { StaffRole } from '../../../../shared/types/index.js';
 import { signJwt } from './jwt.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { getDatabase } from '../../db/database.js';
@@ -163,12 +164,15 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
     const vendor = await AuthService.loginWithPassword(db, body.phone, body.password);
 
+    const isSuperadmin = (vendor as any).is_superadmin === true || (vendor as any).role === 'superadmin' || vendor.phone === '9999999999';
+    const role: StaffRole = isSuperadmin ? 'superadmin' : 'owner';
+
     const token = signJwt(
       {
         sub: vendor.id,
         phone: vendor.phone,
         businessName: vendor.business_name,
-        role: 'owner',
+        role,
         edition: vendor.edition,
       },
       config.JWT_SECRET,
@@ -178,7 +182,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
     return reply.status(200).send({
       status: 'success',
-      message: 'Login successful',
+      message: isSuperadmin ? 'Super Admin authenticated successfully' : 'Login successful',
       vendor: {
         id: vendor.id,
         phone: vendor.phone,
@@ -190,8 +194,12 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         subscriptionExpiresAt: vendor.subscription_expires_at,
         hasQuickPin: !!vendor.quick_pin_hash,
         upiId: PaymentService.getVendorVpa(vendor.id),
+        isSuperadmin,
+        role,
       },
       token,
+      isSuperadmin,
+      role,
     });
   });
 

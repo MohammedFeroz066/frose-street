@@ -284,6 +284,7 @@
 
     updateCartUI();
   checkSubscriptionStatus();
+  initBluetoothAndWhatsApp();
     renderMenuGrid();
   }
 
@@ -513,6 +514,35 @@
         console.warn('IndexedDB write warning:', idbErr);
       }
     }
+
+        // Capture order for Phase 19 receipt printing & WhatsApp share
+    lastDispatchedOrder = {
+      tokenNo: currentTokenNumber,
+      totalRupees,
+      paymentMethod,
+      items: Array.from(cart.values()).map(e => ({
+        name: e.item.name,
+        quantity: e.quantity,
+        priceRupees: Number(e.item.priceRupees)
+      }))
+    };
+
+    // Auto-Print ESC/POS Token Slip if Printer Connected
+    try {
+      const printer = window.__FROSE_PRINTER__?.printerInstance;
+      const EscPos = window.__FROSE_ESCPOS__?.EscPosGenerator;
+      if (printer && printer.isConnected() && printer.isAutoPrintEnabled() && EscPos) {
+        const stallName = localStorage.getItem('frose_stall_name') || 'FROSE Street Food';
+        const slipBuffer = EscPos.generateTokenSlip({
+          stallName,
+          tokenNo: currentTokenNumber,
+          items: lastDispatchedOrder.items,
+          totalRupees,
+          paymentMethod
+        });
+        printer.print(slipBuffer).catch(() => {});
+      }
+    } catch {}
 
     flashOrderSuccess(currentTokenNumber, totalRupees, paymentMethod === 'cash' ? 'Cash' : 'UPI QR');
   }
@@ -973,6 +1003,149 @@
   }
   if (planCloud) {
     planCloud.addEventListener('click', () => selectRenewalPlan('cloud', 1499));
+  }
+
+
+  // ==========================================================================
+  // PHASE 19: BLUETOOTH THERMAL PRINTER & WHATSAPP INTEGRATION
+  // ==========================================================================
+  let lastDispatchedOrder = null;
+
+  function initBluetoothAndWhatsApp() {
+    const printerBadge = document.getElementById('printer-status-badge');
+    const printerDeviceName = document.getElementById('printer-device-name');
+    const btnConnectPrinter = document.getElementById('btn-connect-printer');
+    const btnConnectPrinterText = document.getElementById('btn-connect-printer-text');
+    const btnTestPrint = document.getElementById('btn-test-print');
+    const toggleAutoPrint = document.getElementById('toggle-auto-print');
+    const btnShareGallaWhatsApp = document.getElementById('btn-share-galla-whatsapp');
+    const btnPrintTokenFlash = document.getElementById('btn-print-token-flash');
+    const btnWhatsAppTokenFlash = document.getElementById('btn-whatsapp-token-flash');
+
+    const printer = window.__FROSE_PRINTER__?.printerInstance;
+
+    function updatePrinterUI(status, details = {}) {
+      if (!printerBadge) return;
+      printerBadge.className = '';
+      if (status === 'connected') {
+        printerBadge.classList.add('printer-status-connected');
+        printerBadge.textContent = 'Connected';
+        if (printerDeviceName) printerDeviceName.textContent = `Paired: ${details.deviceName || 'Thermal Printer'}`;
+        if (btnConnectPrinterText) btnConnectPrinterText.textContent = 'Disconnect';
+      } else if (status === 'connecting') {
+        printerBadge.classList.add('printer-status-connecting');
+        printerBadge.textContent = 'Connecting...';
+      } else if (status === 'unsupported') {
+        printerBadge.classList.add('printer-status-disconnected');
+        printerBadge.textContent = 'Unsupported';
+        if (printerDeviceName) printerDeviceName.textContent = 'Web Bluetooth not supported in this browser';
+      } else {
+        printerBadge.classList.add('printer-status-disconnected');
+        printerBadge.textContent = 'Disconnected';
+        if (printerDeviceName) printerDeviceName.textContent = 'Web Bluetooth ESC/POS printing for token slips.';
+        if (btnConnectPrinterText) btnConnectPrinterText.textContent = 'Pair Printer';
+      }
+    }
+
+    if (printer) {
+      printer.onStatusChange((status, details) => {
+        updatePrinterUI(status, details);
+      });
+
+      if (toggleAutoPrint) {
+        toggleAutoPrint.checked = printer.isAutoPrintEnabled();
+        toggleAutoPrint.addEventListener('change', (e) => {
+          printer.setAutoPrintEnabled(e.target.checked);
+        });
+      }
+
+      if (btnConnectPrinter) {
+        btnConnectPrinter.addEventListener('click', async () => {
+          if (printer.isConnected()) {
+            await printer.disconnect();
+          } else {
+            await printer.connect();
+          }
+        });
+      }
+
+      if (btnTestPrint) {
+        btnTestPrint.addEventListener('click', async () => {
+          const stall = localStorage.getItem('frose_stall_name') || 'FROSE Street Food';
+          const res = await printer.testPrint(stall);
+          if (res.ok) {
+            alert('🖨️ Test token slip sent to thermal printer!');
+          } else {
+            alert(`Printer status: ${res.error || 'Please connect printer first'}`);
+          }
+        });
+      }
+    }
+
+    // WhatsApp Daily Galla Share
+    if (btnShareGallaWhatsApp) {
+      btnShareGallaWhatsApp.addEventListener('click', () => {
+        const stallName = localStorage.getItem('frose_stall_name') || 'Tibetan Momo Point';
+        const totalText = drawerGallaSales ? drawerGallaSales.textContent.replace(/[^0-9]/g, '') : '0';
+        const cashText = drawerCashSales ? drawerCashSales.textContent.replace(/[^0-9]/g, '') : '0';
+        const upiText = drawerUpiSales ? drawerUpiSales.textContent.replace(/[^0-9]/g, '') : '0';
+
+        const totalSales = parseInt(totalText, 10) || 0;
+        const cashSales = parseInt(cashText, 10) || 0;
+        const upiSales = parseInt(upiText, 10) || 0;
+
+        if (window.__FROSE_WHATSAPP__?.WhatsAppService) {
+          window.__FROSE_WHATSAPP__.WhatsAppService.openGallaShare({
+            stallName,
+            totalSalesRupees: totalSales,
+            cashSalesRupees: cashSales,
+            upiSalesRupees: upiSales,
+            orderCount: currentTokenNumber - 1 > 0 ? currentTokenNumber - 1 : 0,
+          });
+        }
+      });
+    }
+
+    // Token Flash Actions: Print Slip & WhatsApp Bill
+    if (btnPrintTokenFlash) {
+      btnPrintTokenFlash.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (printer && lastDispatchedOrder && window.__FROSE_ESCPOS__) {
+          const EscPos = window.__FROSE_ESCPOS__.EscPosGenerator;
+          const stallName = localStorage.getItem('frose_stall_name') || 'FROSE Street Food';
+          const buf = EscPos.generateTokenSlip({
+            stallName,
+            tokenNo: lastDispatchedOrder.tokenNo,
+            items: lastDispatchedOrder.items,
+            totalRupees: lastDispatchedOrder.totalRupees,
+            paymentMethod: lastDispatchedOrder.paymentMethod,
+          });
+          printer.print(buf).then((res) => {
+            if (!res.ok) alert(`Printer: ${res.error || 'Could not print'}`);
+          });
+        } else {
+          alert('Printer is not connected');
+        }
+      });
+    }
+
+    if (btnWhatsAppTokenFlash) {
+      btnWhatsAppTokenFlash.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (lastDispatchedOrder && window.__FROSE_WHATSAPP__) {
+          const phone = prompt('Enter customer 10-digit mobile number for WhatsApp receipt:', '');
+          const stallName = localStorage.getItem('frose_stall_name') || 'FROSE Street Food';
+          window.__FROSE_WHATSAPP__.WhatsAppService.openCustomerReceipt({
+            phone: phone || undefined,
+            stallName,
+            tokenNo: lastDispatchedOrder.tokenNo,
+            items: lastDispatchedOrder.items,
+            totalRupees: lastDispatchedOrder.totalRupees,
+            paymentMethod: lastDispatchedOrder.paymentMethod,
+          });
+        }
+      });
+    }
   }
 
   // Expose billing harness for Playwright inspection and integration tests

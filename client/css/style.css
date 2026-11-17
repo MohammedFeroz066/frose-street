@@ -3428,3 +3428,44 @@ html, body {
     font-size: 11px;
   }
 }
+
+
+/* ==========================================================================
+   PHASE 19: BLUETOOTH THERMAL PRINTER & WHATSAPP INTEGRATION
+   ========================================================================== */
+.drawer-printer-settings-widget {
+  transition: border-color 0.2s ease;
+}
+
+.printer-status-connected {
+  background: #DCFCE7 !important;
+  color: #15803D !important;
+}
+
+.printer-status-connecting {
+  background: #FEF3C7 !important;
+  color: #B45309 !important;
+}
+
+.printer-status-disconnected {
+  background: #F1F5F9 !important;
+  color: #64748B !important;
+}
+
+.btn-whatsapp-share {
+  background: #25D366;
+  color: #FFFFFF;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: transform 0.1s ease, filter 0.15s ease;
+}
+
+.btn-whatsapp-share:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}

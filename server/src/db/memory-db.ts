@@ -14,19 +14,44 @@ export const memoryPairingTokens = new Map<string, any>();
 
 export const DEFAULT_DEMO_VENDOR_ID = 'v-stall-demo-01';
 
+const DEMO_PASSWORD_HASH = 'scrypt:16384:8:1:635ca671f1f7766331705bb4bcf4d5c2:b1cadfa3794f120da851368cef695a3be2a4ee300aeecb7e3ec8f61a23e4fc070d5586d8035fa9eaf55eb99ede86d0acdff4ce5509d926d81b4e5f3f62ffcfeb'; // Feroz@123
+const DEMO_PIN_HASH = 'scrypt:16384:8:1:b887fb74010b32ff906ea4149678a425:e848180c9637ae06f03424d52ae97ad2ee20ebd1eab56f198dceee63489aff49'; // 1234
+
 // Seed initial default demo vendor so out-of-the-box mobile devices work immediately
 if (!memoryVendors.has(DEFAULT_DEMO_VENDOR_ID)) {
-  memoryVendors.set(DEFAULT_DEMO_VENDOR_ID, {
+  const primaryVendor = {
     id: DEFAULT_DEMO_VENDOR_ID,
-    phone: '9876543210',
-    business_name: 'Tibetan Momo Point',
-    owner_name: 'Stall Master',
+    phone: '9177177475',
+    business_name: 'FROSE Street Food Stall',
+    owner_name: 'Mohammed Feroz',
     business_type: 'Street Food Stall',
-    city: 'Mumbai',
+    city: 'Hyderabad',
     edition: 'cloud',
     subscription_status: 'active',
     subscription_expires_at: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
-    quick_pin_hash: 'default',
+    password_hash: DEMO_PASSWORD_HASH,
+    quick_pin_hash: DEMO_PIN_HASH,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  memoryVendors.set(DEFAULT_DEMO_VENDOR_ID, primaryVendor);
+
+  // Legacy demo phone alias
+  memoryVendors.set('v-stall-demo-legacy', {
+    ...primaryVendor,
+    id: 'v-stall-demo-legacy',
+    phone: '9876543210',
+  });
+
+  memoryStaff.set('staff-demo-01', {
+    id: 'staff-demo-01',
+    vendor_id: DEFAULT_DEMO_VENDOR_ID,
+    name: 'Mohammed Feroz',
+    phone: '9177177475',
+    role: 'cashier',
+    is_active: true,
+    password_hash: DEMO_PASSWORD_HASH,
+    quick_pin_hash: DEMO_PIN_HASH,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   });

@@ -270,20 +270,28 @@ export class AuthService {
       }
     }
 
-    // 4. Default demo stall fallback for PIN 1234 (Zero-Config instant boot on mobile)
+    // 4. Default stall fallback for PIN 1234 (Zero-Config instant boot on mobile)
     if (cleanedPin === '1234') {
       let defaultVendor = await db
         .selectFrom('vendors')
         .selectAll()
-        .where('phone', '=', '9876543210')
+        .where('phone', '=', '9177177475')
         .executeTakeFirst();
+
+      if (!defaultVendor) {
+        defaultVendor = await db
+          .selectFrom('vendors')
+          .selectAll()
+          .where('phone', '=', '9876543210')
+          .executeTakeFirst();
+      }
 
       if (!defaultVendor) {
         defaultVendor = {
           id: 'v-stall-demo-01',
-          phone: '9876543210',
-          business_name: 'Tibetan Momo Point',
-          owner_name: 'Stall Master',
+          phone: '9177177475',
+          business_name: 'FROSE Street Food Stall',
+          owner_name: 'Mohammed Feroz',
           business_type: 'Street Food Stall',
           edition: 'cloud',
           subscription_status: 'active',

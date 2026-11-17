@@ -1149,7 +1149,7 @@
     // WhatsApp Daily Galla Share
     if (btnShareGallaWhatsApp) {
       btnShareGallaWhatsApp.addEventListener('click', () => {
-        const stallName = localStorage.getItem('frose_stall_name') || 'Tibetan Momo Point';
+        const stallName = localStorage.getItem('frose_stall_name') || 'FROSE Street Food Stall';
         const totalText = drawerGallaSales ? drawerGallaSales.textContent.replace(/[^0-9]/g, '') : '0';
         const cashText = drawerCashSales ? drawerCashSales.textContent.replace(/[^0-9]/g, '') : '0';
         const upiText = drawerUpiSales ? drawerUpiSales.textContent.replace(/[^0-9]/g, '') : '0';

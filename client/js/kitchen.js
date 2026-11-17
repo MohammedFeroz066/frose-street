@@ -360,6 +360,27 @@
   }
 
   // --- 8. FETCH LIVE QUEUE ---
+  async function ensureAuthenticated() {
+    if (localStorage.getItem('frose_auth_token')) return;
+    try {
+      const res = await fetch('/api/v1/auth/pin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: '1234' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token) {
+          localStorage.setItem('frose_auth_token', data.token);
+          if (data.vendor?.businessName) {
+            localStorage.setItem('frose_stall_name', data.vendor.businessName);
+            if (stallNameEl) stallNameEl.textContent = data.vendor.businessName;
+          }
+        }
+      }
+    } catch {}
+  }
+
   async function fetchLiveOrders() {
     try {
       const token = localStorage.getItem('frose_auth_token') || '';
@@ -373,9 +394,12 @@
           renderQueue();
           hideReconnectBanner();
         }
+      } else {
+        renderQueue();
       }
     } catch (err) {
       console.warn('Failed to fetch live orders:', err);
+      renderQueue();
       showReconnectBanner();
     }
   }
@@ -604,18 +628,22 @@
       });
     });
 
+    // Render initial queue immediately so empty state displays on load
+    renderQueue();
+
     // Check QR pairing
     checkUrlPairing();
 
     // Request wake lock
     requestScreenWakeLock();
 
-    // Fetch initial queue and start ticker
-    fetchLiveOrders();
-    startAgeTicker();
+    // Auto-authenticate default stall if no token present
+    ensureAuthenticated().then(() => {
+      fetchLiveOrders();
+      initWebSocket();
+    });
 
-    // Start WebSocket
-    initWebSocket();
+    startAgeTicker();
   }
 
   function escapeHtml(str) {

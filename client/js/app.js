@@ -277,12 +277,33 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 5. Fetch Live Galla Summary Glance
-  async function loadGallaGlance() {
+  async function ensureAuthenticated() {
+    if (localStorage.getItem('frose_auth_token')) return;
     try {
-      const token = localStorage.getItem('frose_auth_token') || '';
+      const res = await fetch('/api/v1/auth/pin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: '1234' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token) {
+          localStorage.setItem('frose_auth_token', data.token);
+          if (data.vendor?.businessName) {
+            localStorage.setItem('frose_stall_name', data.vendor.businessName);
+          }
+        }
+      }
+    } catch {}
+  }
+
+  async function loadGallaGlance() {
+    const token = localStorage.getItem('frose_auth_token');
+    if (!token) return;
+    try {
       const res = await fetch('/api/v1/galla/summary', {
         headers: {
-          authorization: token ? `Bearer ${token}` : '',
+          authorization: `Bearer ${token}`,
         },
       });
       if (res.ok) {
@@ -306,5 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  loadGallaGlance();
+  ensureAuthenticated().then(() => {
+    loadGallaGlance();
+  });
 });

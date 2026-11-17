@@ -122,15 +122,11 @@ describe('Phase 11 Acceptance: PWA Shell, Formal Two-Color Light Design System &
       expect(html).toContain('Today\'s Daily Summary');
     });
 
-    it('index.html must contain the Quick PIN numpad modal with 10 numeric keys and biometrics', () => {
+    it('index.html must not expose quick PIN numpad modal (removed for security)', () => {
       const html = fs.readFileSync(path.join(clientDir, 'index.html'), 'utf8');
-      expect(html).toContain('id="pin-modal"');
-      expect(html).toContain('id="btn-biometric"');
-      expect(html).toContain('id="btn-backspace"');
-      expect(html).toContain('data-key="1"');
-      expect(html).toContain('data-key="0"');
-      expect(html).toContain('id="dot-0"');
-      expect(html).toContain('id="dot-3"');
+      expect(html).not.toContain('id="pin-modal"');
+      expect(html).not.toContain('id="btn-open-pin"');
+      expect(html).not.toContain('id="btn-footer-pin"');
     });
 
     it('index.html must contain the helper QR device pairing modal trigger', () => {

@@ -4,6 +4,7 @@ import { hashPassword, verifyPassword, hashPin, verifyPin } from '../../utils/cr
 import { AppError } from '../../errors/app-error.js';
 import { STREET_MENU_PRESETS } from '../menu/menu.presets.js';
 import { SubscriptionService } from '../subscriptions/subscription.service.js';
+import { LoginSecurityService } from './login-security.service.js';
 
 export interface RegisterVendorInput {
   phone: string;
@@ -144,9 +145,25 @@ export class AuthService {
 
   /**
    * Authenticates vendor using Phone Number and Password
+   * Enforces progressive rate limiting and stepped lockout:
+   * - Validates phone existence ("Account does not exist with this mobile number")
+   * - Validates password match ("Password incorrect. Please check and try again")
+   * - Locks account for 60s upon 3 failed attempts (scaling to 300s/900s)
    */
   static async loginWithPassword(db: Kysely<Database>, phone: string, password: string) {
     const cleanedPhone = phone.replace(/\D/g, '');
+
+    // 1. Check if account is in progressive lockout
+    const lock = LoginSecurityService.checkLock(cleanedPhone);
+    if (lock.isLocked) {
+      throw AppError.rateLimited(
+        `Too many failed attempts. Account locked for ${lock.remainingSeconds} seconds.`,
+        'ACCOUNT_LOCKED',
+        lock.remainingSeconds
+      );
+    }
+
+    // 2. Validate phone existence
     const vendor = await db
       .selectFrom('vendors')
       .selectAll()
@@ -154,14 +171,31 @@ export class AuthService {
       .executeTakeFirst();
 
     if (!vendor || !vendor.password_hash) {
-      throw AppError.unauthorized('Invalid mobile number or password', 'INVALID_CREDENTIALS');
+      throw AppError.notFound('Account does not exist with this mobile number', 'ACCOUNT_NOT_FOUND');
     }
 
+    // 3. Verify password
     const isMatch = await verifyPassword(password, vendor.password_hash);
     if (!isMatch) {
-      throw AppError.unauthorized('Invalid mobile number or password', 'INVALID_CREDENTIALS');
+      const attempt = LoginSecurityService.recordFailedAttempt(cleanedPhone);
+      if (attempt.isLocked) {
+        throw AppError.rateLimited(
+          `Too many failed attempts. Account locked for ${attempt.lockDurationSeconds} seconds.`,
+          'ACCOUNT_LOCKED',
+          attempt.lockDurationSeconds
+        );
+      }
+      const attemptsMsg = attempt.attemptsRemaining > 0
+        ? ` (${attempt.attemptsRemaining} attempt${attempt.attemptsRemaining === 1 ? '' : 's'} remaining)`
+        : '';
+      throw AppError.unauthorized(
+        `Password incorrect. Please check and try again${attemptsMsg}`,
+        'INVALID_CREDENTIALS'
+      );
     }
 
+    // 4. Reset security counter on success
+    LoginSecurityService.recordSuccess(cleanedPhone);
     return vendor;
   }
 

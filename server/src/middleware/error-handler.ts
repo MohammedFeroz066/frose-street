@@ -4,6 +4,9 @@ import { AppError } from '../errors/app-error.js';
 export function errorHandler(error: FastifyError | AppError | Error, request: FastifyRequest, reply: FastifyReply) {
   // If it's our own AppError
   if (error instanceof AppError) {
+    if (error.retryAfter) {
+      reply.header('retry-after', error.retryAfter);
+    }
     return reply.status(error.statusCode).send(error.toProblemDetails());
   }
 

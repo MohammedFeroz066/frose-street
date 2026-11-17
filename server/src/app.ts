@@ -16,6 +16,7 @@ import { orderRoutes } from './modules/orders/order.routes.js';
 import { websocketRoutes } from './modules/websocket/websocket.routes.js';
 import { gallaRoutes } from './modules/galla/galla.routes.js';
 import { paymentRoutes } from './modules/payments/payment.routes.js';
+import { subscriptionRoutes } from './modules/subscriptions/subscription.routes.js';
 import type { HealthCheckResponse } from '../../shared/types/index.js';
 
 export interface BuildAppOptions {
@@ -210,6 +211,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Phase 16: UPI Dynamic QR & Payment Flow Routes (/api/v1/payments)
   await app.register(paymentRoutes, { prefix: '/api/v1/payments' });
+
+  // Phase 18: Subscription, SaaS Licensing & Renewal Routes (/api/v1/subscriptions)
+  await app.register(subscriptionRoutes, { prefix: '/api/v1/subscriptions' });
 
   // Test-only endpoint for verifying error handler
   if (config.NODE_ENV === 'test') {

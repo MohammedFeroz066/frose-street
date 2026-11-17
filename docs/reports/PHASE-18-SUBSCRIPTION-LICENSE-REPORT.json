@@ -1,0 +1,44 @@
+{
+  "phase": 18,
+  "subphaseName": "Subscription, SaaS Licensing & Renewal System",
+  "branch": "feature/phase-18-subscription-license-system",
+  "baseBranch": "master",
+  "verdict": "PASS",
+  "completedAt": "2026-11-17T11:53:00+05:30",
+  "acceptanceCriteria": {
+    "trialProvisioning": "PASS",
+    "hmacSha256Token": "PASS",
+    "tamperProtection": "PASS",
+    "offlineValidation": "PASS",
+    "reminderAlertBanner": "PASS",
+    "gracePeriod3Days": "PASS",
+    "readOnlyLockMode": "PASS",
+    "upiRenewal30Days": "PASS",
+    "superAdminReporting": "PASS",
+    "responsiveCalibration": "PASS"
+  },
+  "testResults": {
+    "totalSuites": 18,
+    "passedSuites": 18,
+    "failedSuites": 0,
+    "totalTests": 224,
+    "passedTests": 224,
+    "failedTests": 0,
+    "typecheckErrors": 0
+  },
+  "pricing": {
+    "localEditionPaise": 99900,
+    "localEditionRupees": 999,
+    "cloudEditionPaise": 149900,
+    "cloudEditionRupees": 1499,
+    "gracePeriodDays": 3,
+    "trialDays": 14
+  },
+  "screenshots": [
+    "docs/walkthroughs/screenshots/phase-18/frose_subscription_mobile_390x844.png",
+    "docs/walkthroughs/screenshots/phase-18/frose_subscription_mobile_banner_390x844.png",
+    "docs/walkthroughs/screenshots/phase-18/frose_subscription_tablet_820x1180.png",
+    "docs/walkthroughs/screenshots/phase-18/frose_subscription_desktop_1440x900.png",
+    "docs/walkthroughs/screenshots/phase-18/frose_subscription_drawer_desktop_1440x900.png"
+  ]
+}

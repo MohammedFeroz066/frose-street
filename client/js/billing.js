@@ -283,6 +283,7 @@
     }
 
     updateCartUI();
+  checkSubscriptionStatus();
     renderMenuGrid();
   }
 
@@ -710,7 +711,271 @@
     }
   });
 
-    // Expose billing harness for Playwright inspection and integration tests
+    
+  // ==========================================================================
+  // PHASE 18: SUBSCRIPTION, SAAS LICENSING & RENEWAL SYSTEM
+  // ==========================================================================
+  let currentSubscription = null;
+
+  async function checkSubscriptionStatus() {
+    try {
+      const res = await fetch('/api/v1/subscriptions/status', {
+        headers: {
+          authorization: `Bearer ${localStorage.getItem('frose_auth_token') || ''}`,
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        currentSubscription = data;
+        updateSubscriptionUI(data);
+        if (window.__FROSE_STORAGE__?.LicenseManager && data.licenseToken) {
+          window.__FROSE_STORAGE__.LicenseManager.saveLicense(data.licenseToken);
+        }
+      } else if (window.__FROSE_STORAGE__?.LicenseManager) {
+        const cached = window.__FROSE_STORAGE__.LicenseManager.getCachedLicense();
+        if (cached) {
+          const offlineRes = window.__FROSE_STORAGE__.LicenseManager.decodeToken(cached);
+          if (offlineRes.valid) {
+            updateSubscriptionUI(offlineRes);
+          }
+        }
+      }
+    } catch {
+      if (window.__FROSE_STORAGE__?.LicenseManager) {
+        const cached = window.__FROSE_STORAGE__.LicenseManager.getCachedLicense();
+        if (cached) {
+          const offlineRes = window.__FROSE_STORAGE__.LicenseManager.decodeToken(cached);
+          if (offlineRes.valid) {
+            updateSubscriptionUI(offlineRes);
+          }
+        }
+      }
+    }
+  }
+
+  function updateSubscriptionUI(sub) {
+    const alertBanner = document.getElementById('subscription-alert-banner');
+    const bannerText = document.getElementById('sub-banner-text');
+    const bannerIcon = document.getElementById('sub-banner-icon');
+    const subBadge = document.getElementById('sub-status-badge');
+    const subPlan = document.getElementById('sub-plan-name');
+    const subDays = document.getElementById('sub-days-remaining');
+    const subExpiry = document.getElementById('sub-expiry-date');
+
+    const status = sub.status || 'active';
+    const plan = sub.plan || 'cloud';
+    const days = sub.daysRemaining !== undefined ? sub.daysRemaining : 14;
+    const isReadOnly = !!sub.isReadOnly;
+
+    if (subBadge) {
+      if (status === 'trial_active') {
+        subBadge.textContent = '14-Day Free Trial';
+        subBadge.style.background = '#e0f2fe';
+        subBadge.style.color = '#0369a1';
+      } else if (status === 'trial_expiring') {
+        subBadge.textContent = 'Trial Expiring';
+        subBadge.style.background = '#fef3c7';
+        subBadge.style.color = '#b45309';
+      } else if (status === 'grace_period') {
+        subBadge.textContent = 'Grace Period';
+        subBadge.style.background = '#ffedd5';
+        subBadge.style.color = '#c2410c';
+      } else if (status === 'expired_readonly' || isReadOnly) {
+        subBadge.textContent = 'Expired (Locked)';
+        subBadge.style.background = '#fee2e2';
+        subBadge.style.color = '#b91c1c';
+      } else {
+        subBadge.textContent = 'Active SaaS';
+        subBadge.style.background = '#dcfce7';
+        subBadge.style.color = '#15803d';
+      }
+    }
+
+    if (subPlan) subPlan.textContent = (plan === 'local' ? 'Local Edition (₹999)' : 'Cloud Edition (₹1,499)');
+    if (subDays) subDays.textContent = days > 0 ? `${days} Days Left` : (status === 'grace_period' ? `Grace: ${sub.gracePeriodDaysRemaining || 0}d left` : 'Expired');
+    if (subExpiry) subExpiry.textContent = sub.periodEnd || '--';
+
+    // Banner visibility
+    if (alertBanner && bannerText) {
+      alertBanner.className = 'subscription-alert-banner';
+      if (status === 'trial_expiring') {
+        alertBanner.classList.add('trial-expiring');
+        alertBanner.style.display = 'flex';
+        if (bannerIcon) bannerIcon.textContent = '⚡';
+        bannerText.textContent = `Trial ending in ${days} days! Renew today to keep your POS active.`;
+      } else if (status === 'grace_period') {
+        alertBanner.classList.add('grace-period');
+        alertBanner.style.display = 'flex';
+        if (bannerIcon) bannerIcon.textContent = '⚠️';
+        bannerText.textContent = `Subscription expired! 3-day grace period active (${sub.gracePeriodDaysRemaining || 0} days remaining).`;
+      } else if (status === 'expired_readonly' || isReadOnly) {
+        alertBanner.classList.add('expired-lock');
+        alertBanner.style.display = 'flex';
+        if (bannerIcon) bannerIcon.textContent = '🚫';
+        bannerText.textContent = `Subscription Expired: Counter is in Read-Only Mode. Order placement disabled.`;
+      } else {
+        alertBanner.style.display = 'none';
+      }
+    }
+
+    // Disable order checkout if read-only
+    if (isReadOnly) {
+      if (btnPayCash) {
+        btnPayCash.disabled = true;
+        btnPayCash.style.opacity = '0.5';
+        btnPayCash.style.cursor = 'not-allowed';
+      }
+      if (btnPayUpi) {
+        btnPayUpi.disabled = true;
+        btnPayUpi.style.opacity = '0.5';
+        btnPayUpi.style.cursor = 'not-allowed';
+      }
+    } else {
+      if (btnPayCash) {
+        btnPayCash.disabled = false;
+        btnPayCash.style.opacity = '1';
+        btnPayCash.style.cursor = 'pointer';
+      }
+      if (btnPayUpi) {
+        btnPayUpi.disabled = false;
+        btnPayUpi.style.opacity = '1';
+        btnPayUpi.style.cursor = 'pointer';
+      }
+    }
+  }
+
+  // Renewal Modal Controls
+  const renewalModal = document.getElementById('subscription-renewal-modal');
+  const btnOpenRenewal = document.getElementById('btn-open-renewal-modal');
+  const btnCloseRenewal = document.getElementById('btn-close-renewal-modal');
+  const btnCancelRenewal = document.getElementById('btn-cancel-renewal');
+  const btnConfirmRenewal = document.getElementById('btn-confirm-renewal');
+  const btnBannerRenew = document.getElementById('btn-banner-renew');
+  const planLocal = document.getElementById('plan-card-local');
+  const planCloud = document.getElementById('plan-card-cloud');
+  const subQrWrapper = document.getElementById('sub-upi-qr-wrapper');
+  const subAmountDisplay = document.getElementById('sub-upi-amount-display');
+
+  let selectedPlan = 'cloud';
+  let selectedAmountRupees = 1499;
+
+  function selectRenewalPlan(plan, amount) {
+    selectedPlan = plan;
+    selectedAmountRupees = amount;
+    if (plan === 'local') {
+      if (planLocal) planLocal.classList.add('active');
+      if (planCloud) planCloud.classList.remove('active');
+    } else {
+      if (planCloud) planCloud.classList.add('active');
+      if (planLocal) planLocal.classList.remove('active');
+    }
+    if (subAmountDisplay) {
+      subAmountDisplay.textContent = `Pay ₹${amount.toLocaleString('en-IN')}.00`;
+    }
+    renderRenewalUpiQr();
+  }
+
+  function renderRenewalUpiQr() {
+    if (!subQrWrapper) return;
+    const upiUri = `upi://pay?pa=frose@icici&pn=FROSE%20Technologies&am=${selectedAmountRupees}.00&cu=INR&tn=FROSE-${selectedPlan.toUpperCase()}-PLAN`;
+    subQrWrapper.innerHTML = '';
+    
+    if (window.QRCode) {
+      try {
+        new window.QRCode(subQrWrapper, {
+          text: upiUri,
+          width: 160,
+          height: 160,
+          colorDark: '#0F172A',
+          colorLight: '#FFFFFF',
+          correctLevel: window.QRCode.CorrectLevel.M
+        });
+        return;
+      } catch {}
+    }
+    subQrWrapper.innerHTML = `<svg viewBox="0 0 100 100" width="150" height="150">
+      <rect width="100" height="100" fill="#ffffff"/>
+      <rect x="10" y="10" width="30" height="30" fill="#0f172a"/>
+      <rect x="15" y="15" width="20" height="20" fill="#ffffff"/>
+      <rect x="20" y="20" width="10" height="10" fill="#0f172a"/>
+      <rect x="60" y="10" width="30" height="30" fill="#0f172a"/>
+      <rect x="65" y="15" width="20" height="20" fill="#ffffff"/>
+      <rect x="70" y="20" width="10" height="10" fill="#0f172a"/>
+      <rect x="10" y="60" width="30" height="30" fill="#0f172a"/>
+      <rect x="15" y="65" width="20" height="20" fill="#ffffff"/>
+      <rect x="20" y="70" width="10" height="10" fill="#0f172a"/>
+      <rect x="45" y="45" width="10" height="10" fill="#0f172a"/>
+      <rect x="60" y="60" width="15" height="15" fill="#f59e0b"/>
+    </svg>`;
+  }
+
+  function openRenewalModal() {
+    if (renewalModal) {
+      renewalModal.classList.add('active');
+      selectRenewalPlan('cloud', 1499);
+      if (settingsDrawerOverlay) settingsDrawerOverlay.classList.remove('active');
+    }
+  }
+
+  function closeRenewalModal() {
+    if (renewalModal) renewalModal.classList.remove('active');
+  }
+
+  async function handleConfirmRenewal() {
+    try {
+      if (btnConfirmRenewal) {
+        btnConfirmRenewal.disabled = true;
+        btnConfirmRenewal.innerHTML = 'Verifying UPI Settlement...';
+      }
+
+      const res = await fetch('/api/v1/subscriptions/renew', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${localStorage.getItem('frose_auth_token') || ''}`,
+        },
+        body: JSON.stringify({
+          plan: selectedPlan,
+          paymentReference: 'UPI-RENEW-' + Date.now(),
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.licenseToken && window.__FROSE_STORAGE__?.LicenseManager) {
+          window.__FROSE_STORAGE__.LicenseManager.saveLicense(data.licenseToken);
+        }
+        alert(`🎉 Subscription renewed successfully for ${selectedPlan.toUpperCase()} edition! 30 days added.`);
+        closeRenewalModal();
+        await checkSubscriptionStatus();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(`Renewal error: ${err.message || 'Payment could not be verified'}`);
+      }
+    } catch {
+      alert('Network error while confirming renewal');
+    } finally {
+      if (btnConfirmRenewal) {
+        btnConfirmRenewal.disabled = false;
+        btnConfirmRenewal.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>Confirm UPI Payment</span>';
+      }
+    }
+  }
+
+  if (btnOpenRenewal) btnOpenRenewal.addEventListener('click', openRenewalModal);
+  if (btnBannerRenew) btnBannerRenew.addEventListener('click', openRenewalModal);
+  if (btnCloseRenewal) btnCloseRenewal.addEventListener('click', closeRenewalModal);
+  if (btnCancelRenewal) btnCancelRenewal.addEventListener('click', closeRenewalModal);
+  if (btnConfirmRenewal) btnConfirmRenewal.addEventListener('click', handleConfirmRenewal);
+
+  if (planLocal) {
+    planLocal.addEventListener('click', () => selectRenewalPlan('local', 999));
+  }
+  if (planCloud) {
+    planCloud.addEventListener('click', () => selectRenewalPlan('cloud', 1499));
+  }
+
+  // Expose billing harness for Playwright inspection and integration tests
   window.__FROSE_BILLING__ = {
     addToCart: (item, qty = 1) => addItemToCart(item, qty),
     openUpiModal: () => openUpiModal(),
@@ -719,6 +984,10 @@
     closeUpiModal: () => { if (upiQrModal) upiQrModal.classList.remove('active'); },
     getCart: () => cart,
     dispatchOrder: (pm) => dispatchOrder(pm),
+    openRenewalModal: () => openRenewalModal(),
+    closeRenewalModal: () => closeRenewalModal(),
+    checkSubscriptionStatus: () => checkSubscriptionStatus(),
+    updateSubscriptionUI: (s) => updateSubscriptionUI(s),
   };
 
   // Initialization

@@ -490,13 +490,85 @@
       return 'http://192.168.43.1:3100';
     }
   }
+  class LicenseManager {
+    /**
+     * Decodes and validates HMAC license token structure offline
+     */
+    static decodeToken(token) {
+      if (!token || typeof token !== 'string' || !token.includes('.')) {
+        return { valid: false, reason: 'Malformed token' };
+      }
+      const parts = token.split('.');
+      if (parts.length !== 2) {
+        return { valid: false, reason: 'Invalid token segment count' };
+      }
+      try {
+        const payloadBase64 = parts[0].replace(/-/g, '+').replace(/_/g, '/');
+        const jsonStr = (typeof atob === 'function')
+          ? atob(payloadBase64)
+          : Buffer.from(payloadBase64, 'base64').toString('utf8');
+        const payload = JSON.parse(jsonStr);
+
+        const now = new Date();
+        const expiry = new Date(payload.periodEnd + 'T23:59:59.999Z');
+        const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+        let status = 'active';
+        let isReadOnly = false;
+
+        if (diffDays >= 0) {
+          status = diffDays <= 4 ? 'trial_expiring' : 'active';
+        } else {
+          const daysOverdue = Math.abs(diffDays);
+          if (daysOverdue <= 3) {
+            status = 'grace_period';
+            isReadOnly = false;
+          } else {
+            status = 'expired_readonly';
+            isReadOnly = true;
+          }
+        }
+
+        return {
+          valid: true,
+          payload,
+          status,
+          daysRemaining: diffDays,
+          isReadOnly,
+          canCreateOrders: !isReadOnly
+        };
+      } catch (e) {
+        return { valid: false, reason: 'Failed to decode license payload' };
+      }
+    }
+
+    /**
+     * Stores active license token
+     */
+    static saveLicense(token) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('frose_license_token', token);
+      }
+    }
+
+    /**
+     * Retrieves cached license token
+     */
+    static getCachedLicense() {
+      if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem('frose_license_token') || null;
+      }
+      return null;
+    }
+  }
 
   // Export module for both browser and Node/Vitest
   const StorageModule = {
     LocalIndexedDB,
     LocalIndexedDBAdapter,
     CloudHttpAdapter,
-    DataAdapterFactory
+    DataAdapterFactory,
+    LicenseManager
   };
 
   global.__FROSE_STORAGE__ = StorageModule;
@@ -513,4 +585,5 @@ export const LocalIndexedDB = globalThis.__FROSE_STORAGE__?.LocalIndexedDB;
 export const LocalIndexedDBAdapter = globalThis.__FROSE_STORAGE__?.LocalIndexedDBAdapter;
 export const CloudHttpAdapter = globalThis.__FROSE_STORAGE__?.CloudHttpAdapter;
 export const DataAdapterFactory = globalThis.__FROSE_STORAGE__?.DataAdapterFactory;
+export const LicenseManager = globalThis.__FROSE_STORAGE__?.LicenseManager;
 export default globalThis.__FROSE_STORAGE__;

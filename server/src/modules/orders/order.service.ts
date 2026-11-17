@@ -3,6 +3,7 @@ import type { Database } from '../../db/types.js';
 import type { StaffRole } from '../../../../shared/types/index.js';
 import { AppError } from '../../errors/app-error.js';
 import { WebSocketHub } from '../websocket/websocket.hub.js';
+import { SubscriptionService } from '../subscriptions/subscription.service.js';
 
 export interface CreateOrderItemInput {
   menuItemId: string;
@@ -44,6 +45,16 @@ export class OrderService {
 
     if (!vendor) {
       throw AppError.notFound('Vendor stall not found', 'VENDOR_NOT_FOUND');
+    }
+
+    // Verify subscription status (read-only lock if grace period has expired)
+    try {
+      const subStatus = await SubscriptionService.getSubscriptionStatus(db, vendorId);
+      if (subStatus.isReadOnly) {
+        throw AppError.forbidden('Subscription expired and grace period ended. Account is in read-only mode.', 'SUBSCRIPTION_EXPIRED');
+      }
+    } catch (err: any) {
+      if (err.code === 'SUBSCRIPTION_EXPIRED') throw err;
     }
 
     const todayDateString = new Date().toISOString().split('T')[0];

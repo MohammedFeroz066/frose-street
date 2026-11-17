@@ -90,3 +90,31 @@ declare const StorageModule: {
 };
 
 export default StorageModule;
+
+export interface LicensePayload {
+  vendorId: string;
+  businessName: string;
+  plan: 'cloud' | 'local';
+  periodStart: string;
+  periodEnd: string;
+  status: 'active' | 'expired';
+  issuedAt: string;
+}
+
+export interface LicenseValidationResult {
+  valid: boolean;
+  reason?: string;
+  payload?: LicensePayload;
+  status?: string;
+  daysRemaining?: number;
+  isReadOnly?: boolean;
+  canCreateOrders?: boolean;
+}
+
+export declare class LicenseManager {
+  static decodeToken(token: string): LicenseValidationResult;
+  static saveLicense(token: string): void;
+  static getCachedLicense(): string | null;
+}
+
+export const LicenseManager: typeof LicenseManager;

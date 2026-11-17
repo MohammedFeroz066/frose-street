@@ -3,6 +3,7 @@ import type { Database } from '../../db/types.js';
 import { hashPassword, verifyPassword, hashPin, verifyPin } from '../../utils/crypto.js';
 import { AppError } from '../../errors/app-error.js';
 import { STREET_MENU_PRESETS } from '../menu/menu.presets.js';
+import { SubscriptionService } from '../subscriptions/subscription.service.js';
 
 export interface RegisterVendorInput {
   phone: string;
@@ -124,6 +125,18 @@ export class AuthService {
           .execute();
         seededItemsCount++;
       }
+    }
+
+    // Auto-provision 14-day free trial subscription and generate signed license token
+    try {
+      await SubscriptionService.createTrialSubscription(
+        db,
+        vendor.id,
+        vendor.business_name,
+        (vendor.edition as any) || 'cloud'
+      );
+    } catch {
+      // In case subscription record already exists or non-fatal
     }
 
     return { vendor, staff, seededItemsCount };

@@ -175,6 +175,18 @@
       <div class="flash-token-number" id="flash-token-number">TOKEN #1</div>
       <div class="flash-token-amount" id="flash-token-amount">&#8377;0 Paid (Cash)</div>
       <p class="flash-token-hint">Synced to Kitchen Display &bull; Auto-closing in 3s</p>
+
+      <div style="display: flex; gap: 8px; justify-content: center; margin-top: 14px;">
+        <button id="btn-print-token-flash" style="height: 36px; padding: 0 14px; background: var(--color-navy); color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+          <span>Print Slip</span>
+        </button>
+        <button id="btn-whatsapp-token-flash" style="height: 36px; padding: 0 14px; background: #25D366; color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2z"/></svg>
+          <span>WhatsApp Bill</span>
+        </button>
+      </div>
+
     </div>
   </div>
 
@@ -289,6 +301,31 @@
           </button>
         </div>
 
+        
+        <!-- Bluetooth 58mm Thermal Printer Widget (Phase 19) -->
+        <div class="drawer-printer-settings-widget" id="drawer-printer-widget" style="background: var(--surface-subtle); border: 1.5px solid var(--border-light); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="font-size: 11px; font-weight: 800; color: var(--color-navy); text-transform: uppercase; letter-spacing: 0.5px;">58mm Thermal Printer</span>
+            <span id="printer-status-badge" class="printer-status-disconnected" style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Disconnected</span>
+          </div>
+          <div id="printer-device-name" style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">Web Bluetooth ESC/POS printing for token slips.</div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
+            <button id="btn-connect-printer" style="height: 38px; background: var(--color-navy); color: #fff; border: none; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/></svg>
+              <span id="btn-connect-printer-text">Pair Printer</span>
+            </button>
+            <button id="btn-test-print" style="height: 38px; background: #fff; color: var(--color-navy); border: 1.5px solid var(--border-light); border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">
+              Test Slip
+            </button>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; padding-top: 6px; border-top: 1px solid var(--border-light);">
+            <label for="toggle-auto-print" style="font-size: 11px; font-weight: 600; color: var(--color-navy); cursor: pointer;">Auto-print token on order</label>
+            <input type="checkbox" id="toggle-auto-print" checked style="width: 16px; height: 16px; accent-color: var(--color-navy); cursor: pointer;" />
+          </div>
+        </div>
+
         <!-- Vendor UPI VPA Setup Widget (Phase 16) -->
         <div class="drawer-upi-settings-widget" style="background: var(--surface-subtle); border: 1.5px solid var(--border-light); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
@@ -400,6 +437,9 @@
 
   <!-- QR Code Generator Engine (Lightweight Inline QR Engine) -->
   <script type="module" src="/js/storage-adapter.js?v=2.2.0"></script>
+  <script type="module" src="/js/escpos-generator.js?v=2.2.0"></script>
+  <script type="module" src="/js/bluetooth-printer.js?v=2.2.0"></script>
+  <script type="module" src="/js/whatsapp-service.js?v=2.2.0"></script>
   <script type="module" src="/js/billing.js?v=2.2.0"></script>
 </body>
 </html>

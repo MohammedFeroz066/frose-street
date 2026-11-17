@@ -23,6 +23,17 @@ export interface CreateOrderInput {
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
 
+const DEFAULT_PRESET_ITEMS_MAP = new Map<string, any>([
+  ['def-1', { id: 'def-1', name: 'Veg Steamed Momos', price_paise: 6000, is_available: true, is_active: true }],
+  ['def-2', { id: 'def-2', name: 'Chicken Steamed Momos', price_paise: 8000, is_available: true, is_active: true }],
+  ['def-3', { id: 'def-3', name: 'Veg Fried Momos', price_paise: 7000, is_available: true, is_active: true }],
+  ['def-4', { id: 'def-4', name: 'Chicken Fried Momos', price_paise: 9000, is_available: true, is_active: true }],
+  ['def-5', { id: 'def-5', name: 'Veg Hakka Noodles', price_paise: 8000, is_available: true, is_active: true }],
+  ['def-6', { id: 'def-6', name: 'Chicken Hakka Noodles', price_paise: 11000, is_available: true, is_active: true }],
+  ['def-7', { id: 'def-7', name: 'Special Masala Chai', price_paise: 1500, is_available: true, is_active: true }],
+  ['def-8', { id: 'def-8', name: 'Chilled Thums Up 250ml', price_paise: 2000, is_available: true, is_active: true }],
+]);
+
 export class OrderService {
   /**
    * Creates a new order with atomic daily token generation and 100% integer paise math
@@ -104,7 +115,10 @@ export class OrderService {
         throw AppError.badRequest(`Invalid quantity for item ${itemInput.menuItemId}`, 'INVALID_QUANTITY');
       }
 
-      const menuItem = menuItemsMap.get(itemInput.menuItemId);
+      let menuItem = menuItemsMap.get(itemInput.menuItemId);
+      if (!menuItem && DEFAULT_PRESET_ITEMS_MAP.has(itemInput.menuItemId)) {
+        menuItem = DEFAULT_PRESET_ITEMS_MAP.get(itemInput.menuItemId);
+      }
       if (!menuItem) {
         throw AppError.badRequest(`Menu item "${itemInput.menuItemId}" does not exist in stall menu`, 'ITEM_NOT_FOUND');
       }

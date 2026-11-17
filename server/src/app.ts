@@ -94,10 +94,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       root: clientDir,
       prefix: '/',
       decorateReply: false,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        } else {
+          res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+        }
+      },
     });
   } catch {
     // Ignore static serving error in test environments if directory missing
   }
+
+  // Favicon Route (Prevents 404 clutter in mobile browsers)
+  app.get('/favicon.ico', async (_request, reply) => {
+    return reply.status(204).send();
+  });
 
   // Health Check Endpoint
   app.get('/health', async (_request, reply) => {

@@ -2848,6 +2848,43 @@ html, body {
   .d-none-mobile {
     display: none !important;
   }
+  /* Mobile Header Navigation Calibration */
+  .kitchen-header .navbar-container,
+  .packaging-header .navbar-container {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .kds-header-stats,
+  .packaging-header-stats {
+    gap: 6px;
+  }
+  .kds-stat-pill {
+    padding: 3px 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .kds-stat-pill .kds-stat-label {
+    font-size: 10px;
+  }
+  .kds-stat-pill .kds-stat-val {
+    font-size: 13px;
+  }
+  .kds-wakelock-pill {
+    display: none !important;
+  }
+  #btn-toggle-fullscreen {
+    display: none !important;
+  }
+  .stall-pill {
+    display: none !important;
+  }
+  .btn-nav-pin {
+    padding: 6px 10px;
+    font-size: 12px;
+    gap: 4px;
+    height: 34px;
+    flex-shrink: 0;
+  }
 }
 
 

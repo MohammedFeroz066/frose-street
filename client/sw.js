@@ -8,12 +8,16 @@ const CACHE_NAME = 'frose-street-v9-production';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
+  '/login.html',
   '/register.html',
   '/billing.html',
   '/kitchen.html',
   '/packaging.html',
   '/css/style.css',
   '/js/storage-adapter.js',
+  '/js/escpos-generator.js',
+  '/js/bluetooth-printer.js',
+  '/js/whatsapp-service.js',
   '/js/app.js',
   '/js/register.js',
   '/js/billing.js',
@@ -69,8 +73,11 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => {
-          return caches.match('/index.html');
+        .catch(async () => {
+          // Serve exact requested page if cached, otherwise fall back to portal home
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          return (await caches.match('/index.html')) || Response.error();
         })
     );
     return;

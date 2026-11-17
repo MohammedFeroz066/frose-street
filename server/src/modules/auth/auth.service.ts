@@ -218,6 +218,58 @@ export class AuthService {
   }
 
   /**
+   * Fast 4-digit quick PIN login (with or without explicit vendorId)
+   */
+  static async loginWithQuickPin(db: Kysely<Database>, pin: string, vendorId?: string) {
+    if (!pin || !/^\d{4}$/.test(pin.trim())) {
+      throw AppError.badRequest('PIN must be exactly 4 digits', 'INVALID_PIN');
+    }
+
+    const cleanedPin = pin.trim();
+
+    // 1. If vendorId provided, check that specific vendor
+    if (vendorId) {
+      const vendor = await this.verifyQuickPin(db, vendorId, cleanedPin);
+      return { vendor, staff: null };
+    }
+
+    // 2. Otherwise find vendor matching this quick_pin_hash
+    const vendors = await db
+      .selectFrom('vendors')
+      .selectAll()
+      .where('quick_pin_hash', 'is not', null)
+      .execute();
+
+    for (const v of vendors) {
+      if (v.quick_pin_hash && (await verifyPin(cleanedPin, v.quick_pin_hash))) {
+        return { vendor: v, staff: null };
+      }
+    }
+
+    // 3. Check staff with matching quick_pin_hash
+    const staffList = await db
+      .selectFrom('staff')
+      .selectAll()
+      .where('quick_pin_hash', 'is not', null)
+      .execute();
+
+    for (const s of staffList) {
+      if (s.quick_pin_hash && (await verifyPin(cleanedPin, s.quick_pin_hash))) {
+        const vendor = await db
+          .selectFrom('vendors')
+          .selectAll()
+          .where('id', '=', s.vendor_id)
+          .executeTakeFirst();
+        if (vendor) {
+          return { vendor, staff: s };
+        }
+      }
+    }
+
+    throw AppError.unauthorized('Invalid Quick PIN', 'INCORRECT_PIN');
+  }
+
+  /**
    * Registers a biometric credential (Fingerprint / Face ID / WebAuthn passkey)
    */
   static async registerBiometric(

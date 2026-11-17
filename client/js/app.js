@@ -75,15 +75,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // Automatic verification attempt
         setTimeout(async () => {
           try {
-            const res = await fetch('/api/v1/auth/verify-pin', {
+            const res = await fetch('/api/v1/auth/pin-login', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ pin: enteredPin }),
             });
             if (res.ok) {
               const data = await res.json();
+              if (data.token) {
+                localStorage.setItem('frose_auth_token', data.token);
+                if (data.vendor?.businessName) localStorage.setItem('frose_stall_name', data.vendor.businessName);
+                if (data.vendor?.upiId) localStorage.setItem('frose_vendor_vpa', data.vendor.upiId);
+              }
               console.log('✅ PIN Verified:', data);
               pinModal?.classList.remove('active');
+              loadGallaGlance();
             } else {
               // Shake animation or reset
               enteredPin = '';
@@ -236,7 +242,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnOpenPairing?.addEventListener('click', async () => {
     try {
-      const res = await fetch('/api/v1/devices/pairing-token', { method: 'POST' });
+      const token = localStorage.getItem('frose_auth_token') || '';
+      const res = await fetch('/api/v1/devices/pairing-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: token ? `Bearer ${token}` : '',
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.pairingCode) {
@@ -266,7 +279,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // 5. Fetch Live Galla Summary Glance
   async function loadGallaGlance() {
     try {
-      const res = await fetch('/api/v1/galla/summary');
+      const token = localStorage.getItem('frose_auth_token') || '';
+      const res = await fetch('/api/v1/galla/summary', {
+        headers: {
+          authorization: token ? `Bearer ${token}` : '',
+        },
+      });
       if (res.ok) {
         const { summary } = await res.json();
         const totalSalesEl = document.getElementById('galla-total-sales');

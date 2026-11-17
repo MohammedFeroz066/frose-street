@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Vendor Sign In — FROSE Street Micro-POS</title>
+  <link rel="stylesheet" href="/css/style.css?v=2.2.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#F8FAFC">
+  <style>
+    .login-container {
+      max-width: 440px;
+      margin: 40px auto;
+      padding: 24px;
+      background: var(--bg-surface, #FFFFFF);
+      border-radius: var(--radius-xl, 20px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border-light, #E2E8F0);
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .login-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+      color: #FFF;
+      font-weight: 800;
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+    .login-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: #F1F5F9;
+      padding: 4px;
+      border-radius: 10px;
+    }
+    .login-tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      background: transparent;
+      color: #64748B;
+      transition: all 0.2s ease;
+    }
+    .login-tab-btn.active {
+      background: #FFFFFF;
+      color: #0F172A;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 10px;
+      font-size: 15px;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #0284C7;
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+    .pin-display-box {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .pin-box-dot {
+      width: 48px;
+      height: 52px;
+      border: 2px solid #CBD5E1;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: #0F172A;
+      background: #F8FAFC;
+    }
+    .pin-box-dot.filled {
+      border-color: #0284C7;
+      background: #F0F9FF;
+    }
+    .pin-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .pin-btn {
+      height: 54px;
+      font-size: 20px;
+      font-weight: 700;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      background: #F8FAFC;
+      color: #0F172A;
+      cursor: pointer;
+    }
+    .pin-btn:active {
+      background: #E2E8F0;
+    }
+    .btn-submit-login {
+      width: 100%;
+      height: 50px;
+      background: #0284C7;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    .login-footer-links {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: #64748B;
+    }
+    .login-footer-links a {
+      color: #0284C7;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .alert-banner {
+      padding: 12px 14px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .alert-banner.error {
+      background: #FEF2F2;
+      color: #991B1B;
+      border: 1px solid #F87171;
+      display: block;
+    }
+    .alert-banner.success {
+      background: #F0FDF4;
+      color: #166534;
+      border: 1px solid #86EFAC;
+      display: block;
+    }
+  </style>
+</head>
+<body style="background: #F8FAFC; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <div class="login-container">
+    <div class="login-header">
+      <div class="login-logo">⚡</div>
+      <h2 style="margin: 0; font-size: 22px; color: #0F172A;">Sign In to Stall</h2>
+      <p style="margin: 4px 0 0; font-size: 14px; color: #64748B;">Enter credentials to unlock billing counter</p>
+    </div>
+
+    <div class="alert-banner" id="login-alert"></div>
+
+    <div class="login-tabs">
+      <button class="login-tab-btn active" id="tab-btn-pwd" type="button">Mobile & Password</button>
+      <button class="login-tab-btn" id="tab-btn-pin" type="button">4-Digit Quick PIN</button>
+    </div>
+
+    <!-- Tab 1: Password Login -->
+    <form id="form-pwd-login">
+      <div class="form-group">
+        <label class="form-label" for="login-phone">Mobile Number</label>
+        <input class="form-input" type="tel" id="login-phone" placeholder="10-digit mobile number" maxlength="10" required />
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-password">Password</label>
+        <input class="form-input" type="password" id="login-password" placeholder="Enter password" required />
+      </div>
+      <button class="btn-submit-login" type="submit" id="btn-submit-pwd">Sign In to Counter</button>
+    </form>
+
+    <!-- Tab 2: Quick PIN Login -->
+    <div id="section-pin-login" style="display: none;">
+      <div class="pin-display-box">
+        <div class="pin-box-dot" id="pindot-0">•</div>
+        <div class="pin-box-dot" id="pindot-1">•</div>
+        <div class="pin-box-dot" id="pindot-2">•</div>
+        <div class="pin-box-dot" id="pindot-3">•</div>
+      </div>
+      <div class="pin-grid">
+        <button class="pin-btn" type="button" data-key="1">1</button>
+        <button class="pin-btn" type="button" data-key="2">2</button>
+        <button class="pin-btn" type="button" data-key="3">3</button>
+        <button class="pin-btn" type="button" data-key="4">4</button>
+        <button class="pin-btn" type="button" data-key="5">5</button>
+        <button class="pin-btn" type="button" data-key="6">6</button>
+        <button class="pin-btn" type="button" data-key="7">7</button>
+        <button class="pin-btn" type="button" data-key="8">8</button>
+        <button class="pin-btn" type="button" data-key="9">9</button>
+        <button class="pin-btn" type="button" data-key="clear" style="font-size: 14px;">CLR</button>
+        <button class="pin-btn" type="button" data-key="0">0</button>
+        <button class="pin-btn" type="button" data-key="back" style="font-size: 18px;">⌫</button>
+      </div>
+    </div>
+
+    <div class="login-footer-links">
+      <p>New stall? <a href="/register">Register Stall in 60s</a></p>
+      <p><a href="/" style="color: #64748B;">← Back to Portal Hub</a></p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const alertBox = document.getElementById('login-alert');
+      const tabPwd = document.getElementById('tab-btn-pwd');
+      const tabPin = document.getElementById('tab-btn-pin');
+      const formPwd = document.getElementById('form-pwd-login');
+      const secPin = document.getElementById('section-pin-login');
+      const phoneInput = document.getElementById('login-phone');
+      const pwdInput = document.getElementById('login-password');
+
+      let currentPin = '';
+
+      function showAlert(msg, type = 'error') {
+        alertBox.textContent = msg;
+        alertBox.className = 'alert-banner ' + type;
+      }
+      function hideAlert() {
+        alertBox.className = 'alert-banner';
+      }
+
+      tabPwd.addEventListener('click', () => {
+        tabPwd.classList.add('active');
+        tabPin.classList.remove('active');
+        formPwd.style.display = 'block';
+        secPin.style.display = 'none';
+        hideAlert();
+      });
+
+      tabPin.addEventListener('click', () => {
+        tabPin.classList.add('active');
+        tabPwd.classList.remove('active');
+        formPwd.style.display = 'none';
+        secPin.style.display = 'block';
+        hideAlert();
+      });
+
+      function handleAuthSuccess(data) {
+        localStorage.setItem('frose_auth_token', data.token);
+        if (data.vendor) {
+          localStorage.setItem('frose_current_vendor', JSON.stringify(data.vendor));
+          if (data.vendor.businessName) localStorage.setItem('frose_stall_name', data.vendor.businessName);
+          if (data.vendor.phone) localStorage.setItem('frose_stall_phone', data.vendor.phone);
+          if (data.vendor.upiId) localStorage.setItem('frose_vendor_vpa', data.vendor.upiId);
+        }
+        showAlert('✅ Login successful! Launching billing...', 'success');
+        setTimeout(() => {
+          window.location.href = '/billing';
+        }, 800);
+      }
+
+      formPwd.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        hideAlert();
+        const phone = phoneInput.value.trim();
+        const password = pwdInput.value;
+
+        if (!phone || phone.length !== 10) {
+          showAlert('Please enter a valid 10-digit mobile number');
+          return;
+        }
+
+        try {
+          const res = await fetch('/api/v1/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, password })
+          });
+          const data = await res.json();
+          if (res.ok && data.token) {
+            handleAuthSuccess(data);
+          } else {
+            showAlert(data.detail || data.message || 'Invalid mobile number or password');
+          }
+        } catch (err) {
+          showAlert('Network error connecting to server');
+        }
+      });
+
+      function updatePinDisplay() {
+        for (let i = 0; i < 4; i++) {
+          const el = document.getElementById('pindot-' + i);
+          if (i < currentPin.length) {
+            el.textContent = '●';
+            el.classList.add('filled');
+          } else {
+            el.textContent = '•';
+            el.classList.remove('filled');
+          }
+        }
+      }
+
+      async function submitPinAuth() {
+        hideAlert();
+        try {
+          const res = await fetch('/api/v1/auth/pin-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pin: currentPin })
+          });
+          const data = await res.json();
+          if (res.ok && data.token) {
+            handleAuthSuccess(data);
+          } else {
+            showAlert('❌ Incorrect 4-digit PIN');
+            currentPin = '';
+            updatePinDisplay();
+          }
+        } catch {
+          showAlert('Network error communicating with stall');
+          currentPin = '';
+          updatePinDisplay();
+        }
+      }
+
+      document.querySelectorAll('.pin-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.getAttribute('data-key');
+          if (key === 'clear') {
+            currentPin = '';
+            updatePinDisplay();
+          } else if (key === 'back') {
+            currentPin = currentPin.slice(0, -1);
+            updatePinDisplay();
+          } else if (currentPin.length < 4) {
+            currentPin += key;
+            updatePinDisplay();
+            if (currentPin.length === 4) {
+              setTimeout(submitPinAuth, 100);
+            }
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

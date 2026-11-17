@@ -13,7 +13,7 @@ import { authRoutes } from './modules/auth/auth.routes.js';
 import { deviceRoutes } from './modules/devices/device.routes.js';
 import { menuRoutes } from './modules/menu/menu.routes.js';
 import { orderRoutes } from './modules/orders/order.routes.js';
-import { websocketRoutes } from './modules/websocket/websocket.routes.js';
+import { websocketRoutes, handleWsConnection, httpWsFallback } from './modules/websocket/websocket.routes.js';
 import { gallaRoutes } from './modules/galla/galla.routes.js';
 import { paymentRoutes } from './modules/payments/payment.routes.js';
 import { subscriptionRoutes } from './modules/subscriptions/subscription.routes.js';
@@ -203,8 +203,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // Phase 8: Order & Token Engine Routes (/api/v1/orders)
   await app.register(orderRoutes, { prefix: '/api/v1/orders' });
 
-  // Phase 9: Real-Time WebSocket Routes (/api/v1/ws)
+  // Phase 9: Real-Time WebSocket Routes (/api/v1/ws and alias /ws)
   await app.register(websocketRoutes, { prefix: '/api/v1/ws' });
+  app.route({
+    method: 'GET',
+    url: '/ws',
+    wsHandler: handleWsConnection,
+    handler: httpWsFallback,
+  });
 
   // Phase 10: Daily Galla, Expenses & Z-Report Routes (/api/v1/galla)
   await app.register(gallaRoutes, { prefix: '/api/v1/galla' });

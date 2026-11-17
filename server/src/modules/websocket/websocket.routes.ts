@@ -4,45 +4,45 @@ import { verifyJwt } from '../auth/jwt.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { loadConfig } from '../../config/env.js';
 
-export const websocketRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
+export const handleWsConnection = (connection: any, req: any) => {
   const config = loadConfig();
+  const socket = connection.socket;
+  const query = req.query as any;
 
-  /**
-   * WebSocket Connection Endpoint: /api/v1/ws
-   * Connects Billing Counter, Kitchen Display, and Packaging Station
-   */
-  app.get('/ws', { websocket: true }, (connection, req) => {
-    const socket = connection.socket;
-    const query = req.query as any;
-
-    // 1. Extract authentication token
-    let token = query?.token;
-    if (!token && req.cookies?.frose_street_token) {
-      token = req.cookies.frose_street_token;
+  // 1. Extract authentication token
+  let token = query?.token;
+  if (!token && req.cookies?.frose_street_token) {
+    token = req.cookies.frose_street_token;
+  }
+  if (!token && req.headers?.authorization) {
+    const parts = req.headers.authorization.split(' ');
+    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+      token = parts[1];
     }
-    if (!token && req.headers.authorization) {
-      const parts = req.headers.authorization.split(' ');
-      if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-        token = parts[1];
-      }
-    }
+  }
 
-    if (!token) {
+  let client: ConnectedClient | null = null;
+
+  const authenticateAndRegister = (jwtToken: string) => {
+    try {
+      const userPayload = verifyJwt(jwtToken, config.JWT_SECRET);
+      client = {
+        socket,
+        vendorId: userPayload.sub,
+        role: userPayload.role,
+        deviceId: userPayload.deviceId,
+        connectedAt: new Date(),
+        lastPing: Date.now(),
+      };
+      WebSocketHub.registerClient(client);
       socket.send(
         JSON.stringify({
-          event: 'error',
-          data: { code: 'AUTH_REQUIRED', message: 'Token required to connect to real-time channel' },
+          event: 'authenticated',
+          data: { vendorId: client.vendorId, role: client.role },
           timestamp: new Date().toISOString(),
         }),
       );
-      socket.close(4001, 'Unauthorized');
-      return;
-    }
-
-    // 2. Verify JWT token
-    let userPayload: any;
-    try {
-      userPayload = verifyJwt(token, config.JWT_SECRET);
+      return true;
     } catch (err: any) {
       socket.send(
         JSON.stringify({
@@ -51,34 +51,63 @@ export const websocketRoutes: FastifyPluginAsync = async (app: FastifyInstance) 
           timestamp: new Date().toISOString(),
         }),
       );
-      socket.close(4001, 'Invalid Token');
-      return;
+      return false;
     }
+  };
 
-    // 3. Register client in WebSocket Hub
-    const client: ConnectedClient = {
-      socket,
-      vendorId: userPayload.sub,
-      role: userPayload.role,
-      deviceId: userPayload.deviceId,
-      connectedAt: new Date(),
-      lastPing: Date.now(),
-    };
+  if (token) {
+    authenticateAndRegister(token);
+  } else {
+    // Allow unauthenticated connection to wait for auth message frame
+    socket.send(
+      JSON.stringify({
+        event: 'auth:required',
+        data: { message: 'Provide token via ?token=... or send { event: "auth", token }' },
+        timestamp: new Date().toISOString(),
+      }),
+    );
+  }
 
-    WebSocketHub.registerClient(client);
-
-    // 4. Handle client messages (e.g. heartbeat ping/pong)
-    socket.on('message', (rawMessage: any) => {
-      try {
-        const parsed = JSON.parse(rawMessage.toString());
-        if (parsed.event === 'ping') {
-          client.lastPing = Date.now();
-          WebSocketHub.sendToClient(client, 'pong', { time: Date.now() });
-        }
-      } catch {
-        // Ignore unparseable frames
+  // 4. Handle client messages (e.g. heartbeat ping/pong, dynamic auth)
+  socket.on('message', (rawMessage: any) => {
+    try {
+      const parsed = JSON.parse(rawMessage.toString());
+      if (parsed.event === 'ping') {
+        if (client) client.lastPing = Date.now();
+        socket.send(JSON.stringify({ event: 'pong', data: { time: Date.now() } }));
+      } else if (parsed.event === 'auth' && parsed.token) {
+        authenticateAndRegister(parsed.token);
       }
-    });
+    } catch {
+      // Ignore unparseable frames
+    }
+  });
+};
+
+export const httpWsFallback = async (_request: any, reply: any) => {
+  return reply.status(200).send({
+    service: 'frose-websocket',
+    status: 'ready',
+    message: 'FROSE Street Real-Time WebSocket endpoint',
+  });
+};
+
+export const websocketRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
+  /**
+   * WebSocket Connection Endpoints: / and /ws
+   * Connects Billing Counter, Kitchen Display, and Packaging Station
+   */
+  app.route({
+    method: 'GET',
+    url: '/',
+    wsHandler: handleWsConnection,
+    handler: httpWsFallback,
+  });
+  app.route({
+    method: 'GET',
+    url: '/ws',
+    wsHandler: handleWsConnection,
+    handler: httpWsFallback,
   });
 
   /**

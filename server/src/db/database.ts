@@ -2,6 +2,7 @@ import { Kysely, PostgresDialect } from 'kysely';
 import pg from 'pg';
 import type { Database } from './types.js';
 import { loadConfig } from '../config/env.js';
+import { createMemoryDb } from './memory-db.js';
 
 const { Pool } = pg;
 
@@ -14,6 +15,15 @@ export function getDatabase(customConnectionString?: string): Kysely<Database> {
 
   const config = loadConfig();
   const connectionString = customConnectionString || config.DATABASE_URL;
+
+  // Resilient memory database mode when PostgreSQL is absent or requested
+  if (process.env.USE_MEMORY_DB === 'true' || connectionString === ':memory:') {
+    const memoryDb = createMemoryDb();
+    if (!customConnectionString) {
+      dbInstance = memoryDb;
+    }
+    return memoryDb;
+  }
 
   const pool = new Pool({
     connectionString,

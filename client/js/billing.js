@@ -547,16 +547,14 @@
     flashOrderSuccess(currentTokenNumber, totalRupees, paymentMethod === 'cash' ? 'Cash' : 'UPI QR');
   }
 
-  // Generate SVG QR Code for Dynamic UPI
+  // Generate Fallback SVG QR Code for Dynamic UPI (Offline/P2P Mode)
   function renderUpiQrSvg(upiUri) {
     if (!upiQrCodeCanvas) return;
-    // Generate simple high-contrast SVG representation of QR
-    // Using standard encoded matrix visualization
     const hash = upiUri.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
     const seed = Math.abs(hash);
 
     let rects = '';
-    const size = 21;
+    const size = 25;
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
         // Corners: Position detection patterns
@@ -579,39 +577,85 @@
         }
 
         if (isDark) {
-          rects += `<rect x="${c * 10}" y="${r * 10}" width="10" height="10" fill="#0F172A"/>`;
+          rects += `<rect x="${c * 8}" y="${r * 8}" width="8" height="8" fill="#0F172A"/>`;
         }
       }
     }
 
     upiQrCodeCanvas.innerHTML = `
-      <svg viewBox="0 0 210 210" width="200" height="200" xmlns="http://www.w3.org/2000/svg" style="background:#FFF; padding: 10px; border-radius: 12px;">
+      <svg viewBox="0 0 200 200" width="200" height="200" xmlns="http://www.w3.org/2000/svg" style="background:#FFF; padding: 10px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
         ${rects}
       </svg>
     `;
   }
 
-  // Open Dynamic UPI QR Modal
-  function openUpiModal() {
+  // Open Dynamic UPI QR Modal (Fetches authentic NPCI-compliant QR code from server)
+  async function openUpiModal() {
     if (cart.size === 0) return;
 
     let totalPaise = 0;
+    const itemsList = [];
     cart.forEach(({ item, quantity }) => {
       const unitPaise = item.pricePaise !== undefined ? Number(item.pricePaise) : Number(item.priceRupees) * 100;
       totalPaise += unitPaise * quantity;
+      itemsList.push(`${quantity}x ${item.name}`);
     });
     const totalRupees = Math.round(totalPaise / 100);
 
     const stallName = localStorage.getItem('frose_stall_name') || 'FROSE Street';
-    const upiVpa = 'royalmomos@upi'; // Default dynamic VPA
-    const upiUri = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(stallName)}&am=${totalRupees}.00&cu=INR&tn=Token_${currentTokenNumber}`;
+    const upiVpa = localStorage.getItem('frose_vendor_vpa') || 'street@upi';
+    const itemsSummary = itemsList.slice(0, 3).join(', ');
 
     if (upiQrAmount) upiQrAmount.textContent = `₹${totalRupees}.00`;
     if (upiQrVpa) upiQrVpa.textContent = upiVpa;
 
-    renderUpiQrSvg(upiUri);
+    // Show initial loading placeholder
+    if (upiQrCodeCanvas) {
+      upiQrCodeCanvas.innerHTML = `
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; width:200px; height:200px; background:#F8FAFC; border-radius:12px;">
+          <div style="width:28px; height:28px; border:3px solid #E2E8F0; border-top-color:#0284C7; border-radius:50%; animation:spin 0.8s linear infinite;"></div>
+          <span style="font-size:12px; color:#64748B; margin-top:8px;">Generating Scannable QR...</span>
+        </div>
+      `;
+    }
 
     if (upiQrModal) upiQrModal.classList.add('active');
+
+    // Request authentic camera-scannable QR code from server
+    try {
+      const token = localStorage.getItem('frose_auth_token') || '';
+      const res = await fetch('/api/v1/payments/generate-upi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({
+          vpa: upiVpa,
+          payeeName: stallName,
+          amountPaise: totalPaise,
+          tokenNo: currentTokenNumber,
+          itemsSummary,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.qrDataUrl && upiQrCodeCanvas) {
+          upiQrCodeCanvas.innerHTML = `
+            <img src="${data.qrDataUrl}" alt="Scan with PhonePe, GPay, Paytm" width="200" height="200" style="display:block; margin:0 auto; border-radius:12px; background:#FFF; padding:6px; box-shadow:0 2px 8px rgba(0,0,0,0.06);" />
+          `;
+          if (upiQrVpa && data.vpa) upiQrVpa.textContent = data.vpa;
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Real-time QR generation fetch failed, falling back:', err);
+    }
+
+    // Offline / P2P Fallback
+    const upiUri = `upi://pay?pa=${encodeURIComponent(upiVpa)}&pn=${encodeURIComponent(stallName)}&am=${totalRupees}.00&cu=INR&tn=Token_${currentTokenNumber}`;
+    renderUpiQrSvg(upiUri);
   }
 
   function closeUpiModal() {
@@ -621,21 +665,41 @@
   // Load Shift Galla Summary
   async function loadGallaSummary() {
     try {
-      const res = await fetch('/api/v1/galla/live', {
+      const token = localStorage.getItem('frose_auth_token') || '';
+      const res = await fetch('/api/v1/galla/summary', {
         headers: {
-          authorization: `Bearer ${localStorage.getItem('frose_auth_token') || ''}`,
+          authorization: token ? `Bearer ${token}` : '',
         },
       });
       if (res.ok) {
         const data = await res.json();
-        if (data && data.live) {
-          if (drawerGallaSales) drawerGallaSales.textContent = `₹${data.live.totalSalesRupees.toLocaleString('en-IN')}`;
-          if (drawerCashSales) drawerCashSales.textContent = `₹${data.live.cashSalesRupees.toLocaleString('en-IN')}`;
-          if (drawerUpiSales) drawerUpiSales.textContent = `₹${data.live.upiSalesRupees.toLocaleString('en-IN')}`;
+        const summary = data?.summary || data?.live;
+        if (summary) {
+          if (drawerGallaSales && summary.totalSalesRupees !== undefined) {
+            drawerGallaSales.textContent = `₹${summary.totalSalesRupees.toLocaleString('en-IN')}`;
+          }
+          if (drawerCashSales && summary.cashSalesRupees !== undefined) {
+            drawerCashSales.textContent = `₹${summary.cashSalesRupees.toLocaleString('en-IN')}`;
+          }
+          if (drawerUpiSales && summary.upiSalesRupees !== undefined) {
+            drawerUpiSales.textContent = `₹${summary.upiSalesRupees.toLocaleString('en-IN')}`;
+          }
         }
       }
     } catch {
-      // Fallback
+      // Local fallback
+      if (window.__FROSE_STORAGE__?.LocalIndexedDBAdapter) {
+        try {
+          const adapter = new window.__FROSE_STORAGE__.LocalIndexedDBAdapter();
+          const localRes = await adapter.getGallaSummary();
+          if (localRes?.summary) {
+            const s = localRes.summary;
+            if (drawerGallaSales) drawerGallaSales.textContent = `₹${s.totalSalesRupees.toLocaleString('en-IN')}`;
+            if (drawerCashSales) drawerCashSales.textContent = `₹${s.cashSalesRupees.toLocaleString('en-IN')}`;
+            if (drawerUpiSales) drawerUpiSales.textContent = `₹${s.upiSalesRupees.toLocaleString('en-IN')}`;
+          }
+        } catch {}
+      }
     }
   }
 

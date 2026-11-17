@@ -384,8 +384,9 @@
   function initWebSocket() {
     if (reconnectTimer) clearTimeout(reconnectTimer);
 
+    const token = localStorage.getItem('frose_auth_token') || localStorage.getItem('frose_device_token') || '';
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const wsUrl = `${protocol}//${window.location.host}/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 
     try {
       wsConnection = new WebSocket(wsUrl);
@@ -519,6 +520,7 @@
         showToast('✅ Counter Unlocked!');
         closePinModal();
         fetchLiveOrders();
+        initWebSocket();
       } else {
         showToast('❌ Invalid PIN');
         enteredPin = '';

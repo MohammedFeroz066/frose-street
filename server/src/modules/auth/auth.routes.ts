@@ -5,6 +5,7 @@ import { requireAuth } from '../../middleware/auth.js';
 import { getDatabase } from '../../db/database.js';
 import { loadConfig } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
+import { PaymentService } from '../payments/payment.service.js';
 
 export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   const config = loadConfig();
@@ -103,6 +104,14 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         presetKey: body.presetKey,
       });
 
+      if (body.upiId) {
+        try {
+          PaymentService.setVendorVpa(vendor.id, body.upiId);
+        } catch {
+          // ignore VPA format warning
+        }
+      }
+
       const token = signJwt(
         {
           sub: vendor.id,
@@ -130,6 +139,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
           subscriptionStatus: vendor.subscription_status,
           subscriptionExpiresAt: vendor.subscription_expires_at,
           hasQuickPin: !!vendor.quick_pin_hash,
+          upiId: PaymentService.getVendorVpa(vendor.id, body.upiId || 'street@upi'),
         },
         token,
         seededItemsCount,
@@ -179,6 +189,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         subscriptionStatus: vendor.subscription_status,
         subscriptionExpiresAt: vendor.subscription_expires_at,
         hasQuickPin: !!vendor.quick_pin_hash,
+        upiId: PaymentService.getVendorVpa(vendor.id),
       },
       token,
     });
@@ -240,6 +251,56 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         phone: vendor.phone,
         businessName: vendor.business_name,
       },
+      token,
+    });
+  });
+
+  /**
+   * POST /api/v1/auth/pin-login
+   * Fast 4-digit quick PIN unlock for KDS, Packaging, and Billing stations
+   */
+  app.post('/pin-login', async (request, reply) => {
+    const db = getDatabase();
+    const body = request.body as any;
+
+    if (!body || !body.pin) {
+      throw AppError.badRequest('4-digit PIN is required', 'MISSING_PIN');
+    }
+
+    const { vendor, staff } = await AuthService.loginWithQuickPin(db, body.pin, body.vendorId);
+
+    const token = signJwt(
+      {
+        sub: vendor.id,
+        phone: vendor.phone,
+        businessName: vendor.business_name,
+        role: (staff?.role as any) || 'owner',
+        edition: vendor.edition as any,
+        staffId: staff?.id,
+      },
+      config.JWT_SECRET,
+    );
+
+    setAuthCookie(reply, token);
+
+    return reply.status(200).send({
+      status: 'success',
+      message: 'Station unlocked successfully',
+      vendor: {
+        id: vendor.id,
+        phone: vendor.phone,
+        businessName: vendor.business_name,
+        ownerName: (vendor as any).owner_name || 'Vendor Owner',
+        edition: vendor.edition,
+        upiId: PaymentService.getVendorVpa(vendor.id),
+      },
+      staff: staff
+        ? {
+            id: staff.id,
+            name: staff.name,
+            role: staff.role,
+          }
+        : null,
       token,
     });
   });

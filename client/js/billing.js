@@ -491,7 +491,28 @@
       console.warn('Network error dispatching order, handling offline:', err);
     }
 
-    // Offline / Mock fallback: assign local token
+    // Phase 17: Durable IndexedDB Offline & Local P2P Order Persistence
+    if (window.__FROSE_STORAGE__ && window.__FROSE_STORAGE__.LocalIndexedDBAdapter) {
+      try {
+        const localAdapter = new window.__FROSE_STORAGE__.LocalIndexedDBAdapter();
+        const localRes = await localAdapter.createOrder({
+          tokenNo: currentTokenNumber,
+          items: Array.from(cart.values()).map(e => ({
+            menuItemId: e.item.id,
+            name: e.item.name,
+            priceRupees: e.item.priceRupees,
+            pricePaise: e.item.pricePaise,
+            quantity: e.quantity
+          })),
+          paymentMethod,
+          paymentStatus: paymentMethod === 'cash' ? 'paid' : 'pending'
+        });
+        console.log('📦 Local P2P Order Persisted in IndexedDB:', localRes.order.id);
+      } catch (idbErr) {
+        console.warn('IndexedDB write warning:', idbErr);
+      }
+    }
+
     flashOrderSuccess(currentTokenNumber, totalRupees, paymentMethod === 'cash' ? 'Cash' : 'UPI QR');
   }
 

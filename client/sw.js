@@ -13,6 +13,7 @@ const PRECACHE_ASSETS = [
   '/kitchen.html',
   '/packaging.html',
   '/css/style.css',
+  '/js/storage-adapter.js',
   '/js/app.js',
   '/js/register.js',
   '/js/billing.js',

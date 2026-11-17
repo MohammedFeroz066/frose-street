@@ -10,6 +10,7 @@ export interface ProblemDetails {
   detail: string;
   code: string;
   timestamp: string;
+  retryAfter?: number;
   invalidParams?: Array<{ name: string; reason: string }>;
 }
 
@@ -17,6 +18,7 @@ export class AppError extends Error {
   public readonly statusCode: number;
   public readonly title: string;
   public readonly code: string;
+  public readonly retryAfter?: number;
   public readonly invalidParams?: Array<{ name: string; reason: string }>;
 
   constructor(
@@ -25,6 +27,7 @@ export class AppError extends Error {
     detail: string,
     code: string = 'INTERNAL_ERROR',
     invalidParams?: Array<{ name: string; reason: string }>,
+    retryAfter?: number,
   ) {
     super(detail);
     this.name = 'AppError';
@@ -32,6 +35,7 @@ export class AppError extends Error {
     this.title = title;
     this.code = code;
     this.invalidParams = invalidParams;
+    this.retryAfter = retryAfter;
     Object.setPrototypeOf(this, new.target.prototype);
   }
 
@@ -44,6 +48,10 @@ export class AppError extends Error {
       code: this.code,
       timestamp: new Date().toISOString(),
     };
+
+    if (this.retryAfter !== undefined) {
+      details.retryAfter = this.retryAfter;
+    }
 
     if (this.invalidParams && this.invalidParams.length > 0) {
       details.invalidParams = this.invalidParams;
@@ -72,8 +80,12 @@ export class AppError extends Error {
     return new AppError(409, 'Conflict', detail, code);
   }
 
-  static rateLimited(detail: string = 'Too many requests, please slow down', code: string = 'RATE_LIMITED'): AppError {
-    return new AppError(429, 'Too Many Requests', detail, code);
+  static rateLimited(
+    detail: string = 'Too many requests, please slow down',
+    code: string = 'RATE_LIMITED',
+    retryAfter?: number,
+  ): AppError {
+    return new AppError(429, 'Too Many Requests', detail, code, undefined, retryAfter);
   }
 
   static internal(detail: string = 'An unexpected internal error occurred', code: string = 'INTERNAL_ERROR'): AppError {

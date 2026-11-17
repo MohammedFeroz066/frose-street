@@ -105,7 +105,8 @@ describe('Production Readiness Hotfixes Verification', () => {
     expect(res.statusCode).toBe(200);
     expect(res.body).toContain('Vendor Sign In — FROSE Street Micro-POS');
     expect(res.body).toContain('form-pwd-login');
-    expect(res.body).toContain('section-pin-login');
+    expect(res.body).not.toContain('section-pin-login');
+    expect(res.body).toContain('btn-toggle-password');
   });
 
   it('TEST 5: WhatsApp Service generates clean UTF-8 text with standard ₹ symbol and valid emojis', () => {

@@ -340,4 +340,99 @@ export class AdminService {
 
     return updated;
   }
+
+  /**
+   * List staff & admin users across all stalls
+   */
+  static async listUsers(db: Kysely<Database>) {
+    const vendors = await db.selectFrom('vendors').selectAll().execute();
+    const staff = await db.selectFrom('staff').selectAll().execute();
+
+    const users: any[] = [];
+    for (const v of vendors) {
+      users.push({
+        id: 'usr-' + v.id,
+        name: v.owner_name,
+        phone: v.phone,
+        role: 'owner',
+        stallName: v.business_name,
+        stallId: v.id,
+        status: v.subscription_status === 'expired' ? 'inactive' : 'active',
+        createdAt: v.created_at,
+      });
+    }
+
+    for (const s of staff) {
+      const v = vendors.find((vend) => vend.id === s.vendor_id);
+      users.push({
+        id: s.id,
+        name: s.name,
+        phone: s.phone || 'N/A',
+        role: s.role || 'cashier',
+        stallName: v?.business_name || 'Assigned Stall',
+        stallId: s.vendor_id,
+        status: s.is_active ? 'active' : 'inactive',
+        createdAt: s.created_at,
+      });
+    }
+
+    return users;
+  }
+
+  /**
+   * Deep Platform Analytics
+   */
+  static async getAnalytics(db: Kysely<Database>) {
+    const vendors = await db.selectFrom('vendors').selectAll().execute();
+    const orders = await db.selectFrom('orders').selectAll().execute();
+    const items = await db.selectFrom('menu_items').selectAll().execute();
+
+    let totalGrossPaise = 0n;
+    let cashPaise = 0n;
+    let upiPaise = 0n;
+
+    const vendorSalesMap = new Map<string, { count: number; salesPaise: bigint }>();
+
+    for (const o of orders) {
+      const p = BigInt(o.total_paise || 0);
+      totalGrossPaise += p;
+      if (o.payment_method === 'cash') cashPaise += p;
+      if (o.payment_method === 'upi') upiPaise += p;
+
+      const vId = o.vendor_id || 'unknown';
+      const cur = vendorSalesMap.get(vId) || { count: 0, salesPaise: 0n };
+      cur.count += 1;
+      cur.salesPaise += p;
+      vendorSalesMap.set(vId, cur);
+    }
+
+    const leaderboard = vendors.map((v) => {
+      const stats = vendorSalesMap.get(v.id) || { count: 0, salesPaise: 0n };
+      return {
+        id: v.id,
+        name: v.business_name,
+        city: v.city,
+        totalOrders: stats.count,
+        salesPaise: stats.salesPaise.toString(),
+        subscriptionStatus: v.subscription_status,
+      };
+    }).sort((a, b) => Number(BigInt(b.salesPaise) - BigInt(a.salesPaise)));
+
+    const categoryMap = new Map<string, number>();
+    for (const item of items) {
+      const cat = item.category || 'General';
+      categoryMap.set(cat, (categoryMap.get(cat) || 0) + 1);
+    }
+
+    const categories = Array.from(categoryMap.entries()).map(([name, count]) => ({ name, count }));
+
+    return {
+      grossSalesPaise: totalGrossPaise.toString(),
+      cashSalesPaise: cashPaise.toString(),
+      upiSalesPaise: upiPaise.toString(),
+      totalOrders: orders.length,
+      leaderboard,
+      categories,
+    };
+  }
 }

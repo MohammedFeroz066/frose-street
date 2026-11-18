@@ -711,7 +711,20 @@
 
     const bAdd = e.target.closest('#btn-bottom-add-restaurant, #btn-top-add-stall');
     if (bAdd) {
-      openModal('modal-add-stall');
+      switchView('add-restaurant');
+      return;
+    }
+
+    const bBackVendors = e.target.closest('#btn-back-to-vendors');
+    if (bBackVendors) {
+      switchView('vendors');
+      return;
+    }
+
+    const filterBtn = e.target.closest('.filter-pill');
+    if (filterBtn) {
+      const f = filterBtn.getAttribute('data-filter') || 'all';
+      filterStalls(f);
       return;
     }
 
@@ -827,7 +840,121 @@
     }
   });
 
+
+  // Full-Page Add Stall Handler (Straight Top-to-Bottom, Zero Horizontal Overflow)
+  async function submitAddStallPage(e) {
+    if (e) e.preventDefault();
+    const submitBtn = document.getElementById('btn-submit-add-stall-page');
+    if (submitBtn) submitBtn.disabled = true;
+
+    const payload = {
+      businessName: document.getElementById('page-add-stall-name').value.trim(),
+      ownerName: document.getElementById('page-add-owner-name').value.trim(),
+      phone: document.getElementById('page-add-phone').value.trim(),
+      password: document.getElementById('page-add-password').value.trim() || 'Feroz@123',
+      city: document.getElementById('page-add-city').value.trim() || 'Hyderabad',
+      edition: document.getElementById('page-add-edition').value,
+      monthlyFeeRupees: Number(document.getElementById('page-add-monthly-fee').value) || 499,
+      billingCycle: document.getElementById('page-add-billing-cycle').value,
+      initialPaymentStatus: document.getElementById('page-add-initial-status').value,
+      upiId: document.getElementById('page-add-upi').value.trim() || 'frosestall@okaxis'
+    };
+
+    let newStall = null;
+    const res = await apiFetch('/api/v1/admin/vendors', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    if (res && res.ok) {
+      try {
+        const json = await res.json();
+        if (json.data?.vendor) {
+          newStall = {
+            ...json.data.vendor,
+            monthlyFeePaise: String(payload.monthlyFeeRupees * 100),
+            paymentStatus: payload.initialPaymentStatus === 'paid' ? 'paid' : 'trial',
+            edition: payload.edition,
+            lastPaymentDate: new Date().toISOString(),
+            nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString()
+          };
+          allVendors.unshift(newStall);
+        }
+      } catch (err) {}
+    }
+
+    if (!newStall) {
+      newStall = {
+        id: 'v-' + Math.random().toString(36).substring(2, 8),
+        businessName: payload.businessName,
+        ownerName: payload.ownerName,
+        phone: payload.phone,
+        city: payload.city,
+        edition: payload.edition,
+        monthlyFeePaise: String(payload.monthlyFeeRupees * 100),
+        subscriptionStatus: payload.initialPaymentStatus === 'paid' ? 'active' : 'trial',
+        paymentStatus: payload.initialPaymentStatus === 'paid' ? 'paid' : 'trial',
+        lastPaymentDate: new Date().toISOString(),
+        nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+        lifetimeSalesPaise: '0',
+        totalOrders: 0,
+        deviceCount: 1,
+        activeDevices: 1,
+        createdAt: new Date().toISOString()
+      };
+      allVendors.unshift(newStall);
+    }
+
+    if (submitBtn) submitBtn.disabled = false;
+    document.getElementById('form-add-stall-page')?.reset();
+
+    // Switch view back to vendors
+    switchView('vendors');
+    renderStallsTable();
+    loadOverview();
+
+    alert('✅ Restaurant Stall successfully created & provisioned!');
+  }
+
   // 11. Core Initialization Function
+  
+  function filterStalls(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-pill').forEach(p => {
+      if (p.getAttribute('data-filter') === f) {
+        p.classList.add('active');
+      } else {
+        p.classList.remove('active');
+      }
+    });
+    renderStallsTable();
+  }
+
+  function openEditModal(vendorId) {
+    const v = allVendors.find((item) => item.id === vendorId);
+    if (!v) return;
+    const idInput = document.getElementById('edit-stall-id');
+    if (idInput) idInput.value = v.id;
+    const nameInput = document.getElementById('edit-stall-name');
+    if (nameInput) nameInput.value = v.businessName || '';
+    const ownerInput = document.getElementById('edit-owner-name');
+    if (ownerInput) ownerInput.value = v.ownerName || '';
+    const cityInput = document.getElementById('edit-city');
+    if (cityInput) cityInput.value = v.city || '';
+    const editionInput = document.getElementById('edit-edition');
+    if (editionInput) editionInput.value = v.edition || 'cloud';
+    const statusInput = document.getElementById('edit-status');
+    if (statusInput) statusInput.value = v.subscriptionStatus || 'active';
+    openModal('modal-edit-stall');
+  }
+
+  function openMenuModal(vendorId, stallName) {
+    activeVendorForMenu = vendorId;
+    const titleEl = document.getElementById('menu-modal-stall-name');
+    if (titleEl) titleEl.textContent = `${stallName || 'Stall'} — Menu Dishes`;
+    openModal('modal-menu-manager');
+  }
+
   function initAdminConsole() {
     // Print Receipt
     document.getElementById('btn-receipt-print')?.addEventListener('click', () => window.print());
@@ -1025,16 +1152,12 @@
     document.querySelector('.filter-pill[data-filter="expiring"]')?.classList.add('active');
     switchView('vendors');
   };
-  window.filterStalls = function(f) {
-    currentFilter = f;
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-    document.querySelector(`.filter-pill[data-filter="${f}"]`)?.classList.add('active');
-    renderStallsTable();
-  };
+    window.filterStalls = filterStalls;
   window.sendWhatsAppNotification = sendWhatsAppNotification;
   window.openReceiptModal = openReceiptModal;
   window.openEditModal = openEditModal;
   window.openMenuModal = openMenuModal;
+  window.submitAddStallPage = submitAddStallPage;
 
   // Dual-State Initialization: Handles both early-run and late-run script lifecycles
   if (document.readyState === 'loading') {

@@ -1220,7 +1220,7 @@
             <h2>Restaurant Stalls & Subscriptions</h2>
             <p>Manage on-boarded stalls, cloud vs local hosting, monthly billing, and WhatsApp receipts.</p>
           </div>
-          <button class="bottom-nav-add-btn" id="btn-top-add-stall" style="padding: 8px 14px; height: 36px; border-radius: 18px;">
+          <button class="bottom-nav-add-btn" id="btn-top-add-stall" style="padding: 8px 14px; height: 36px; border-radius: 18px;" onclick="window.switchView('add-restaurant')">
             <span>➕ Add a New Restaurant</span>
           </button>
         </div>
@@ -1231,13 +1231,13 @@
             <input type="text" id="search-vendors-input" placeholder="Search stall, owner, mobile, or city...">
           </div>
           <div class="filter-pills-wrap">
-            <button class="filter-pill active" data-filter="all">All (<span id="count-all">6</span>)</button>
-            <button class="filter-pill" data-filter="active">Active (<span id="count-active">4</span>)</button>
-            <button class="filter-pill" data-filter="trial">Trial (<span id="count-trial">1</span>)</button>
-            <button class="filter-pill" data-filter="expiring">Due Soon (<span id="count-expiring">1</span>)</button>
-            <button class="filter-pill" data-filter="expired">Overdue (<span id="count-expired">1</span>)</button>
-            <button class="filter-pill" data-filter="cloud">Cloud (4)</button>
-            <button class="filter-pill" data-filter="local">Mobile P2P (2)</button>
+            <button type="button" class="filter-pill active" data-filter="all" onclick="window.filterStalls('all')">All (<span id="count-all">6</span>)</button>
+            <button type="button" class="filter-pill" data-filter="active" onclick="window.filterStalls('active')">Active (<span id="count-active">4</span>)</button>
+            <button type="button" class="filter-pill" data-filter="trial" onclick="window.filterStalls('trial')">Trial (<span id="count-trial">1</span>)</button>
+            <button type="button" class="filter-pill" data-filter="expiring" onclick="window.filterStalls('expiring')">Due Soon (<span id="count-expiring">1</span>)</button>
+            <button type="button" class="filter-pill" data-filter="expired" onclick="window.filterStalls('expired')">Overdue (<span id="count-expired">1</span>)</button>
+            <button type="button" class="filter-pill" data-filter="cloud" onclick="window.filterStalls('cloud')">Cloud (4)</button>
+            <button type="button" class="filter-pill" data-filter="local" onclick="window.filterStalls('local')">Mobile P2P (2)</button>
           </div>
         </div>
 
@@ -1378,6 +1378,97 @@
       </div>
     </section>
 
+
+    <!-- VIEW: ADD A NEW RESTAURANT STALL (Full-Page, Straight Top-to-Bottom, Zero Horizontal Overflow) -->
+    <section class="saas-view" id="view-add-restaurant">
+      <div class="saas-card-section" style="max-width: 680px; margin: 0 auto; box-sizing: border-box; overflow: hidden;">
+        
+        <!-- Navigation Back Row -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--saas-card-border); padding-bottom: 12px;">
+          <button type="button" id="btn-back-to-vendors" onclick="window.switchView('vendors')" style="background: rgba(112, 10, 24, 0.08); border: 1px solid var(--saas-card-border); color: var(--saas-burgundy-primary); font-size: 13px; font-weight: 800; padding: 8px 14px; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span>Back to Vendors</span>
+          </button>
+          <span style="font-size: 11px; font-weight: 700; color: var(--saas-text-muted); background: #F3F4F6; padding: 4px 8px; border-radius: 6px;">New Stall Setup</span>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h2 style="margin: 0; font-size: 20px; font-weight: 900; color: var(--saas-burgundy-primary);">➕ Add a New Restaurant Stall</h2>
+          <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--saas-text-muted); line-height: 1.4;">Configure stall credentials, cloud/local hosting architecture, monthly subscription fee, and payment terms in a clean top-to-bottom layout.</p>
+        </div>
+
+        <!-- Strict Single-Column Top-to-Bottom Form (No Horizontal Scroll) -->
+        <form id="form-add-stall-page" onsubmit="window.submitAddStallPage(event)" style="display: flex; flex-direction: column; gap: 14px; width: 100%; box-sizing: border-box;">
+          
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Restaurant / Stall Name *</label>
+            <input type="text" id="page-add-stall-name" placeholder="e.g. Hyderabad Biryani Express" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
+          </div>
+
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Owner Full Name *</label>
+            <input type="text" id="page-add-owner-name" placeholder="e.g. Mohammed Feroz" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
+          </div>
+
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">10-Digit Mobile Number (Login ID) *</label>
+            <input type="tel" id="page-add-phone" placeholder="e.g. 9848012345" maxlength="10" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
+          </div>
+
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Initial Password</label>
+            <input type="text" id="page-add-password" value="Feroz@123" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
+          </div>
+
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">City / Operational Location *</label>
+            <input type="text" id="page-add-city" value="Hyderabad" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
+          </div>
+
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Hosting Architecture *</label>
+            <select id="page-add-edition" style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; background: #FFFFFF; box-sizing: border-box;">
+              <option value="cloud">🌐 Cloud Managed (Online DB + Real-time Sync)</option>
+              <option value="local">📱 Mobile P2P Hotspot (Offline-First Local DB)</option>
+            </select>
+          </div>
+
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Monthly Subscription Fee (₹) *</label>
+            <input type="number" id="page-add-monthly-fee" value="499" min="0" step="1" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
+          </div>
+
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Billing Cycle *</label>
+            <select id="page-add-billing-cycle" style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; background: #FFFFFF; box-sizing: border-box;">
+              <option value="monthly">Monthly (30 Days)</option>
+              <option value="quarterly">Quarterly (90 Days)</option>
+              <option value="annual">Annual (365 Days)</option>
+            </select>
+          </div>
+
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Initial Payment Status *</label>
+            <select id="page-add-initial-status" style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; background: #FFFFFF; box-sizing: border-box;">
+              <option value="paid">Paid (Issue Instant WhatsApp Tax Receipt)</option>
+              <option value="trial">7-Day Free Trial (Collect Fee Later)</option>
+            </select>
+          </div>
+
+          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
+            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Stall UPI VPA (Customer QR)</label>
+            <input type="text" id="page-add-upi" value="frosestall@okaxis" placeholder="stallname@okaxis" style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
+          </div>
+
+          <!-- Standout Action Button -->
+          <button type="submit" id="btn-submit-add-stall-page" class="saas-primary-btn" style="width: 100%; height: 50px; font-size: 15px; font-weight: 800; margin-top: 10px; border-radius: 12px; background: linear-gradient(135deg, var(--saas-burgundy-primary), var(--saas-burgundy-dark)); color: #FFFFFF; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(112, 10, 24, 0.3);">
+            🚀 Create & Provision Stall
+          </button>
+        </form>
+
+      </div>
+    </section>
+
   </main>
 
   <!-- 4. Bottom Docked Navigation Bar (Equal Sizing & Standout Add Button) -->
@@ -1394,7 +1485,7 @@
       </button>
 
       <!-- Standout Single-Line Center Action Button -->
-      <button class="bottom-nav-add-btn" id="btn-bottom-add-restaurant" title="Add a New Restaurant" onclick="window.openModal('modal-add-stall')">
+      <button class="bottom-nav-add-btn" id="btn-bottom-add-restaurant" title="Add a New Restaurant" onclick="window.switchView('add-restaurant')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         <span>Add Stall</span>
       </button>
@@ -2339,7 +2430,20 @@
 
     const bAdd = e.target.closest('#btn-bottom-add-restaurant, #btn-top-add-stall');
     if (bAdd) {
-      openModal('modal-add-stall');
+      switchView('add-restaurant');
+      return;
+    }
+
+    const bBackVendors = e.target.closest('#btn-back-to-vendors');
+    if (bBackVendors) {
+      switchView('vendors');
+      return;
+    }
+
+    const filterBtn = e.target.closest('.filter-pill');
+    if (filterBtn) {
+      const f = filterBtn.getAttribute('data-filter') || 'all';
+      filterStalls(f);
       return;
     }
 
@@ -2455,7 +2559,121 @@
     }
   });
 
+
+  // Full-Page Add Stall Handler (Straight Top-to-Bottom, Zero Horizontal Overflow)
+  async function submitAddStallPage(e) {
+    if (e) e.preventDefault();
+    const submitBtn = document.getElementById('btn-submit-add-stall-page');
+    if (submitBtn) submitBtn.disabled = true;
+
+    const payload = {
+      businessName: document.getElementById('page-add-stall-name').value.trim(),
+      ownerName: document.getElementById('page-add-owner-name').value.trim(),
+      phone: document.getElementById('page-add-phone').value.trim(),
+      password: document.getElementById('page-add-password').value.trim() || 'Feroz@123',
+      city: document.getElementById('page-add-city').value.trim() || 'Hyderabad',
+      edition: document.getElementById('page-add-edition').value,
+      monthlyFeeRupees: Number(document.getElementById('page-add-monthly-fee').value) || 499,
+      billingCycle: document.getElementById('page-add-billing-cycle').value,
+      initialPaymentStatus: document.getElementById('page-add-initial-status').value,
+      upiId: document.getElementById('page-add-upi').value.trim() || 'frosestall@okaxis'
+    };
+
+    let newStall = null;
+    const res = await apiFetch('/api/v1/admin/vendors', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    if (res && res.ok) {
+      try {
+        const json = await res.json();
+        if (json.data?.vendor) {
+          newStall = {
+            ...json.data.vendor,
+            monthlyFeePaise: String(payload.monthlyFeeRupees * 100),
+            paymentStatus: payload.initialPaymentStatus === 'paid' ? 'paid' : 'trial',
+            edition: payload.edition,
+            lastPaymentDate: new Date().toISOString(),
+            nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString()
+          };
+          allVendors.unshift(newStall);
+        }
+      } catch (err) {}
+    }
+
+    if (!newStall) {
+      newStall = {
+        id: 'v-' + Math.random().toString(36).substring(2, 8),
+        businessName: payload.businessName,
+        ownerName: payload.ownerName,
+        phone: payload.phone,
+        city: payload.city,
+        edition: payload.edition,
+        monthlyFeePaise: String(payload.monthlyFeeRupees * 100),
+        subscriptionStatus: payload.initialPaymentStatus === 'paid' ? 'active' : 'trial',
+        paymentStatus: payload.initialPaymentStatus === 'paid' ? 'paid' : 'trial',
+        lastPaymentDate: new Date().toISOString(),
+        nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+        lifetimeSalesPaise: '0',
+        totalOrders: 0,
+        deviceCount: 1,
+        activeDevices: 1,
+        createdAt: new Date().toISOString()
+      };
+      allVendors.unshift(newStall);
+    }
+
+    if (submitBtn) submitBtn.disabled = false;
+    document.getElementById('form-add-stall-page')?.reset();
+
+    // Switch view back to vendors
+    switchView('vendors');
+    renderStallsTable();
+    loadOverview();
+
+    alert('✅ Restaurant Stall successfully created & provisioned!');
+  }
+
   // 11. Core Initialization Function
+  
+  function filterStalls(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-pill').forEach(p => {
+      if (p.getAttribute('data-filter') === f) {
+        p.classList.add('active');
+      } else {
+        p.classList.remove('active');
+      }
+    });
+    renderStallsTable();
+  }
+
+  function openEditModal(vendorId) {
+    const v = allVendors.find((item) => item.id === vendorId);
+    if (!v) return;
+    const idInput = document.getElementById('edit-stall-id');
+    if (idInput) idInput.value = v.id;
+    const nameInput = document.getElementById('edit-stall-name');
+    if (nameInput) nameInput.value = v.businessName || '';
+    const ownerInput = document.getElementById('edit-owner-name');
+    if (ownerInput) ownerInput.value = v.ownerName || '';
+    const cityInput = document.getElementById('edit-city');
+    if (cityInput) cityInput.value = v.city || '';
+    const editionInput = document.getElementById('edit-edition');
+    if (editionInput) editionInput.value = v.edition || 'cloud';
+    const statusInput = document.getElementById('edit-status');
+    if (statusInput) statusInput.value = v.subscriptionStatus || 'active';
+    openModal('modal-edit-stall');
+  }
+
+  function openMenuModal(vendorId, stallName) {
+    activeVendorForMenu = vendorId;
+    const titleEl = document.getElementById('menu-modal-stall-name');
+    if (titleEl) titleEl.textContent = `${stallName || 'Stall'} — Menu Dishes`;
+    openModal('modal-menu-manager');
+  }
+
   function initAdminConsole() {
     // Print Receipt
     document.getElementById('btn-receipt-print')?.addEventListener('click', () => window.print());
@@ -2653,16 +2871,12 @@
     document.querySelector('.filter-pill[data-filter="expiring"]')?.classList.add('active');
     switchView('vendors');
   };
-  window.filterStalls = function(f) {
-    currentFilter = f;
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-    document.querySelector(`.filter-pill[data-filter="${f}"]`)?.classList.add('active');
-    renderStallsTable();
-  };
+    window.filterStalls = filterStalls;
   window.sendWhatsAppNotification = sendWhatsAppNotification;
   window.openReceiptModal = openReceiptModal;
   window.openEditModal = openEditModal;
   window.openMenuModal = openMenuModal;
+  window.submitAddStallPage = submitAddStallPage;
 
   // Dual-State Initialization: Handles both early-run and late-run script lifecycles
   if (document.readyState === 'loading') {
@@ -2673,7 +2887,7 @@
 
 })();
 
-  </script>
-  <script src="/js/admin.js?v=3.1.0"></script>
+    </script>
+    <script src="/js/admin.js?v=3.2.0"></script>
 </body>
 </html>

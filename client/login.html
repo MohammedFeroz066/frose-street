@@ -285,10 +285,19 @@
           }, 500);
           return;
         }
-        showAlert('✅ Login successful! Launching billing...', 'success');
-        setTimeout(() => {
-          window.location.href = '/billing';
-        }, 800);
+
+        var isFirstLogin = !localStorage.getItem('frose_first_login_done');
+        if (isFirstLogin) {
+          showAlert('✅ Welcome Stall Client! Opening menu setup...', 'success');
+          setTimeout(() => {
+            window.location.href = '/billing?setup=1';
+          }, 800);
+        } else {
+          showAlert('✅ Login successful! Opening dashboard...', 'success');
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 800);
+        }
       }
 
       // 4. Client-Side Standalone Authentication Fallback (Cloudflare Pages Static CDN & Offline PWA)

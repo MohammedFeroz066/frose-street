@@ -1,0 +1,38 @@
+{
+  "taskId": "STALL-CLIENT-DASHBOARD-AND-MENU-POS",
+  "project": "FROSE Street Multi-Tenant Restaurant Platform",
+  "target": "Stall Client Experience (Dashboard & Billing POS)",
+  "branch": "feat/stall-client-dashboard-and-menu-pos",
+  "baseBranch": "master",
+  "timestamp": "2026-11-18T18:38:00+05:30",
+  "verdict": "PASS",
+  "metrics": {
+    "typeScriptErrors": 0,
+    "unitTestsPassed": 272,
+    "unitTestsFailed": 0,
+    "unitTestFiles": 23,
+    "playwrightTestsPassed": 6,
+    "playwrightTestsFailed": 0
+  },
+  "acceptanceCriteria": [
+    { "id": "AC-1", "description": "Post-login redirect routes Stall Client to Dashboard (Image 1) or first-time setup (Image 2)", "status": "PASS" },
+    { "id": "AC-2", "description": "Dashboard matches Image 1 header, hero card, 2x2 action grid, support banner, and bottom dock", "status": "PASS" },
+    { "id": "AC-3", "description": "Tapping Billing or + Add Order navigates directly to Billing & Menu POS (Image 2)", "status": "PASS" },
+    { "id": "AC-4", "description": "Billing POS matches Image 2: left category sidebar and 2-column food dish grid", "status": "PASS" },
+    { "id": "AC-5", "description": "Dishes display floating price badge bottom-left and floating + button bottom-right of image", "status": "PASS" },
+    { "id": "AC-6", "description": "Tapping + adds item to cart and converts button into [-] [qty] [+] stepper", "status": "PASS" },
+    { "id": "AC-7", "description": "Floating bottom cart pill displays live item count and integer paise total", "status": "PASS" },
+    { "id": "AC-8", "description": "First-time clients or Settings users can write section names and add/edit dishes with prices and photos", "status": "PASS" },
+    { "id": "AC-9", "description": "Back arrow on Billing POS returns to Dashboard cleanly", "status": "PASS" },
+    { "id": "AC-10", "description": "Zero TypeScript errors and all 272 unit tests passing", "status": "PASS" }
+  ],
+  "evidence": {
+    "walkthrough": "docs/walkthroughs/STALL-CLIENT-DASHBOARD-AND-MENU-POS-WALKTHROUGH.md",
+    "report": "docs/reports/STALL-CLIENT-DASHBOARD-AND-MENU-POS-REPORT.md",
+    "screenshots": [
+      "docs/walkthroughs/screenshots/stall-client-pos/01_stall_client_dashboard_390x844.png",
+      "docs/walkthroughs/screenshots/stall-client-pos/02_billing_menu_pos_with_stepper_and_cart_390x844.png",
+      "docs/walkthroughs/screenshots/stall-client-pos/03_checkout_drawer_and_token_flash_390x844.png"
+    ]
+  }
+}

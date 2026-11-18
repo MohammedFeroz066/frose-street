@@ -266,6 +266,94 @@ export async function onRequest(context) {
     });
   }
 
+  // 4. POST /api/v1/admin/vendors (Onboard new stall)
+  if (path === '/api/v1/admin/vendors' && method === 'POST') {
+    try {
+      const b = await request.json();
+      const newV = {
+        id: 'v-' + Math.random().toString(36).substring(2, 9),
+        phone: (b.phone || '').replace(/\D/g, ''),
+        businessName: b.businessName || 'New Restaurant Stall',
+        business_name: b.businessName || 'New Restaurant Stall',
+        ownerName: b.ownerName || 'Stall Owner',
+        owner_name: b.ownerName || 'Stall Owner',
+        businessType: b.businessType || 'Street Food Stall',
+        city: b.city || 'Hyderabad',
+        edition: 'cloud',
+        subscriptionStatus: 'active',
+        subscription_status: 'active',
+        subscriptionExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+        role: 'owner',
+        isSuperadmin: false,
+        totalOrders: 0,
+        lifetimeSalesPaise: '0',
+        createdAt: new Date().toISOString()
+      };
+      VENDORS.push(newV);
+      return jsonResponse({ status: 'success', message: 'Restaurant stall onboarded successfully', data: { vendor: newV } }, 201);
+    } catch (e) {
+      return jsonResponse({ error: e.message }, 400);
+    }
+  }
+
+  // 5. GET /api/v1/admin/users
+  if (path === '/api/v1/admin/users' && method === 'GET') {
+    const users = VENDORS.map(v => ({
+      id: 'usr-' + v.id,
+      name: v.ownerName,
+      phone: v.phone,
+      role: v.role,
+      stallName: v.businessName,
+      stallId: v.id,
+      status: v.subscriptionStatus === 'expired' ? 'inactive' : 'active',
+      createdAt: v.createdAt
+    }));
+    return jsonResponse({ status: 'success', data: users });
+  }
+
+  // 6. GET /api/v1/admin/analytics
+  if (path === '/api/v1/admin/analytics' && method === 'GET') {
+    return jsonResponse({
+      status: 'success',
+      data: {
+        grossSalesPaise: '10450000',
+        cashSalesPaise: '6250000',
+        upiSalesPaise: '4200000',
+        totalOrders: 565,
+        leaderboard: VENDORS.map(v => ({
+          id: v.id,
+          name: v.businessName,
+          city: v.city,
+          totalOrders: v.totalOrders || 0,
+          salesPaise: v.lifetimeSalesPaise || '0',
+          subscriptionStatus: v.subscriptionStatus
+        })),
+        categories: [
+          { name: 'Momos & Dimsums', count: 4 },
+          { name: 'Shawarma & Grills', count: 3 },
+          { name: 'Chinese Noodles', count: 2 },
+          { name: 'Tea & Snacks', count: 2 },
+          { name: 'Beverages', count: 2 }
+        ]
+      }
+    });
+  }
+
+  // 7. GET /api/v1/admin/system-health
+  if (path === '/api/v1/admin/system-health' && method === 'GET') {
+    return jsonResponse({
+      status: 'success',
+      data: {
+        database: { status: 'healthy', latencyMs: 2 },
+        redis: { status: 'healthy', latencyMs: 1 },
+        websocketHotspot: { status: 'active', connectedClients: 3 },
+        cloudflareEdge: { status: 'synced', latencyMs: 12 },
+        uptimeSeconds: 86400,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+
   // Fallback for health check
   if (path === '/health' || path === '/api/health') {
     return jsonResponse({ status: 'ok', service: 'frose-street-cf-pages', timestamp: new Date().toISOString() });

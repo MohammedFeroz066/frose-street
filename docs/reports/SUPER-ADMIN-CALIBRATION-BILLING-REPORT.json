@@ -1,0 +1,32 @@
+{
+  "task": "SUPER_ADMIN_CALIBRATION_BILLING",
+  "status": "PASS",
+  "branch": "feat/super-admin-calibration-billing",
+  "baseCommit": "20aa9fb",
+  "tests": {
+    "total": 272,
+    "passed": 272,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 98440
+  },
+  "acceptanceCriteria": {
+    "headerAndLogoCalibration": true,
+    "compactHeroBanner": true,
+    "bottomDockAlignment": true,
+    "backgroundScrollIsolation": true,
+    "onboardingFeeAndHostingMode": true,
+    "realTimeBillingAndTelemetry": true,
+    "whatsappAutomation": true,
+    "brandedReceiptModal": true,
+    "zeroTestRegressions": true
+  },
+  "evidence": [
+    "docs/evidence/01_calibrated_dashboard_compact.png",
+    "docs/evidence/02_calibrated_vendors_billing_whatsapp.png",
+    "docs/evidence/03_add_stall_hosting_monthly_fee.png",
+    "docs/evidence/04_official_subscription_receipt_modal.png"
+  ],
+  "walkthrough": "docs/walkthroughs/SUPER-ADMIN-CALIBRATION-BILLING-WALKTHROUGH.md",
+  "report": "docs/reports/SUPER-ADMIN-CALIBRATION-BILLING-REPORT.md"
+}

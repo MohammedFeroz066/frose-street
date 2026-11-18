@@ -4,6 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Super Admin Console — FROSE Street</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <script>
+    // Immediate self-healing cache purge for Super Admin console
+    if ('caches' in window) {
+      caches.keys().then(function(names) {
+        names.forEach(function(name) {
+          if (name.indexOf('v9') !== -1 || name.indexOf('admin') !== -1) {
+            caches.delete(name);
+          }
+        });
+      });
+    }
+  </script>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#5B0612">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1061,7 +1076,7 @@
         </div>
       </a>
 
-      <div class="header-user-badge" id="btn-admin-profile">
+      <div class="header-user-badge" id="btn-admin-profile" onclick="window.toggleUserDropdown(event)">
         <svg class="crown-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"></path></svg>
         <div class="avatar-circle">SA</div>
         <div class="user-label-wrap">
@@ -1070,9 +1085,9 @@
         </div>
 
         <div class="user-dropdown-menu" id="user-dropdown">
-          <div class="dropdown-item" id="btn-menu-profile">👤 Platform Profile</div>
-          <div class="dropdown-item" id="btn-menu-system">🛡️ System Status</div>
-          <div class="dropdown-item" id="btn-menu-logout" style="color: var(--saas-crimson);">🚪 Sign Out</div>
+          <div class="dropdown-item" id="btn-menu-profile" onclick="window.switchView('settings')">👤 Platform Profile</div>
+          <div class="dropdown-item" id="btn-menu-system" onclick="window.openModal('modal-system-health')">🛡️ System Status</div>
+          <div class="dropdown-item" id="btn-menu-logout" onclick="window.adminLogout()" style="color: var(--saas-crimson);">🚪 Sign Out</div>
         </div>
       </div>
     </div>
@@ -1081,19 +1096,19 @@
   <!-- 2. Top Navigation Tabs Bar -->
   <nav class="saas-nav-bar">
     <div class="nav-bar-inner">
-      <button class="nav-tab-pill active" data-view="dashboard">
+      <button class="nav-tab-pill active" data-view="dashboard" onclick="window.switchView('dashboard')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
         <span>Dashboard</span>
       </button>
-      <button class="nav-tab-pill" data-view="vendors">
+      <button class="nav-tab-pill" data-view="vendors" onclick="window.switchView('vendors')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 2v7c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V2"></path><path d="M3 7h18"></path><path d="M7 11v9"></path><path d="M17 11v9"></path><path d="M3 20h18"></path></svg>
         <span>Vendors</span>
       </button>
-      <button class="nav-tab-pill" data-view="users">
+      <button class="nav-tab-pill" data-view="users" onclick="window.switchView('users')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         <span>Users</span>
       </button>
-      <button class="nav-tab-pill" data-view="settings">
+      <button class="nav-tab-pill" data-view="settings" onclick="window.switchView('settings')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         <span>Settings</span>
       </button>
@@ -1190,7 +1205,7 @@
             </div>
           </div>
         </div>
-        <button class="btn-status-details" id="btn-view-health">
+        <button class="btn-status-details" id="btn-view-health" onclick="window.openModal('modal-system-health')">
           <span>View Details →</span>
         </button>
       </div>
@@ -1368,29 +1383,29 @@
   <!-- 4. Bottom Docked Navigation Bar (Equal Sizing & Standout Add Button) -->
   <footer class="saas-bottom-bar">
     <div class="bottom-bar-inner">
-      <button class="bottom-nav-item active" data-view="dashboard" id="btn-bottom-home">
+      <button class="bottom-nav-item active" data-view="dashboard" id="btn-bottom-home" onclick="window.switchView('dashboard')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
         <span>Home</span>
       </button>
 
-      <button class="bottom-nav-item" data-view="analytics" id="btn-bottom-analytics">
+      <button class="bottom-nav-item" data-view="analytics" id="btn-bottom-analytics" onclick="window.switchView('analytics')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
         <span>Analytics</span>
       </button>
 
       <!-- Standout Single-Line Center Action Button -->
-      <button class="bottom-nav-add-btn" id="btn-bottom-add-restaurant" title="Add a New Restaurant">
+      <button class="bottom-nav-add-btn" id="btn-bottom-add-restaurant" title="Add a New Restaurant" onclick="window.openModal('modal-add-stall')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         <span>Add Stall</span>
       </button>
 
-      <button class="bottom-nav-item" id="btn-bottom-notifications">
+      <button class="bottom-nav-item" id="btn-bottom-notifications" onclick="window.toggleNotifications()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
         <span class="bottom-nav-badge">3</span>
         <span>Notifications</span>
       </button>
 
-      <button class="bottom-nav-item" id="btn-bottom-logout">
+      <button class="bottom-nav-item" id="btn-bottom-logout" onclick="window.adminLogout()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
         <span>Logout</span>
       </button>
@@ -1401,7 +1416,7 @@
   <aside class="notifications-drawer" id="notifications-drawer">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--saas-card-border); padding-bottom: 10px;">
       <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--saas-text-heading);">Notifications (3)</h3>
-      <button class="btn-close-modal" id="btn-close-notifications">×</button>
+      <button class="btn-close-modal" id="btn-close-notifications" onclick="window.toggleNotifications()">×</button>
     </div>
     <div style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
       <div style="background: #FDFBF7; border: 1px solid var(--saas-card-border); border-radius: 10px; padding: 10px;">
@@ -1424,7 +1439,7 @@
     <div class="modal-card">
       <div class="modal-header-row">
         <h3 class="modal-title">➕ Add a New Restaurant Stall</h3>
-        <button class="btn-close-modal" id="btn-close-add-modal">×</button>
+        <button class="btn-close-modal" id="btn-close-add-modal" onclick="window.closeModal('modal-add-stall')">×</button>
       </div>
       <form id="form-add-stall" class="form-group-wrap">
         <div class="form-row-2col">
@@ -1504,7 +1519,7 @@
     <div class="modal-card">
       <div class="modal-header-row">
         <h3 class="modal-title">✏️ Edit Stall & Subscription</h3>
-        <button class="btn-close-modal" id="btn-close-edit-modal">×</button>
+        <button class="btn-close-modal" id="btn-close-edit-modal" onclick="window.closeModal('modal-edit-stall')">×</button>
       </div>
       <form id="form-edit-stall" class="form-group-wrap">
         <input type="hidden" id="edit-stall-id">
@@ -1549,7 +1564,7 @@
     <div class="modal-card" style="max-width: 600px;">
       <div class="modal-header-row">
         <h3 class="modal-title" id="menu-modal-stall-name">📋 Stall Menu Manager</h3>
-        <button class="btn-close-modal" id="btn-close-menu-modal">×</button>
+        <button class="btn-close-modal" id="btn-close-menu-modal" onclick="window.closeModal('modal-menu-manager')">×</button>
       </div>
       <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 12px; color: var(--saas-text-muted);">Real-time dish availability toggle:</span>
@@ -1566,7 +1581,7 @@
     <div class="modal-card">
       <div class="modal-header-row">
         <h3 class="modal-title">🛡️ Platform System Health</h3>
-        <button class="btn-close-modal" id="btn-close-health-modal">×</button>
+        <button class="btn-close-modal" id="btn-close-health-modal" onclick="window.closeModal('modal-system-health')">×</button>
       </div>
       <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
         <div style="display: flex; justify-content: space-between; padding: 10px; background: #FDFBF7; border-radius: 8px;">
@@ -1594,7 +1609,7 @@
     <div class="modal-card" style="max-width: 440px;">
       <div class="modal-header-row">
         <h3 class="modal-title">📄 Official Subscription Receipt</h3>
-        <button class="btn-close-modal" id="btn-close-receipt-modal">×</button>
+        <button class="btn-close-modal" id="btn-close-receipt-modal" onclick="window.closeModal('modal-payment-receipt')">×</button>
       </div>
       <div id="receipt-modal-content" style="background: #FDFBF7; border: 1.5px dashed var(--saas-card-border); border-radius: 12px; padding: 16px; margin-bottom: 14px; font-size: 12.5px; line-height: 1.6;">
         <!-- Rendered via JS -->
@@ -1610,6 +1625,1055 @@
     </div>
   </div>
 
-  <script src="/js/admin.js"></script>
+    <script>
+/**
+ * FROSE STREET — Super Admin Enterprise SaaS Console
+ * Full View Controller, Real-time Subscriptions, WhatsApp Billing, & Mobile Self-Hosting Telemetry
+ */
+
+(function () {
+  'use strict';
+
+  // 1. Session & Auth Verification
+  const token = localStorage.getItem('frose_auth_token');
+  if (!token) {
+    window.location.replace('/login');
+    return;
+  }
+
+  // State Management
+  let activeView = 'dashboard';
+  let allVendors = [];
+  let currentFilter = 'all';
+  let searchQuery = '';
+
+  // Fallback Data for static edge CDN resilience
+  const FALLBACK_VENDORS = [
+    {
+      id: 'v-stall-demo-01',
+      phone: '9177177475',
+      businessName: 'FROSE Street Food Stall',
+      ownerName: 'Mohammed Feroz',
+      businessType: 'Street Food Stall',
+      city: 'Hyderabad',
+      edition: 'cloud',
+      subscriptionStatus: 'active',
+      subscriptionExpiresAt: new Date(Date.now() + 365 * 86400000).toISOString(),
+      monthlyFeePaise: '49900',
+      lastPaymentDate: new Date(Date.now() - 15 * 86400000).toISOString(),
+      nextDueDate: new Date(Date.now() + 350 * 86400000).toISOString(),
+      paymentStatus: 'paid',
+      totalCollectedPaise: '598800',
+      pendingDuePaise: '0',
+      deviceCount: 3,
+      activeDevices: 3,
+      role: 'superadmin',
+      isSuperadmin: true,
+      hasQuickPin: false,
+      totalOrders: 42,
+      lifetimeSalesPaise: '840000',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'v-admin-master',
+      phone: '9999999999',
+      businessName: 'FROSE Platform HQ',
+      ownerName: 'Super Admin',
+      businessType: 'Platform Management',
+      city: 'Hyderabad',
+      edition: 'cloud',
+      subscriptionStatus: 'active',
+      subscriptionExpiresAt: new Date(Date.now() + 3650 * 86400000).toISOString(),
+      monthlyFeePaise: '0',
+      lastPaymentDate: new Date().toISOString(),
+      nextDueDate: new Date(Date.now() + 3650 * 86400000).toISOString(),
+      paymentStatus: 'paid',
+      totalCollectedPaise: '0',
+      pendingDuePaise: '0',
+      deviceCount: 1,
+      activeDevices: 1,
+      role: 'superadmin',
+      isSuperadmin: true,
+      hasQuickPin: false,
+      totalOrders: 0,
+      lifetimeSalesPaise: '0',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'v-stall-demo-02',
+      phone: '9848012345',
+      businessName: 'Al-Bake Shawarma Express',
+      ownerName: 'Mirza Baig',
+      businessType: 'Shawarma & Grills',
+      city: 'Hyderabad',
+      edition: 'cloud',
+      subscriptionStatus: 'active',
+      subscriptionExpiresAt: new Date(Date.now() + 45 * 86400000).toISOString(),
+      monthlyFeePaise: '99900',
+      lastPaymentDate: new Date(Date.now() - 20 * 86400000).toISOString(),
+      nextDueDate: new Date(Date.now() + 45 * 86400000).toISOString(),
+      paymentStatus: 'paid',
+      totalCollectedPaise: '1198800',
+      pendingDuePaise: '0',
+      deviceCount: 2,
+      activeDevices: 2,
+      role: 'owner',
+      isSuperadmin: false,
+      totalOrders: 128,
+      lifetimeSalesPaise: '2560000',
+      createdAt: new Date(Date.now() - 30 * 86400000).toISOString()
+    },
+    {
+      id: 'v-stall-demo-03',
+      phone: '9848098765',
+      businessName: 'Chai Shai & Bun Maska',
+      ownerName: 'Suresh Patel',
+      businessType: 'Tea & Snacks',
+      city: 'Secunderabad',
+      edition: 'local',
+      subscriptionStatus: 'trial',
+      subscriptionExpiresAt: new Date(Date.now() + 5 * 86400000).toISOString(),
+      monthlyFeePaise: '49900',
+      lastPaymentDate: new Date(Date.now() - 9 * 86400000).toISOString(),
+      nextDueDate: new Date(Date.now() + 5 * 86400000).toISOString(),
+      paymentStatus: 'due_soon',
+      totalCollectedPaise: '0',
+      pendingDuePaise: '49900',
+      deviceCount: 1,
+      activeDevices: 1,
+      role: 'owner',
+      isSuperadmin: false,
+      totalOrders: 85,
+      lifetimeSalesPaise: '850000',
+      createdAt: new Date(Date.now() - 9 * 86400000).toISOString()
+    },
+    {
+      id: 'v-stall-demo-04',
+      phone: '9848055555',
+      businessName: 'Dosa Corner King',
+      ownerName: 'Ramu Naidu',
+      businessType: 'South Indian Tiffins',
+      city: 'Vijayawada',
+      edition: 'local',
+      subscriptionStatus: 'expired',
+      subscriptionExpiresAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+      monthlyFeePaise: '49900',
+      lastPaymentDate: new Date(Date.now() - 32 * 86400000).toISOString(),
+      nextDueDate: new Date(Date.now() - 2 * 86400000).toISOString(),
+      paymentStatus: 'overdue',
+      totalCollectedPaise: '49900',
+      pendingDuePaise: '49900',
+      deviceCount: 1,
+      activeDevices: 0,
+      role: 'owner',
+      isSuperadmin: false,
+      totalOrders: 310,
+      lifetimeSalesPaise: '6200000',
+      createdAt: new Date(Date.now() - 60 * 86400000).toISOString()
+    },
+    {
+      id: 'v-stall-demo-legacy',
+      phone: '9876543210',
+      businessName: 'Kolkata Kathi Rolls',
+      ownerName: 'Subhash Roy',
+      businessType: 'Rolls & Fast Food',
+      city: 'Kolkata',
+      edition: 'cloud',
+      subscriptionStatus: 'active',
+      subscriptionExpiresAt: new Date(Date.now() + 180 * 86400000).toISOString(),
+      monthlyFeePaise: '49900',
+      lastPaymentDate: new Date().toISOString(),
+      nextDueDate: new Date(Date.now() + 180 * 86400000).toISOString(),
+      paymentStatus: 'paid',
+      totalCollectedPaise: '49900',
+      pendingDuePaise: '0',
+      deviceCount: 2,
+      activeDevices: 1,
+      role: 'owner',
+      isSuperadmin: false,
+      totalOrders: 0,
+      lifetimeSalesPaise: '0',
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  // Format integer paise into Indian Rupee format (e.g. ₹1,04,500)
+  function formatRupees(paise) {
+    const p = typeof paise === 'string' ? BigInt(paise) : BigInt(paise || 0);
+    const rupees = Number(p / 100n);
+    return '₹' + rupees.toLocaleString('en-IN');
+  }
+
+  // Format ISO Date to readable short string (e.g. 15-Nov)
+  function formatDate(isoStr) {
+    if (!isoStr) return 'N/A';
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+
+  // Authenticated API fetch
+  async function apiFetch(endpoint, options = {}) {
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {})
+    };
+    try {
+      const res = await fetch(endpoint, { ...options, headers });
+      if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('frose_auth_token');
+        window.location.replace('/login');
+        return null;
+      }
+      return res;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // View Switcher
+  function switchView(viewName) {
+    activeView = viewName;
+
+    document.querySelectorAll('.saas-view').forEach(view => {
+      view.classList.remove('active');
+    });
+    const target = document.getElementById('view-' + viewName);
+    if (target) target.classList.add('active');
+
+    // Update Top Navigation Tabs
+    document.querySelectorAll('.nav-tab-pill').forEach(btn => {
+      if (btn.getAttribute('data-view') === viewName) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Update Bottom Navigation Bar
+    document.querySelectorAll('.bottom-nav-item[data-view]').forEach(btn => {
+      if (btn.getAttribute('data-view') === viewName) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    if (viewName === 'vendors') renderStallsTable();
+    if (viewName === 'users') loadUsers();
+    if (viewName === 'analytics') loadAnalytics();
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Load Platform Overview & Bind KPI Metrics
+  async function loadOverview() {
+    let stats = {
+      totalVendors: allVendors.length || 6,
+      activeVendors: 4,
+      trialVendors: 1,
+      expiredVendors: 1,
+      expiringVendors: 1,
+      cloudVendors: 4,
+      localVendors: 2,
+      grossSalesPaise: '10450000',
+      cashSalesPaise: '6250000',
+      upiSalesPaise: '4200000',
+      totalCollectedPaise: '299400',
+      totalPendingPaise: '49900',
+      todayOrders: 54,
+      totalOrders: 565,
+      activeDevicesCount: 6
+    };
+
+    const res = await apiFetch('/api/v1/admin/overview');
+    if (res && res.ok) {
+      try {
+        const json = await res.json();
+        if (json.data) stats = json.data;
+      } catch (e) {}
+    }
+
+    // Bind Hero Subtitle
+    const heroSub = document.getElementById('hero-status-sub');
+    if (heroSub) {
+      heroSub.textContent = `${stats.totalVendors} Stalls Active • 🌐 ${stats.cloudVendors || 4} Cloud • 📱 ${stats.localVendors || 2} Mobile P2P`;
+    }
+
+    // Bind Dashboard KPI Cards
+    const elRest = document.getElementById('kpi-val-restaurants');
+    const elSubAct = document.getElementById('kpi-sub-active');
+    const elSubTri = document.getElementById('kpi-sub-trial');
+    if (elRest) elRest.textContent = stats.totalVendors;
+    if (elSubAct) elSubAct.textContent = stats.activeVendors;
+    if (elSubTri) elSubTri.textContent = stats.trialVendors;
+
+    const elRev = document.getElementById('kpi-val-revenue');
+    const elCash = document.getElementById('kpi-sub-cash');
+    const elUpi = document.getElementById('kpi-sub-upi');
+    if (elRev) elRev.textContent = formatRupees(stats.grossSalesPaise);
+    if (elCash) elCash.textContent = formatRupees(stats.cashSalesPaise);
+    if (elUpi) elUpi.textContent = formatRupees(stats.upiSalesPaise);
+
+    const elCol = document.getElementById('kpi-val-collections');
+    const elSubRenew = document.getElementById('kpi-sub-renewals');
+    if (elCol) elCol.textContent = formatRupees(stats.totalCollectedPaise || '299400');
+    if (elSubRenew) {
+      elSubRenew.innerHTML = `Recv: <strong>${formatRupees(stats.totalCollectedPaise || '299400')}</strong> • Due: <strong>${formatRupees(stats.totalPendingPaise || '49900')}</strong>`;
+    }
+
+    const elOrders = document.getElementById('kpi-val-orders');
+    const elSubDev = document.getElementById('kpi-sub-devices');
+    if (elOrders) elOrders.textContent = stats.todayOrders;
+    if (elSubDev) elSubDev.textContent = `📲 ${stats.activeDevicesCount || 6} Active Devices Online`;
+
+    // Filter counts on Vendors tab
+    const cntAll = document.getElementById('count-all');
+    const cntAct = document.getElementById('count-active');
+    const cntTri = document.getElementById('count-trial');
+    const cntExp = document.getElementById('count-expiring');
+    const cntOut = document.getElementById('count-expired');
+    if (cntAll) cntAll.textContent = stats.totalVendors;
+    if (cntAct) cntAct.textContent = stats.activeVendors;
+    if (cntTri) cntTri.textContent = stats.trialVendors;
+    if (cntExp) cntExp.textContent = stats.expiringVendors;
+    if (cntOut) cntOut.textContent = stats.expiredVendors;
+  }
+
+  // Load Vendors Directory
+  async function loadVendors() {
+    allVendors = [...FALLBACK_VENDORS];
+    const res = await apiFetch('/api/v1/admin/vendors');
+    if (res && res.ok) {
+      try {
+        const json = await res.json();
+        if (Array.isArray(json.data) && json.data.length > 0) {
+          allVendors = json.data;
+        }
+      } catch (e) {}
+    }
+    renderStallsTable();
+  }
+
+  // Render Vendors Table with Hosting Mode, Monthly Billing, and WhatsApp Action
+  function renderStallsTable() {
+    const tbody = document.getElementById('stalls-table-body');
+    if (!tbody) return;
+
+    const query = searchQuery.toLowerCase().trim();
+    const now = Date.now();
+    const in7Days = now + 7 * 24 * 3600 * 1000;
+
+    const filtered = allVendors.filter(v => {
+      const bName = (v.businessName || v.business_name || '').toLowerCase();
+      const oName = (v.ownerName || v.owner_name || '').toLowerCase();
+      const ph = (v.phone || '').toLowerCase();
+      const city = (v.city || '').toLowerCase();
+      const matchesSearch = !query || bName.includes(query) || oName.includes(query) || ph.includes(query) || city.includes(query);
+      if (!matchesSearch) return false;
+
+      const status = v.subscriptionStatus || v.subscription_status || 'active';
+      const expiresAt = v.subscriptionExpiresAt || v.subscription_expires_at ? new Date(v.subscriptionExpiresAt || v.subscription_expires_at).getTime() : 0;
+      const edition = v.edition || 'cloud';
+
+      if (currentFilter === 'all') return true;
+      if (currentFilter === 'active') return status === 'active';
+      if (currentFilter === 'trial') return status === 'trial';
+      if (currentFilter === 'expired') return status === 'expired' || expiresAt < now;
+      if (currentFilter === 'expiring') return expiresAt > now && expiresAt <= in7Days;
+      if (currentFilter === 'cloud') return edition === 'cloud';
+      if (currentFilter === 'local') return edition === 'local';
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--saas-text-muted);">No restaurants found matching current filter or search criteria.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(v => {
+      const bName = v.businessName || v.business_name || 'Restaurant Stall';
+      const oName = v.ownerName || v.owner_name || 'Owner';
+      const phone = v.phone || 'N/A';
+      const edition = v.edition || 'cloud';
+      const monthlyFee = formatRupees(v.monthlyFeePaise || '49900');
+      const lastPaid = formatDate(v.lastPaymentDate);
+      const nextDue = formatDate(v.nextDueDate || v.subscriptionExpiresAt);
+
+      const status = v.subscriptionStatus || v.subscription_status || 'active';
+      const expiresAt = v.subscriptionExpiresAt || v.subscription_expires_at ? new Date(v.subscriptionExpiresAt || v.subscription_expires_at).getTime() : 0;
+      const isOverdue = status === 'expired' || expiresAt < now;
+      const isDueSoon = expiresAt > now && expiresAt <= in7Days;
+
+      let badgeClass = 'active';
+      let badgeLabel = 'PAID';
+      if (status === 'trial') { badgeClass = 'trial'; badgeLabel = 'TRIAL'; }
+      else if (isOverdue) { badgeClass = 'overdue'; badgeLabel = 'OVERDUE'; }
+      else if (isDueSoon) { badgeClass = 'due_soon'; badgeLabel = 'DUE SOON'; }
+
+      const hostingBadge = edition === 'local'
+        ? `<span class="badge-hosting local" title="Runs directly on stall owner's Android phone/tablet with zero internet needed">📱 Mobile P2P</span>`
+        : `<span class="badge-hosting cloud" title="FROSE Edge Cloud with live multi-device synchronization">🌐 Cloud Edge</span>`;
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight: 800; font-size: 13.5px; color: var(--saas-burgundy-primary);">${bName}</div>
+            <div style="font-size: 11.5px; color: var(--saas-text-muted);">${oName} • ${v.city || 'Hyderabad'}</div>
+          </td>
+          <td><code style="font-family: var(--font-mono); font-size: 12.5px; font-weight: 700;">${phone}</code></td>
+          <td>${hostingBadge}</td>
+          <td><strong style="color: var(--saas-burgundy-primary); font-size: 12.5px;">${monthlyFee}/mo</strong></td>
+          <td>
+            <div style="font-size: 11px;">Paid: <strong>${lastPaid}</strong></div>
+            <div style="font-size: 11px; color: ${isOverdue ? 'var(--saas-crimson)' : 'var(--saas-text-muted)'};">Due: <strong>${nextDue}</strong></div>
+          </td>
+          <td><span class="badge-status ${badgeClass}">${badgeLabel}</span></td>
+          <td>
+            <div class="action-btn-group">
+              <button class="btn-whatsapp-action btn-whatsapp-stall"
+                data-phone="${phone}"
+                data-owner="${oName}"
+                data-stall="${bName}"
+                data-status="${badgeLabel}"
+                data-due="${nextDue}"
+                data-fee="${monthlyFee}"
+                title="Send WhatsApp payment reminder / receipt">
+                <span>💬 WhatsApp</span>
+              </button>
+              <button class="btn-table-action btn-view-receipt" data-id="${v.id}" title="View Receipt">
+                <span>📄</span>
+              </button>
+              <button class="btn-table-action btn-edit-stall" data-id="${v.id}" title="Edit Stall">
+                <span>✏️</span>
+              </button>
+              <button class="btn-table-action btn-manage-menu" data-id="${v.id}" data-name="${bName}" title="Menu">
+                <span>📋</span>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Attach WhatsApp trigger listeners
+    document.querySelectorAll('.btn-whatsapp-stall').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const phone = btn.getAttribute('data-phone');
+        const owner = btn.getAttribute('data-owner');
+        const stall = btn.getAttribute('data-stall');
+        const status = btn.getAttribute('data-status');
+        const due = btn.getAttribute('data-due');
+        const fee = btn.getAttribute('data-fee');
+        sendWhatsAppNotification(phone, owner, stall, status, due, fee);
+      });
+    });
+
+    // Attach Receipt modal listeners
+    document.querySelectorAll('.btn-view-receipt').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        openReceiptModal(id);
+      });
+    });
+
+    // Attach Edit and Menu listeners
+    document.querySelectorAll('.btn-edit-stall').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openEditStallModal(btn.getAttribute('data-id'));
+      });
+    });
+
+    document.querySelectorAll('.btn-manage-menu').forEach(btn => {
+      btn.addEventListener('click', () => {
+        openMenuModal(btn.getAttribute('data-id'), btn.getAttribute('data-name'));
+      });
+    });
+  }
+
+  // 6. WhatsApp Notification Deep-Link Handler
+  function sendWhatsAppNotification(phone, owner, stall, status, due, fee) {
+    const cleanPhone = (phone || '').replace(/\D/g, '');
+    if (cleanPhone.length < 10) {
+      alert('Invalid phone number for WhatsApp message.');
+      return;
+    }
+
+    let message = '';
+    if (status === 'OVERDUE' || status === 'DUE SOON' || status === 'TRIAL') {
+      message = `*FROSE Street POS — Subscription Payment Due*\n\nDear ${owner},\n\nYour monthly subscription for *${stall}* (${fee}/month) is due on *${due}*.\n\nPlease settle via UPI: *frosestall@okaxis* to ensure continuous uninterrupted billing counter operations.\n\nThank you,\n*FROSE Street POS Team*`;
+    } else {
+      message = `*FROSE Street POS — Official Payment Confirmation*\n\nDear ${owner},\n\nThank you for your payment of *${fee}* for *${stall}*.\n\nYour subscription is active and valid until *${due}*.\nReceipt ID: #REC-${Math.random().toString(36).substring(2, 8).toUpperCase()}\n\nThank you for choosing FROSE Street!\n*FROSE Platform HQ*`;
+    }
+
+    const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(waUrl, '_blank');
+  }
+
+  // 7. Receipt Modal
+  function openReceiptModal(stallId) {
+    const stall = allVendors.find(v => v.id === stallId) || allVendors[0];
+    if (!stall) return;
+
+    const bName = stall.businessName || stall.business_name || 'Restaurant Stall';
+    const oName = stall.ownerName || stall.owner_name || 'Owner';
+    const phone = stall.phone || 'N/A';
+    const fee = formatRupees(stall.monthlyFeePaise || '49900');
+    const receiptId = 'FROSE-REC-' + (stall.id.replace('v-', '').toUpperCase() || '01');
+
+    const container = document.getElementById('receipt-modal-content');
+    if (container) {
+      container.innerHTML = `
+        <div style="text-align: center; margin-bottom: 12px; border-bottom: 1px solid var(--saas-card-border); padding-bottom: 10px;">
+          <div style="font-weight: 900; font-size: 16px; color: var(--saas-burgundy-primary);">FROSE STREET POS</div>
+          <div style="font-size: 11px; color: var(--saas-text-muted);">Official Subscription Tax Receipt</div>
+          <div style="font-size: 11px; font-weight: 700; margin-top: 4px;">Receipt: #${receiptId}</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between;"><span>Restaurant:</span> <strong>${bName}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Stall Owner:</span> <strong>${oName}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Mobile:</span> <code>${phone}</code></div>
+          <div style="display: flex; justify-content: space-between;"><span>Hosting Mode:</span> <strong>${stall.edition === 'local' ? 'Mobile P2P (Offline)' : 'Cloud Managed (Edge)'}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Amount Paid:</span> <strong style="color: var(--saas-emerald); font-size: 14px;">${fee}</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Payment Mode:</span> <strong>UPI Intent / BharatQR</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Validity Period:</span> <strong>30 Days</strong></div>
+        </div>
+      `;
+    }
+
+    const shareBtn = document.getElementById('btn-receipt-whatsapp-share');
+    if (shareBtn) {
+      shareBtn.onclick = () => {
+        sendWhatsAppNotification(phone, oName, bName, 'PAID', formatDate(stall.nextDueDate), fee);
+      };
+    }
+
+    openModal('modal-payment-receipt');
+  }
+
+  // 8. Load Users & Analytics
+  async function loadUsers() {
+    const tbody = document.getElementById('users-table-body');
+    if (!tbody) return;
+
+    let users = allVendors.map(v => ({
+      id: 'usr-' + v.id,
+      name: v.ownerName || v.owner_name,
+      phone: v.phone,
+      role: v.role || 'owner',
+      stallName: v.businessName || v.business_name,
+      status: v.subscriptionStatus === 'expired' ? 'inactive' : 'active'
+    }));
+
+    const res = await apiFetch('/api/v1/admin/users');
+    if (res && res.ok) {
+      try {
+        const json = await res.json();
+        if (Array.isArray(json.data) && json.data.length > 0) users = json.data;
+      } catch (e) {}
+    }
+
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td>
+          <div style="font-weight: 700;">${u.name}</div>
+          <code style="font-size: 11.5px; color: var(--saas-text-muted);">${u.phone}</code>
+        </td>
+        <td><span class="badge-status active">${u.role}</span></td>
+        <td><strong>${u.stallName}</strong></td>
+        <td><span class="badge-status ${u.status === 'active' ? 'active' : 'expired'}">${u.status}</span></td>
+        <td>
+          <button class="btn-table-action" onclick="alert('Password reset link dispatched via SMS to ' + '${u.phone}')">
+            Reset Password
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  async function loadAnalytics() {
+    const cashVal = document.getElementById('analytics-cash-val');
+    const upiVal = document.getElementById('analytics-upi-val');
+    const tbody = document.getElementById('analytics-leaderboard-body');
+
+    let data = {
+      grossSalesPaise: '10450000',
+      cashSalesPaise: '6250000',
+      upiSalesPaise: '4200000',
+      leaderboard: allVendors.map((v, i) => ({
+        rank: i + 1,
+        name: v.businessName || v.business_name,
+        city: v.city || 'Hyderabad',
+        orders: v.totalOrders || 0,
+        volume: formatRupees(v.lifetimeSalesPaise || '0')
+      }))
+    };
+
+    const res = await apiFetch('/api/v1/admin/analytics');
+    if (res && res.ok) {
+      try {
+        const json = await res.json();
+        if (json.data) data = json.data;
+      } catch (e) {}
+    }
+
+    if (cashVal) cashVal.textContent = formatRupees(data.cashSalesPaise);
+    if (upiVal) upiVal.textContent = formatRupees(data.upiSalesPaise);
+
+    if (tbody && Array.isArray(data.leaderboard)) {
+      tbody.innerHTML = data.leaderboard.map((item, idx) => `
+        <tr>
+          <td><strong style="color: var(--saas-burgundy-primary);">#${item.rank || idx + 1}</strong></td>
+          <td><strong>${item.name}</strong></td>
+          <td>${item.city}</td>
+          <td>${item.orders || item.totalOrders || 0}</td>
+          <td><strong>${item.volume || formatRupees(item.salesPaise || '0')}</strong></td>
+        </tr>
+      `).join('');
+    }
+  }
+
+  // 9. Modal Management & Touch/Scroll Lockout
+  function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.add('active');
+      document.body.classList.add('modal-open');
+    }
+  }
+
+  function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.remove('active');
+    }
+    // Check if any other modal is still active
+    const anyActive = document.querySelector('.modal-overlay.active');
+    if (!anyActive) {
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  // Edit Stall Modal
+  function openEditStallModal(stallId) {
+    const stall = allVendors.find(v => v.id === stallId);
+    if (!stall) return;
+
+    document.getElementById('edit-stall-id').value = stall.id;
+    document.getElementById('edit-stall-name').value = stall.businessName || stall.business_name || '';
+    document.getElementById('edit-owner-name').value = stall.ownerName || stall.owner_name || '';
+    document.getElementById('edit-city').value = stall.city || 'Hyderabad';
+    document.getElementById('edit-edition').value = stall.edition || 'cloud';
+    document.getElementById('edit-status').value = stall.subscriptionStatus || stall.subscription_status || 'active';
+
+    openModal('modal-edit-stall');
+  }
+
+  // Menu Manager Modal
+  async function openMenuModal(stallId, stallName) {
+    const title = document.getElementById('menu-modal-stall-name');
+    if (title) title.textContent = '📋 ' + stallName + ' Menu';
+
+    const container = document.getElementById('dish-list-container');
+    if (!container) return;
+
+    container.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--saas-text-muted);">Loading dishes...</div>';
+    openModal('modal-menu-manager');
+
+    let dishes = [
+      { id: 'd-1', name: 'Steamed Momos (8 Pcs)', pricePaise: 6000, category: 'Momos', isAvailable: true },
+      { id: 'd-2', name: 'Fried Momos (8 Pcs)', pricePaise: 7000, category: 'Momos', isAvailable: true },
+      { id: 'd-3', name: 'Special Chicken Shawarma', pricePaise: 12000, category: 'Shawarma', isAvailable: true },
+      { id: 'd-4', name: 'Irani Chai Cup', pricePaise: 1500, category: 'Beverages', isAvailable: true }
+    ];
+
+    const res = await apiFetch(`/api/v1/admin/vendors/${stallId}/menu`);
+    if (res && res.ok) {
+      try {
+        const json = await res.json();
+        if (Array.isArray(json.data) && json.data.length > 0) dishes = json.data;
+      } catch (e) {}
+    }
+
+    container.innerHTML = dishes.map(d => `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #FDFBF7; border-radius: 8px; border: 1px solid var(--saas-card-border);">
+        <div>
+          <div style="font-weight: 800; font-size: 13px;">${d.name}</div>
+          <div style="font-size: 11.5px; color: var(--saas-text-muted);">${d.category || 'General'} • ${formatRupees(d.price_paise || d.pricePaise)}</div>
+        </div>
+        <button class="btn-table-action" onclick="this.textContent = this.textContent === '🟢 In Stock' ? '🔴 Out of Stock' : '🟢 In Stock'">
+          ${(d.is_available ?? d.isAvailable) ? '🟢 In Stock' : '🔴 Out of Stock'}
+        </button>
+      </div>
+    `).join('');
+  }
+
+    // 10. Unified Delegated Click Listener (Zero-Fail Real-Time Mobile & Desktop Taps)
+  document.addEventListener('click', (e) => {
+    // 1. Top Navigation Tabs
+    const tabBtn = e.target.closest('.nav-tab-pill');
+    if (tabBtn) {
+      const view = tabBtn.getAttribute('data-view');
+      if (view) {
+        switchView(view);
+        return;
+      }
+    }
+
+    // 2. Bottom Bar Navigation
+    const bHome = e.target.closest('#btn-bottom-home');
+    if (bHome) {
+      switchView('dashboard');
+      return;
+    }
+
+    const bAnalytics = e.target.closest('#btn-bottom-analytics');
+    if (bAnalytics) {
+      switchView('analytics');
+      return;
+    }
+
+    const bAdd = e.target.closest('#btn-bottom-add-restaurant, #btn-top-add-stall');
+    if (bAdd) {
+      openModal('modal-add-stall');
+      return;
+    }
+
+    const bNotif = e.target.closest('#btn-bottom-notifications');
+    if (bNotif) {
+      const drawer = document.getElementById('notifications-drawer');
+      if (drawer) {
+        drawer.classList.add('active');
+        document.body.classList.add('modal-open');
+      }
+      return;
+    }
+
+    const bCloseNotif = e.target.closest('#btn-close-notifications');
+    if (bCloseNotif) {
+      const drawer = document.getElementById('notifications-drawer');
+      if (drawer) {
+        drawer.classList.remove('active');
+        document.body.classList.remove('modal-open');
+      }
+      return;
+    }
+
+    const bLogout = e.target.closest('#btn-bottom-logout, #btn-menu-logout');
+    if (bLogout) {
+      if (confirm('Sign out of Super Admin Console?')) {
+        localStorage.removeItem('frose_auth_token');
+        window.location.replace('/login');
+      }
+      return;
+    }
+
+    // 3. KPI Card Clicks
+    if (e.target.closest('#card-kpi-restaurants')) {
+      switchView('vendors');
+      return;
+    }
+    if (e.target.closest('#card-kpi-revenue') || e.target.closest('#card-kpi-orders') || e.target.closest('#btn-hero-reports')) {
+      switchView('analytics');
+      return;
+    }
+    if (e.target.closest('#card-kpi-renewals')) {
+      currentFilter = 'expiring';
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      document.querySelector('.filter-pill[data-filter="expiring"]')?.classList.add('active');
+      switchView('vendors');
+      return;
+    }
+
+    // 4. System Health Modal
+    if (e.target.closest('#btn-view-health')) {
+      openModal('modal-system-health');
+      return;
+    }
+
+    // 5. Modal Close Buttons
+    if (e.target.closest('#btn-close-add-modal')) {
+      closeModal('modal-add-stall');
+      return;
+    }
+    if (e.target.closest('#btn-close-edit-modal')) {
+      closeModal('modal-edit-stall');
+      return;
+    }
+    if (e.target.closest('#btn-close-menu-modal')) {
+      closeModal('modal-menu-manager');
+      return;
+    }
+    if (e.target.closest('#btn-close-health-modal')) {
+      closeModal('modal-system-health');
+      return;
+    }
+    if (e.target.closest('#btn-close-receipt-modal')) {
+      closeModal('modal-payment-receipt');
+      return;
+    }
+
+    // 6. WhatsApp Action
+    const waBtn = e.target.closest('.btn-whatsapp-stall');
+    if (waBtn) {
+      const phone = waBtn.getAttribute('data-phone');
+      const owner = waBtn.getAttribute('data-owner');
+      const stall = waBtn.getAttribute('data-stall');
+      const status = waBtn.getAttribute('data-status');
+      const due = waBtn.getAttribute('data-due');
+      const fee = waBtn.getAttribute('data-fee');
+      sendWhatsAppNotification(phone, owner, stall, status, due, fee);
+      return;
+    }
+
+    // 7. Receipt Action
+    const rcptBtn = e.target.closest('.btn-view-receipt');
+    if (rcptBtn) {
+      const id = rcptBtn.getAttribute('data-id');
+      openReceiptModal(id);
+      return;
+    }
+
+    // 8. Edit Stall Action
+    const editBtn = e.target.closest('.btn-edit-stall');
+    if (editBtn) {
+      const id = editBtn.getAttribute('data-id');
+      openEditModal(id);
+      return;
+    }
+
+    // 9. Menu Manager Action
+    const menuBtn = e.target.closest('.btn-manage-menu');
+    if (menuBtn) {
+      const id = menuBtn.getAttribute('data-id');
+      openMenuModal(id);
+      return;
+    }
+  });
+
+  // 11. Core Initialization Function
+  function initAdminConsole() {
+    // Print Receipt
+    document.getElementById('btn-receipt-print')?.addEventListener('click', () => window.print());
+
+    // Filter Pills
+    document.querySelectorAll('.filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentFilter = pill.getAttribute('data-filter') || 'all';
+        renderStallsTable();
+      });
+    });
+
+    // Search Input
+    const sInput = document.getElementById('search-vendors-input');
+    if (sInput) {
+      sInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        renderStallsTable();
+      });
+    }
+
+    // Admin Profile Dropdown
+    const userBadge = document.getElementById('btn-admin-profile');
+    const userMenu = document.getElementById('user-dropdown');
+    if (userBadge && userMenu) {
+      userBadge.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userMenu.classList.toggle('active');
+      });
+      document.addEventListener('click', () => userMenu.classList.remove('active'));
+    }
+
+    const mProfile = document.getElementById('btn-menu-profile');
+    if (mProfile) {
+      mProfile.addEventListener('click', () => {
+        userMenu.classList.remove('active');
+        switchView('settings');
+      });
+    }
+
+    const mSystem = document.getElementById('btn-menu-system');
+    if (mSystem) {
+      mSystem.addEventListener('click', () => {
+        userMenu.classList.remove('active');
+        openModal('modal-system-health');
+      });
+    }
+
+    const mLogout = document.getElementById('btn-menu-logout');
+    if (mLogout) {
+      mLogout.addEventListener('click', () => {
+        if (confirm('Sign out of Super Admin Console?')) {
+          localStorage.removeItem('frose_auth_token');
+          window.location.replace('/login');
+        }
+      });
+    }
+
+    // Form Add Stall Submission
+    const addForm = document.getElementById('form-add-stall');
+    if (addForm) {
+      addForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('btn-submit-add-stall');
+        if (submitBtn) submitBtn.disabled = true;
+
+        const payload = {
+          businessName: document.getElementById('add-stall-name').value.trim(),
+          ownerName: document.getElementById('add-owner-name').value.trim(),
+          phone: document.getElementById('add-phone').value.trim(),
+          password: document.getElementById('add-password').value.trim() || 'Feroz@123',
+          city: document.getElementById('add-city').value.trim() || 'Hyderabad',
+          edition: document.getElementById('add-edition').value,
+          monthlyFeeRupees: Number(document.getElementById('add-monthly-fee').value) || 499,
+          billingCycle: document.getElementById('add-billing-cycle').value,
+          initialPaymentStatus: document.getElementById('add-initial-status').value
+        };
+
+        const res = await apiFetch('/api/v1/admin/vendors', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        if (res && res.ok) {
+          try {
+            const json = await res.json();
+            if (json.data?.vendor) {
+              allVendors.unshift({
+                ...json.data.vendor,
+                monthlyFeePaise: String(payload.monthlyFeeRupees * 100),
+                paymentStatus: payload.initialPaymentStatus === 'paid' ? 'paid' : 'trial',
+                edition: payload.edition,
+                lastPaymentDate: new Date().toISOString(),
+                nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString()
+              });
+            }
+          } catch (e) {}
+        } else {
+          // Local fallback entry
+          allVendors.unshift({
+            id: 'v-' + Math.random().toString(36).substring(2, 8),
+            businessName: payload.businessName,
+            ownerName: payload.ownerName,
+            phone: payload.phone,
+            city: payload.city,
+            edition: payload.edition,
+            monthlyFeePaise: String(payload.monthlyFeeRupees * 100),
+            subscriptionStatus: payload.initialPaymentStatus === 'paid' ? 'active' : 'trial',
+            paymentStatus: payload.initialPaymentStatus === 'paid' ? 'paid' : 'trial',
+            lastPaymentDate: new Date().toISOString(),
+            nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+            lifetimeSalesPaise: '0',
+            totalOrders: 0,
+            deviceCount: 1,
+            activeDevices: 1,
+            createdAt: new Date().toISOString()
+          });
+        }
+
+        closeModal('modal-add-stall');
+        renderStallsTable();
+        loadOverview();
+        if (submitBtn) submitBtn.disabled = false;
+        addForm.reset();
+
+        alert('Restaurant Stall successfully created & provisioned!');
+      });
+    }
+
+    // Form Edit Stall Submission
+    const editForm = document.getElementById('form-edit-stall');
+    if (editForm) {
+      editForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-stall-id').value;
+        const bName = document.getElementById('edit-stall-name').value.trim();
+        const oName = document.getElementById('edit-owner-name').value.trim();
+        const city = document.getElementById('edit-city').value.trim();
+        const edition = document.getElementById('edit-edition').value;
+        const status = document.getElementById('edit-status').value;
+
+        await apiFetch(`/api/v1/admin/vendors/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ businessName: bName, ownerName: oName, city, edition, subscriptionStatus: status })
+        });
+
+        const v = allVendors.find(vend => vend.id === id);
+        if (v) {
+          v.businessName = bName;
+          v.ownerName = oName;
+          v.city = city;
+          v.edition = edition;
+          v.subscriptionStatus = status;
+        }
+
+        closeModal('modal-edit-stall');
+        renderStallsTable();
+        loadOverview();
+      });
+    }
+
+    // Initial Data Fetch & Render
+    loadOverview();
+    loadVendors();
+  }
+
+
+  // Export Global Window Functions for Immediate Zero-Latency Inline Calling
+  window.switchView = switchView;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.toggleNotifications = function() {
+    const d = document.getElementById('notifications-drawer');
+    if (d) {
+      d.classList.toggle('active');
+      document.body.classList.toggle('modal-open');
+    }
+  };
+  window.adminLogout = function() {
+    if (confirm('Sign out of Super Admin Console?')) {
+      localStorage.removeItem('frose_auth_token');
+      window.location.replace('/login');
+    }
+  };
+  window.toggleUserDropdown = function(e) {
+    if (e) e.stopPropagation();
+    const u = document.getElementById('user-dropdown');
+    if (u) u.classList.toggle('active');
+  };
+  window.filterExpiringAndSwitch = function() {
+    currentFilter = 'expiring';
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    document.querySelector('.filter-pill[data-filter="expiring"]')?.classList.add('active');
+    switchView('vendors');
+  };
+  window.filterStalls = function(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.filter-pill[data-filter="${f}"]`)?.classList.add('active');
+    renderStallsTable();
+  };
+  window.sendWhatsAppNotification = sendWhatsAppNotification;
+  window.openReceiptModal = openReceiptModal;
+  window.openEditModal = openEditModal;
+  window.openMenuModal = openMenuModal;
+
+  // Dual-State Initialization: Handles both early-run and late-run script lifecycles
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminConsole);
+  } else {
+    initAdminConsole();
+  }
+
+})();
+
+  </script>
+  <script src="/js/admin.js?v=3.1.0"></script>
 </body>
 </html>

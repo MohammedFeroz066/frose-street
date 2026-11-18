@@ -996,6 +996,46 @@
     loadVendors();
   }
 
+
+  // Export Global Window Functions for Immediate Zero-Latency Inline Calling
+  window.switchView = switchView;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+  window.toggleNotifications = function() {
+    const d = document.getElementById('notifications-drawer');
+    if (d) {
+      d.classList.toggle('active');
+      document.body.classList.toggle('modal-open');
+    }
+  };
+  window.adminLogout = function() {
+    if (confirm('Sign out of Super Admin Console?')) {
+      localStorage.removeItem('frose_auth_token');
+      window.location.replace('/login');
+    }
+  };
+  window.toggleUserDropdown = function(e) {
+    if (e) e.stopPropagation();
+    const u = document.getElementById('user-dropdown');
+    if (u) u.classList.toggle('active');
+  };
+  window.filterExpiringAndSwitch = function() {
+    currentFilter = 'expiring';
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    document.querySelector('.filter-pill[data-filter="expiring"]')?.classList.add('active');
+    switchView('vendors');
+  };
+  window.filterStalls = function(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    document.querySelector(`.filter-pill[data-filter="${f}"]`)?.classList.add('active');
+    renderStallsTable();
+  };
+  window.sendWhatsAppNotification = sendWhatsAppNotification;
+  window.openReceiptModal = openReceiptModal;
+  window.openEditModal = openEditModal;
+  window.openMenuModal = openMenuModal;
+
   // Dual-State Initialization: Handles both early-run and late-run script lifecycles
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAdminConsole);

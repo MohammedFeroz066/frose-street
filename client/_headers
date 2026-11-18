@@ -1,4 +1,4 @@
-# Security & Cache Headers for Cloudflare Pages (street.frostech.com)
+# Security & Cache Headers for Cloudflare Pages (street.frosetech.com)
 
 # Default headers for all assets
 /*
@@ -8,6 +8,16 @@
   Permissions-Policy: camera=(self), microphone=(), geolocation=()
   Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
   Access-Control-Allow-Origin: *
+
+# Admin pages & scripts must NEVER be cached by CDN or browser
+/admin
+  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
+
+/admin.html
+  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
+
+/js/admin.js
+  Cache-Control: max-age=0, no-cache, no-store, must-revalidate
 
 # Service Worker must NEVER be cached by CDN or browser
 /sw.js

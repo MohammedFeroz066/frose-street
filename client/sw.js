@@ -10,7 +10,6 @@ const PRECACHE_ASSETS = [
   '/index.html',
   '/login.html',
   '/register.html',
-  '/admin.html',
   '/billing.html',
   '/kitchen.html',
   '/packaging.html',
@@ -20,7 +19,6 @@ const PRECACHE_ASSETS = [
   '/js/bluetooth-printer.js',
   '/js/whatsapp-service.js',
   '/js/app.js',
-  '/js/admin.js',
   '/js/register.js',
   '/js/billing.js',
   '/js/kitchen.js',
@@ -33,7 +31,7 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('⚡ Pre-caching offline PWA assets (v8)');
+      console.log('⚡ Pre-caching offline PWA assets (v9)');
       return cache.addAll(PRECACHE_ASSETS);
     })
   );
@@ -55,11 +53,12 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass dynamic API and WebSocket requests directly to network
+  // Pass dynamic API, WebSocket, and Admin requests directly to network (no cache)
   if (
     event.request.url.includes('/api/') ||
     event.request.url.includes('/health') ||
-    event.request.url.includes('/ws')
+    event.request.url.includes('/ws') ||
+    event.request.url.includes('/admin')
   ) {
     return;
   }

@@ -684,69 +684,153 @@
     `).join('');
   }
 
-  // 10. Event Handlers & Initialization
-  document.addEventListener('DOMContentLoaded', () => {
-    // Top Tabs
-    document.querySelectorAll('.nav-tab-pill').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const view = btn.getAttribute('data-view');
-        if (view) switchView(view);
-      });
-    });
+    // 10. Unified Delegated Click Listener (Zero-Fail Real-Time Mobile & Desktop Taps)
+  document.addEventListener('click', (e) => {
+    // 1. Top Navigation Tabs
+    const tabBtn = e.target.closest('.nav-tab-pill');
+    if (tabBtn) {
+      const view = tabBtn.getAttribute('data-view');
+      if (view) {
+        switchView(view);
+        return;
+      }
+    }
 
-    // Bottom Bar Navigation
-    const bHome = document.getElementById('btn-bottom-home');
-    const bAnalytics = document.getElementById('btn-bottom-analytics');
-    const bAdd = document.getElementById('btn-bottom-add-restaurant');
-    const bTopAdd = document.getElementById('btn-top-add-stall');
-    const bNotif = document.getElementById('btn-bottom-notifications');
-    const bLogout = document.getElementById('btn-bottom-logout');
+    // 2. Bottom Bar Navigation
+    const bHome = e.target.closest('#btn-bottom-home');
+    if (bHome) {
+      switchView('dashboard');
+      return;
+    }
 
-    if (bHome) bHome.addEventListener('click', () => switchView('dashboard'));
-    if (bAnalytics) bAnalytics.addEventListener('click', () => switchView('analytics'));
-    if (bAdd) bAdd.addEventListener('click', () => openModal('modal-add-stall'));
-    if (bTopAdd) bTopAdd.addEventListener('click', () => openModal('modal-add-stall'));
+    const bAnalytics = e.target.closest('#btn-bottom-analytics');
+    if (bAnalytics) {
+      switchView('analytics');
+      return;
+    }
 
-    // Notifications Drawer
-    const drawer = document.getElementById('notifications-drawer');
-    const closeNotif = document.getElementById('btn-close-notifications');
-    if (bNotif && drawer) {
-      bNotif.addEventListener('click', () => {
+    const bAdd = e.target.closest('#btn-bottom-add-restaurant, #btn-top-add-stall');
+    if (bAdd) {
+      openModal('modal-add-stall');
+      return;
+    }
+
+    const bNotif = e.target.closest('#btn-bottom-notifications');
+    if (bNotif) {
+      const drawer = document.getElementById('notifications-drawer');
+      if (drawer) {
         drawer.classList.add('active');
         document.body.classList.add('modal-open');
-      });
+      }
+      return;
     }
-    if (closeNotif && drawer) {
-      closeNotif.addEventListener('click', () => {
+
+    const bCloseNotif = e.target.closest('#btn-close-notifications');
+    if (bCloseNotif) {
+      const drawer = document.getElementById('notifications-drawer');
+      if (drawer) {
         drawer.classList.remove('active');
         document.body.classList.remove('modal-open');
-      });
+      }
+      return;
     }
 
-    // Modal Close Buttons
-    document.getElementById('btn-close-add-modal')?.addEventListener('click', () => closeModal('modal-add-stall'));
-    document.getElementById('btn-close-edit-modal')?.addEventListener('click', () => closeModal('modal-edit-stall'));
-    document.getElementById('btn-close-menu-modal')?.addEventListener('click', () => closeModal('modal-menu-manager'));
-    document.getElementById('btn-close-health-modal')?.addEventListener('click', () => closeModal('modal-system-health'));
-    document.getElementById('btn-close-receipt-modal')?.addEventListener('click', () => closeModal('modal-payment-receipt'));
+    const bLogout = e.target.closest('#btn-bottom-logout, #btn-menu-logout');
+    if (bLogout) {
+      if (confirm('Sign out of Super Admin Console?')) {
+        localStorage.removeItem('frose_auth_token');
+        window.location.replace('/login');
+      }
+      return;
+    }
 
-    // Print Receipt
-    document.getElementById('btn-receipt-print')?.addEventListener('click', () => window.print());
-
-    // System Health Ribbon
-    document.getElementById('btn-view-health')?.addEventListener('click', () => openModal('modal-system-health'));
-    document.getElementById('btn-hero-reports')?.addEventListener('click', () => switchView('analytics'));
-
-    // KPI Card Click Navigation
-    document.getElementById('card-kpi-restaurants')?.addEventListener('click', () => switchView('vendors'));
-    document.getElementById('card-kpi-revenue')?.addEventListener('click', () => switchView('analytics'));
-    document.getElementById('card-kpi-renewals')?.addEventListener('click', () => {
+    // 3. KPI Card Clicks
+    if (e.target.closest('#card-kpi-restaurants')) {
+      switchView('vendors');
+      return;
+    }
+    if (e.target.closest('#card-kpi-revenue') || e.target.closest('#card-kpi-orders') || e.target.closest('#btn-hero-reports')) {
+      switchView('analytics');
+      return;
+    }
+    if (e.target.closest('#card-kpi-renewals')) {
       currentFilter = 'expiring';
       document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
       document.querySelector('.filter-pill[data-filter="expiring"]')?.classList.add('active');
       switchView('vendors');
-    });
-    document.getElementById('card-kpi-orders')?.addEventListener('click', () => switchView('analytics'));
+      return;
+    }
+
+    // 4. System Health Modal
+    if (e.target.closest('#btn-view-health')) {
+      openModal('modal-system-health');
+      return;
+    }
+
+    // 5. Modal Close Buttons
+    if (e.target.closest('#btn-close-add-modal')) {
+      closeModal('modal-add-stall');
+      return;
+    }
+    if (e.target.closest('#btn-close-edit-modal')) {
+      closeModal('modal-edit-stall');
+      return;
+    }
+    if (e.target.closest('#btn-close-menu-modal')) {
+      closeModal('modal-menu-manager');
+      return;
+    }
+    if (e.target.closest('#btn-close-health-modal')) {
+      closeModal('modal-system-health');
+      return;
+    }
+    if (e.target.closest('#btn-close-receipt-modal')) {
+      closeModal('modal-payment-receipt');
+      return;
+    }
+
+    // 6. WhatsApp Action
+    const waBtn = e.target.closest('.btn-whatsapp-stall');
+    if (waBtn) {
+      const phone = waBtn.getAttribute('data-phone');
+      const owner = waBtn.getAttribute('data-owner');
+      const stall = waBtn.getAttribute('data-stall');
+      const status = waBtn.getAttribute('data-status');
+      const due = waBtn.getAttribute('data-due');
+      const fee = waBtn.getAttribute('data-fee');
+      sendWhatsAppNotification(phone, owner, stall, status, due, fee);
+      return;
+    }
+
+    // 7. Receipt Action
+    const rcptBtn = e.target.closest('.btn-view-receipt');
+    if (rcptBtn) {
+      const id = rcptBtn.getAttribute('data-id');
+      openReceiptModal(id);
+      return;
+    }
+
+    // 8. Edit Stall Action
+    const editBtn = e.target.closest('.btn-edit-stall');
+    if (editBtn) {
+      const id = editBtn.getAttribute('data-id');
+      openEditModal(id);
+      return;
+    }
+
+    // 9. Menu Manager Action
+    const menuBtn = e.target.closest('.btn-manage-menu');
+    if (menuBtn) {
+      const id = menuBtn.getAttribute('data-id');
+      openMenuModal(id);
+      return;
+    }
+  });
+
+  // 11. Core Initialization Function
+  function initAdminConsole() {
+    // Print Receipt
+    document.getElementById('btn-receipt-print')?.addEventListener('click', () => window.print());
 
     // Filter Pills
     document.querySelectorAll('.filter-pill').forEach(pill => {
@@ -778,18 +862,25 @@
       document.addEventListener('click', () => userMenu.classList.remove('active'));
     }
 
-    const mLogout = document.getElementById('btn-menu-logout');
-    if (mLogout) {
-      mLogout.addEventListener('click', () => {
-        if (confirm('Sign out of Super Admin Console?')) {
-          localStorage.removeItem('frose_auth_token');
-          window.location.replace('/login');
-        }
+    const mProfile = document.getElementById('btn-menu-profile');
+    if (mProfile) {
+      mProfile.addEventListener('click', () => {
+        userMenu.classList.remove('active');
+        switchView('settings');
       });
     }
 
-    if (bLogout) {
-      bLogout.addEventListener('click', () => {
+    const mSystem = document.getElementById('btn-menu-system');
+    if (mSystem) {
+      mSystem.addEventListener('click', () => {
+        userMenu.classList.remove('active');
+        openModal('modal-system-health');
+      });
+    }
+
+    const mLogout = document.getElementById('btn-menu-logout');
+    if (mLogout) {
+      mLogout.addEventListener('click', () => {
         if (confirm('Sign out of Super Admin Console?')) {
           localStorage.removeItem('frose_auth_token');
           window.location.replace('/login');
@@ -900,9 +991,16 @@
       });
     }
 
-    // Initial Load
+    // Initial Data Fetch & Render
     loadOverview();
     loadVendors();
-  });
+  }
+
+  // Dual-State Initialization: Handles both early-run and late-run script lifecycles
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminConsole);
+  } else {
+    initAdminConsole();
+  }
 
 })();

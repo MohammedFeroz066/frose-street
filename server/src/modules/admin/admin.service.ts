@@ -13,6 +13,9 @@ export interface CreateVendorAdminInput {
   city?: string;
   edition?: 'cloud' | 'local';
   subscriptionDays?: number;
+  monthlyFeeRupees?: number;
+  billingCycle?: 'monthly' | 'quarterly' | 'annual';
+  initialPaymentStatus?: 'paid' | 'trial' | 'pending';
 }
 
 export interface UpdateVendorAdminInput {
@@ -42,6 +45,8 @@ export class AdminService {
   static async getOverview(db: Kysely<Database>) {
     const vendors = await db.selectFrom('vendors').selectAll().execute();
     const orders = await db.selectFrom('orders').selectAll().execute();
+    const subscriptions = await db.selectFrom('subscriptions').selectAll().execute();
+    const devices = await db.selectFrom('devices').selectAll().execute();
 
     const now = Date.now();
     const in7Days = now + 7 * 24 * 3600 * 1000;
@@ -52,7 +57,13 @@ export class AdminService {
     let expiredCount = 0;
     let expiringCount = 0;
 
+    let cloudVendors = 0;
+    let localVendors = 0;
+
     for (const v of vendors) {
+      if (v.edition === 'local') localVendors++;
+      else cloudVendors++;
+
       const expiresAt = v.subscription_expires_at ? new Date(v.subscription_expires_at).getTime() : 0;
       if (v.subscription_status === 'trial') {
         trialCount++;
@@ -87,17 +98,31 @@ export class AdminService {
       }
     }
 
+    let totalCollectedPaise = 0n;
+    for (const s of subscriptions) {
+      if (s.status === 'active') totalCollectedPaise += BigInt(s.amount_paise || 0);
+    }
+    const pendingStallsCount = expiredCount + expiringCount;
+    const totalPendingPaise = BigInt(pendingStallsCount) * 49900n;
+    const activeDevicesCount = devices.filter((d) => d.is_active).length;
+
     return {
       totalVendors: vendors.length,
       activeVendors: activeCount,
       trialVendors: trialCount,
       expiredVendors: expiredCount,
       expiringVendors: expiringCount,
+      cloudVendors,
+      localVendors,
       grossSalesPaise: grossPaise.toString(),
       cashSalesPaise: cashPaise.toString(),
       upiSalesPaise: upiPaise.toString(),
+      totalCollectedPaise: totalCollectedPaise.toString(),
+      totalPendingPaise: totalPendingPaise.toString(),
       todayOrders: todayOrdersCount,
       totalOrders: orders.length,
+      activeDevicesCount,
+      totalDevicesCount: devices.length,
     };
   }
 
@@ -107,6 +132,8 @@ export class AdminService {
   static async listVendors(db: Kysely<Database>) {
     const vendors = await db.selectFrom('vendors').selectAll().execute();
     const orders = await db.selectFrom('orders').selectAll().execute();
+    const subscriptions = await db.selectFrom('subscriptions').selectAll().execute();
+    const devices = await db.selectFrom('devices').selectAll().execute();
 
     // Group sales by vendor
     const vendorSalesMap = new Map<string, { count: number; totalPaise: bigint }>();
@@ -120,8 +147,37 @@ export class AdminService {
       }
     }
 
+    const now = Date.now();
+    const in7Days = now + 7 * 24 * 3600 * 1000;
     return vendors.map((v) => {
       const stats = vendorSalesMap.get(v.id) || { count: 0, totalPaise: 0n };
+      const vendorSubs = subscriptions.filter((s) => s.vendor_id === v.id);
+      const vendorDevs = devices.filter((d) => d.vendor_id === v.id);
+
+      const latestSub = vendorSubs[vendorSubs.length - 1];
+      const monthlyFeePaise = latestSub?.amount_paise ? BigInt(latestSub.amount_paise).toString() : '49900';
+
+      const expiresAt = v.subscription_expires_at ? new Date(v.subscription_expires_at).getTime() : 0;
+      let paymentStatus: 'paid' | 'due_soon' | 'overdue' | 'trial' = 'paid';
+      if (v.subscription_status === 'trial') {
+        paymentStatus = 'trial';
+      } else if (expiresAt < now || v.subscription_status === 'expired') {
+        paymentStatus = 'overdue';
+      } else if (expiresAt <= in7Days) {
+        paymentStatus = 'due_soon';
+      }
+
+      let totalCollectedPaise = 0n;
+      for (const s of vendorSubs) {
+        if (s.status === 'active') totalCollectedPaise += BigInt(s.amount_paise || 0);
+      }
+
+      const pendingDuePaise = (paymentStatus === 'overdue' || paymentStatus === 'due_soon') ? monthlyFeePaise : '0';
+
+      const lastPaymentDate = latestSub?.created_at
+        ? (typeof latestSub.created_at === 'string' ? latestSub.created_at : (latestSub.created_at as Date)?.toISOString?.() || '')
+        : (typeof v.created_at === 'string' ? v.created_at : (v.created_at as Date)?.toISOString?.() || '');
+
       return {
         id: v.id,
         businessName: v.business_name,
@@ -132,6 +188,15 @@ export class AdminService {
         edition: v.edition,
         subscriptionStatus: v.subscription_status,
         subscriptionExpiresAt: v.subscription_expires_at,
+        monthlyFeePaise,
+        lastPaymentDate,
+        nextDueDate: v.subscription_expires_at || new Date(now + 14 * 86400000).toISOString(),
+        paymentStatus,
+        totalCollectedPaise: totalCollectedPaise.toString(),
+        pendingDuePaise,
+        deviceCount: vendorDevs.length,
+        activeDevices: vendorDevs.filter((d) => d.is_active).length,
+        lastActivePing: vendorDevs[0]?.last_seen_at || v.updated_at,
         hasQuickPin: !!v.quick_pin_hash,
         totalOrders: stats.count,
         lifetimeSalesPaise: stats.totalPaise.toString(),
@@ -167,7 +232,11 @@ export class AdminService {
     const pin = input.quickPin && /^\d{4}$/.test(input.quickPin) ? input.quickPin : '1234';
     const pinHash = await hashPin(pin);
 
-    const subDays = input.subscriptionDays || 14;
+    const monthlyFee = input.monthlyFeeRupees || 499;
+    const monthlyFeePaise = BigInt(monthlyFee) * 100n;
+    const cycle = input.billingCycle || 'monthly';
+    const subDays = input.subscriptionDays || (cycle === 'annual' ? 365 : cycle === 'quarterly' ? 90 : 30);
+    const isPaid = input.initialPaymentStatus === 'paid';
     const expiryDate = new Date(Date.now() + subDays * 24 * 3600 * 1000).toISOString();
 
     const vendorId = `v-${randomUUID().substring(0, 8)}`;
@@ -182,7 +251,7 @@ export class AdminService {
         business_type: 'Street Food Stall',
         city: input.city ? input.city.trim() : 'Hyderabad',
         edition: input.edition || 'cloud',
-        subscription_status: subDays > 14 ? 'active' : 'trial',
+        subscription_status: isPaid ? 'active' : 'trial',
         subscription_expires_at: expiryDate,
         daily_token_counter: 0,
         token_reset_date: new Date().toISOString().split('T')[0],
@@ -191,6 +260,20 @@ export class AdminService {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
+
+    if (isPaid) {
+      await db.insertInto('subscriptions').values({
+        id: randomUUID(),
+        vendor_id: newVendor.id,
+        plan: input.edition || 'cloud',
+        amount_paise: monthlyFeePaise,
+        period_start: new Date().toISOString().split('T')[0],
+        period_end: expiryDate.split('T')[0],
+        payment_method: 'upi',
+        payment_reference: 'UPI-' + Date.now().toString(36).toUpperCase(),
+        status: 'active',
+      }).execute();
+    }
 
     // Create default cashier staff
     await db

@@ -249,11 +249,16 @@ export async function onRequest(context) {
         trialVendors: VENDORS.filter(v => v.subscriptionStatus === 'trial').length,
         expiredVendors: VENDORS.filter(v => v.subscriptionStatus === 'expired').length,
         expiringVendors: 1,
+        cloudVendors: VENDORS.filter(v => v.edition === 'cloud').length,
+        localVendors: VENDORS.filter(v => v.edition === 'local').length,
         grossSalesPaise: '10450000',
         cashSalesPaise: '6250000',
         upiSalesPaise: '4200000',
+        totalCollectedPaise: '299400',
+        totalPendingPaise: '49900',
         todayOrders: 54,
-        totalOrders: 565
+        totalOrders: 565,
+        activeDevicesCount: 6
       }
     });
   }
@@ -279,10 +284,14 @@ export async function onRequest(context) {
         owner_name: b.ownerName || 'Stall Owner',
         businessType: b.businessType || 'Street Food Stall',
         city: b.city || 'Hyderabad',
-        edition: 'cloud',
-        subscriptionStatus: 'active',
-        subscription_status: 'active',
+        edition: b.edition || 'cloud',
+        monthlyFeePaise: String((b.monthlyFeeRupees || 499) * 100),
+        subscriptionStatus: b.initialPaymentStatus === 'paid' ? 'active' : 'trial',
+        subscription_status: b.initialPaymentStatus === 'paid' ? 'active' : 'trial',
+        paymentStatus: b.initialPaymentStatus === 'paid' ? 'paid' : 'trial',
+        lastPaymentDate: new Date().toISOString(),
         subscriptionExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+        nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
         role: 'owner',
         isSuperadmin: false,
         totalOrders: 0,

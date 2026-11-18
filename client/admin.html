@@ -103,14 +103,14 @@
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     }
 
-    .brand-receipt-badge::after {
-      content: 'TM';
-      position: absolute;
-      top: -3px;
-      right: -13px;
+    .brand-trademark {
       font-size: 8px;
       font-weight: 800;
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(255, 255, 255, 0.85);
+      vertical-align: super;
+      margin-left: 2px;
+      line-height: 1;
+      display: inline-block;
     }
 
     .brand-receipt-badge svg {
@@ -249,11 +249,10 @@
     .nav-bar-inner {
       max-width: 1200px;
       margin: 0 auto;
-      display: flex;
-      align-items: center;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 6px;
-      overflow-x: auto;
-      scrollbar-width: none;
+      align-items: center;
     }
 
     .nav-bar-inner::-webkit-scrollbar {
@@ -261,10 +260,10 @@
     }
 
     .nav-tab-pill {
-      flex: 1;
-      min-width: 80px;
-      padding: 6px 12px;
-      border-radius: 14px;
+      min-width: 0;
+      width: 100%;
+      padding: 7px 4px;
+      border-radius: 12px;
       border: none;
       background: transparent;
       color: var(--saas-text-muted);
@@ -273,10 +272,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 5px;
       cursor: pointer;
       transition: all 0.2s ease;
       white-space: nowrap;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     .nav-tab-pill:hover {
@@ -812,9 +813,9 @@
     .bottom-bar-inner {
       max-width: 480px;
       margin: 0 auto;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1.35fr 1fr 1fr;
       align-items: center;
-      justify-content: space-between;
       height: 100%;
       gap: 2px;
     }
@@ -1054,7 +1055,7 @@
         <div class="brand-name-group">
           <div class="brand-main-title">
             <span class="brand-word-frose">FROSE</span>
-            <span class="brand-word-street">STREET</span>
+            <span class="brand-word-street">STREET</span><span class="brand-trademark">TM</span>
           </div>
           <div class="brand-platform-sub">Restaurant POS Platform</div>
         </div>
@@ -1086,7 +1087,7 @@
       </button>
       <button class="nav-tab-pill" data-view="vendors">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 2v7c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V2"></path><path d="M3 7h18"></path><path d="M7 11v9"></path><path d="M17 11v9"></path><path d="M3 20h18"></path></svg>
-        <span>Vendors & Billing</span>
+        <span>Vendors</span>
       </button>
       <button class="nav-tab-pill" data-view="users">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>

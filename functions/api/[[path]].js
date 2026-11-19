@@ -23,7 +23,8 @@ const VENDORS = [
     hasQuickPin: false,
     totalOrders: 42,
     lifetimeSalesPaise: '840000',
-    createdAt: new Date().toISOString()
+    password: b.password || 'Feroz@123',
+        createdAt: new Date().toISOString()
   },
   {
     id: 'v-admin-master',
@@ -46,6 +47,30 @@ const VENDORS = [
     hasQuickPin: false,
     totalOrders: 0,
     lifetimeSalesPaise: '0',
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'v-stall-9642230688',
+    phone: '9642230688',
+    businessName: 'Cloud Edge Kitchen',
+    business_name: 'Cloud Edge Kitchen',
+    ownerName: 'Stall Partner',
+    owner_name: 'Stall Partner',
+    businessType: 'Street Food Stall',
+    business_type: 'Street Food Stall',
+    city: 'Hyderabad',
+    edition: 'cloud',
+    subscriptionStatus: 'trial',
+    subscription_status: 'trial',
+    subscriptionExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+    subscription_expires_at: new Date(Date.now() + 30 * 86400000).toISOString(),
+    role: 'owner',
+    isSuperadmin: false,
+    is_superadmin: false,
+    hasQuickPin: false,
+    totalOrders: 0,
+    lifetimeSalesPaise: '0',
+    password: 'Feroz@123',
     createdAt: new Date().toISOString()
   },
   {
@@ -162,7 +187,7 @@ export async function onRequest(context) {
   if (path === '/api/v1/auth/login' && method === 'POST') {
     try {
       const body = await request.json();
-      const phone = (body.phone || '').replace(/\D/g, '');
+      const phone = (body.phone || '').replace(/\D/g, '').slice(-10);
       const password = body.password || '';
 
       const now = Date.now();
@@ -178,7 +203,13 @@ export async function onRequest(context) {
         }, 429, { 'Retry-After': String(remaining) });
       }
 
-      const vendor = VENDORS.find(v => v.phone === phone);
+      let vendor = VENDORS.find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === phone);
+      if (!vendor && context.env?.STREET_STORAGE) {
+        try {
+          const raw = await context.env.STREET_STORAGE.get('vendor_' + phone);
+          if (raw) vendor = JSON.parse(raw);
+        } catch (e) {}
+      }
       if (!vendor) {
         return jsonResponse({
           code: 'ACCOUNT_NOT_FOUND',
@@ -188,7 +219,7 @@ export async function onRequest(context) {
         }, 404);
       }
 
-      if (password !== 'Feroz@123') {
+      if (password !== (vendor.password || 'Feroz@123')) {
         const fails = (failedAttempts.get(phone) || 0) + 1;
         failedAttempts.set(phone, fails);
 

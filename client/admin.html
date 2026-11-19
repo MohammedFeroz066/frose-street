@@ -1786,6 +1786,68 @@
     </div>
   </div>
 
+  <!-- 11. Modal: Stall Setup QR Code & Mobile P2P Pairing Hub -->
+  <div class="modal-overlay" id="modal-stall-setup-qr" style="display: none; align-items: center; justify-content: center; z-index: 100000;">
+    <div class="modal-card" style="max-width: 440px; border-radius: 20px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #4A0E17 0%, #2D080E 100%); padding: 18px 20px; color: #FFF; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px;">📲</div>
+          <div>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -0.2px;">Stall Setup & QR Pairing</h3>
+            <p style="margin: 2px 0 0; font-size: 11px; color: #FDE68A;">1-Tap Phone Cloud Onboarding (10s Setup)</p>
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btn-close-qr-modal" onclick="window.closeStallSetupQR()" style="background: rgba(255,255,255,0.15); border: none; color: #FFF; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center;">×</button>
+      </div>
+
+      <!-- Content -->
+      <div style="padding: 22px; text-align: center;">
+        <div style="background: #F8FAFC; border: 2px dashed #CBD5E1; border-radius: 16px; padding: 14px; display: inline-block; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+          <img id="qr-modal-image" src="" alt="Stall Setup QR Code" style="width: 190px; height: 190px; display: block; border-radius: 8px; margin: 0 auto; object-fit: contain;" />
+        </div>
+
+        <div style="font-size: 12px; color: #64748B; margin-bottom: 14px; line-height: 1.4;">
+          Scan with phone camera to auto-login & install PWA. Works 100% offline after 10-second setup.
+        </div>
+
+        <!-- Credential Info Box -->
+        <div style="background: #FFF8F6; border: 1px solid #FFE4E6; border-radius: 12px; padding: 12px 14px; text-align: left; margin-bottom: 16px; font-size: 12px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #64748B;">Stall Name:</span>
+            <strong id="qr-modal-stall-name" style="color: #4A0E17;">-</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #64748B;">Mobile Login:</span>
+            <strong id="qr-modal-phone" style="font-family: monospace; color: #0F172A;">-</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span style="color: #64748B;">Password:</span>
+            <strong id="qr-modal-pwd" style="font-family: monospace; color: #0F172A;">Feroz@123</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #64748B;">Subscription:</span>
+            <strong id="qr-modal-plan" style="color: #059669;">Trial (₹899/mo)</strong>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+          <button id="btn-qr-modal-whatsapp" style="height: 40px; border-radius: 10px; border: none; background: #25D366; color: #FFF; font-weight: 800; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>💬 WhatsApp</span>
+          </button>
+          <button id="btn-qr-modal-copy" onclick="window.copyStallSetupLink()" style="height: 40px; border-radius: 10px; border: 1.5px solid #CBD5E1; background: #FFF; color: #0F172A; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span id="copy-btn-text">📋 Copy Link</span>
+          </button>
+        </div>
+
+        <button id="btn-qr-modal-open" style="width: 100%; height: 38px; border-radius: 10px; border: none; background: #4A0E17; color: #FFF; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <span>👁️ Open Counter in New Tab</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
     <script>
 /**
  * FROSE STREET — Super Admin Enterprise SaaS Console
@@ -2134,6 +2196,9 @@
                 data-fee="${monthlyFee}"
                 title="Send WhatsApp payment reminder / receipt">
                 <span>💬 WhatsApp</span>
+              </button>
+              <button class="btn-table-action btn-setup-qr" onclick="window.openStallSetupQRByPhone('${phone}')" data-phone="${phone}" title="Stall Setup QR & Mobile P2P Pairing" style="background: #FFF7ED; border: 1.5px solid #FDBA74; font-weight: 800; color: #C2410C; font-size: 11.5px;">
+                <span>📲 QR</span>
               </button>
               <button class="btn-table-action btn-stall-analytics" data-id="${v.id}" title="Fiscal Turnover Analytics & Payment History Ledger" style="background: #FDFBF7; border: 1.5px solid var(--saas-card-border); font-weight: 700; color: var(--saas-burgundy-primary); font-size: 11.5px;">
                 <span>📊 Ledger</span>
@@ -2837,7 +2902,7 @@
     renderStallsTable();
     loadOverview();
 
-    alert('✅ Restaurant Stall successfully created & provisioned! Login credentials are now active immediately.');
+    window.openStallSetupQR(newStall);
   }
 
   // 11. Core Initialization Function
@@ -3100,7 +3165,87 @@
     document.querySelector('.filter-pill[data-filter="expiring"]')?.classList.add('active');
     switchView('vendors');
   };
-    window.filterStalls = filterStalls;
+  
+  let activeQRSetupUrl = '';
+
+  window.openStallSetupQR = function(stall) {
+    if (!stall) return;
+    const modal = document.getElementById('modal-stall-setup-qr');
+    if (!modal) return;
+
+    const phone = (stall.phone || '').replace(/\D/g, '').slice(-10);
+    const pwd = stall.password || 'Feroz@123';
+    const bName = stall.businessName || stall.business_name || 'Restaurant Stall';
+    const plan = (stall.subscriptionStatus || stall.subscription_status || 'trial').toUpperCase() + ' (' + formatRupees(stall.monthlyFeePaise || '89900') + '/mo)';
+
+    document.getElementById('qr-modal-stall-name').textContent = bName;
+    document.getElementById('qr-modal-phone').textContent = phone;
+    document.getElementById('qr-modal-pwd').textContent = pwd;
+    document.getElementById('qr-modal-plan').textContent = plan;
+
+    const setupUrl = window.location.origin + '/login?stall=' + phone + '&pwd=' + encodeURIComponent(pwd) + '&autologin=1';
+    activeQRSetupUrl = setupUrl;
+
+    const qrImg = document.getElementById('qr-modal-image');
+    if (qrImg) {
+      qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' + encodeURIComponent(setupUrl);
+    }
+
+    const waBtn = document.getElementById('btn-qr-modal-whatsapp');
+    if (waBtn) {
+      const waMsg = '🎉 *Welcome to FROSE Street!*\n\nYour billing counter for *' + bName + '* is ready.\n\n📲 *Setup counter on your phone:*\n' + setupUrl + '\n\n🔑 *Login Credentials:*\nMobile: ' + phone + '\nPassword: ' + pwd + '\n\n1. Open link on phone.\n2. Tap "Install to Home Screen" to use offline.\n3. Start billing immediately!';
+      waBtn.onclick = () => {
+        window.open('https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(waMsg), '_blank');
+      };
+    }
+
+    const openBtn = document.getElementById('btn-qr-modal-open');
+    if (openBtn) {
+      openBtn.onclick = () => {
+        window.open(setupUrl, '_blank');
+      };
+    }
+
+    const copyBtnText = document.getElementById('copy-btn-text');
+    if (copyBtnText) copyBtnText.textContent = '📋 Copy Link';
+
+    modal.style.display = 'flex';
+  };
+
+  window.openStallSetupQRByPhone = function(phone) {
+    const clean = (phone || '').replace(/\D/g, '').slice(-10);
+    const stall = allVendors.find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === clean) ||
+      getDynamicVendors().find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === clean) || {
+        phone: clean,
+        businessName: 'Restaurant Stall',
+        password: 'Feroz@123',
+        monthlyFeePaise: '89900',
+        subscriptionStatus: 'trial'
+      };
+    window.openStallSetupQR(stall);
+  };
+
+  window.closeStallSetupQR = function() {
+    const modal = document.getElementById('modal-stall-setup-qr');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.copyStallSetupLink = function() {
+    if (!activeQRSetupUrl) return;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(activeQRSetupUrl).then(() => {
+        const t = document.getElementById('copy-btn-text');
+        if (t) {
+          t.textContent = '✓ Copied!';
+          setTimeout(() => { t.textContent = '📋 Copy Link'; }, 2000);
+        }
+      });
+    } else {
+      prompt('Copy setup URL:', activeQRSetupUrl);
+    }
+  };
+
+  window.filterStalls = filterStalls;
   window.sendWhatsAppNotification = sendWhatsAppNotification;
   window.openReceiptModal = openReceiptModal;
   window.openEditModal = openEditModal;

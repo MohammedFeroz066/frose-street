@@ -107,22 +107,86 @@
   }
 
   // Load Menu Catalog
-  function loadCatalog() {
+  async function loadCatalog() {
+    const vendor = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+    const vendorId = vendor.id || 'default';
+    const token = localStorage.getItem('frose_auth_token');
+
+    // Load custom categories if present
     try {
-      const saved = localStorage.getItem('frose_custom_menu_catalog');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        menuCatalog = parsed.map(item => ({
-          ...item,
-          pricePaise: BigInt(item.pricePaise || 5000)
-        }));
-      } else {
-        menuCatalog = [...INITIAL_MENU];
-        saveCatalog();
+      const savedCats = localStorage.getItem('frose_cats_' + vendorId);
+      if (savedCats) {
+        const cats = JSON.parse(savedCats);
+        renderSidebarCategories(cats);
       }
-    } catch {
-      menuCatalog = [...INITIAL_MENU];
+    } catch (e) {}
+
+    // Check vendor-specific dishes in local cache first
+    try {
+      const localDishes = localStorage.getItem('frose_dishes_' + vendorId);
+      if (localDishes) {
+        const parsed = JSON.parse(localDishes);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          menuCatalog = parsed.map(item => ({
+            ...item,
+            image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
+            pricePaise: BigInt(item.pricePaise || 5000)
+          }));
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // Try fetching from backend API
+    if (token) {
+      try {
+        const res = await fetch('/api/v1/menu', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.items) && data.items.length > 0) {
+            menuCatalog = data.items.map(item => ({
+              ...item,
+              image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
+              pricePaise: BigInt(item.pricePaise || 5000)
+            }));
+            localStorage.setItem('frose_dishes_' + vendorId, JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
+            return;
+          }
+        }
+      } catch (e) {}
     }
+
+    // Clean slate: if no custom dishes exist, start at empty so first-time onboarding shows
+    menuCatalog = [];
+  }
+
+  function renderSidebarCategories(customCats) {
+    const sidebar = document.getElementById('pos-category-sidebar');
+    if (!sidebar) return;
+
+    let categories = ['Best Sellers', 'Starters', 'Main Course', 'Breads', 'Rice', 'Desserts', 'Drinks'];
+    if (Array.isArray(customCats) && customCats.length > 0) {
+      categories = Array.from(new Set([...categories, ...customCats]));
+    }
+
+    const html = categories.map((cat, idx) => {
+      const slug = cat.toLowerCase().replace(/\s+/g, '-');
+      const isActive = activeCategory === slug || (idx === 0 && activeCategory === 'best-sellers');
+      return `
+        <button type="button" class="category-sidebar-pill ${isActive ? 'active' : ''}" data-category="${slug}" onclick="window.selectCategory('${slug}')">
+          ${cat.replace(' ', '<br>')}
+        </button>
+      `;
+    }).join('') + `
+      <button type="button" class="btn-add-section" onclick="window.location.href='/menu-setup'" title="Add Custom Menu Section">
+        <span>+ Add</span>
+        <span>Section</span>
+      </button>
+    `;
+
+    sidebar.innerHTML = html;
   }
 
   function saveCatalog() {
@@ -142,10 +206,32 @@
 
     let filtered = [];
     if (activeCategory === 'best-sellers') {
-      filtered = menuCatalog.filter(i => i.isBestSeller || i.category === 'breads' || i.category === 'main-course');
+      filtered = menuCatalog.filter(i => i.isBestSeller || (i.category || '').toLowerCase().includes('best'));
       if (filtered.length === 0) filtered = menuCatalog;
     } else {
-      filtered = menuCatalog.filter(i => i.category === activeCategory);
+      filtered = menuCatalog.filter(i => {
+        const catSlug = (i.category || '').toLowerCase().replace(/\s+/g, '-');
+        return catSlug === activeCategory || (i.category || '').toLowerCase() === activeCategory;
+      });
+    }
+
+    if (menuCatalog.length === 0) {
+      grid.innerHTML = `
+        <div class="pos-first-time-onboarding" id="onboarding-menu-banner" style="grid-column: 1 / -1; background: #FFFFFF; border: 2px dashed #700A18; border-radius: 16px; padding: 28px 18px; text-align: center; margin: 12px 0; box-shadow: 0 4px 14px rgba(112, 10, 24, 0.05);">
+          <div style="font-size: 40px; margin-bottom: 10px;">🍽️</div>
+          <h3 style="margin: 0 0 6px 0; font-size: 16.5px; font-weight: 900; color: #5B0612;">Welcome to Your Billing Counter!</h3>
+          <p style="margin: 0 0 18px 0; font-size: 12.5px; color: #6B7280; line-height: 1.5;">You haven't configured any categories or food items yet.<br>Create your first category and add dishes to start ringing up real orders.</p>
+          <div style="display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin: 0 auto;">
+            <a href="/menu-setup" id="btn-onboarding-create-menu" style="background: linear-gradient(135deg, #700A18 0%, #5B0612 100%); color: #FFF; text-decoration: none; padding: 12px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(112, 10, 24, 0.3);">
+              ⚙️ Create Your First Category & Items →
+            </a>
+            <button type="button" id="btn-onboarding-starter-pack" onclick="window.seedQuickStarterMenu()" style="background: #FFF8F6; color: #700A18; border: 1.5px solid #700A18; padding: 10px 16px; border-radius: 10px; font-weight: 800; font-size: 12px; cursor: pointer;">
+              ⚡ 1-Tap Quick-Start Starter Menu
+            </button>
+          </div>
+        </div>
+      `;
+      return;
     }
 
     if (filtered.length === 0) {
@@ -153,9 +239,9 @@
         <div style="grid-column: 1 / -1; padding: 40px 16px; text-align: center; color: #6B7280; font-size: 13px;">
           <div style="font-size: 28px; margin-bottom: 8px;">🍽️</div>
           <div>No dishes in this category yet.</div>
-          <button onclick="window.openAddDishModal()" style="margin-top: 10px; background: #5B0612; color: #fff; border: none; padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer;">
-            + Add First Dish
-          </button>
+          <a href="/menu-setup" style="display: inline-block; margin-top: 10px; background: #5B0612; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 800;">
+            + Add Dish to This Section
+          </a>
         </div>
       `;
       return;
@@ -537,6 +623,40 @@
     alert(`✅ Updated "${dish.name}" details and price!`);
   };
 
+  
+  window.seedQuickStarterMenu = async function() {
+    const vendor = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+    const vendorId = vendor.id || 'default';
+    const token = localStorage.getItem('frose_auth_token');
+
+    const starterItems = [
+      { id: 'dish-biryani-01', name: 'Special Chicken Biryani', category: 'Best Sellers', pricePaise: 19000n, image: '/images/dishes/chicken-biryani-full.webp', isBestSeller: true },
+      { id: 'dish-handi-02', name: 'Chicken Handi Special', category: 'Main Course', pricePaise: 24000n, image: '/images/dishes/chicken-handi-biryani.webp', isBestSeller: true },
+      { id: 'dish-mini-03', name: 'Mini Biryani Bowl', category: 'Rice', pricePaise: 9000n, image: '/images/dishes/mini-chicken-biryani.webp', isBestSeller: false },
+      { id: 'dish-mutton-04', name: 'Mutton Royal Biryani', category: 'Best Sellers', pricePaise: 26000n, image: '/images/dishes/mutton-biryani-full.webp', isBestSeller: true }
+    ];
+
+    if (token) {
+      for (const item of starterItems) {
+        try {
+          await fetch('/api/v1/menu', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ name: item.name, category: item.category, pricePaise: Number(item.pricePaise), imageUrl: item.image })
+          });
+        } catch (e) {}
+      }
+    }
+
+    menuCatalog = [...starterItems];
+    try {
+      localStorage.setItem('frose_dishes_' + vendorId, JSON.stringify(starterItems.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
+    } catch (e) {}
+
+    renderDishesGrid();
+    updateCartUI();
+  };
+
   window.deleteDish = function() {
     if (!activeEditingDishId) return;
     if (confirm('Delete this dish from your menu?')) {
@@ -550,8 +670,8 @@
   };
 
   // First-Time Client Check & Initialization
-  document.addEventListener('DOMContentLoaded', () => {
-    loadCatalog();
+  document.addEventListener('DOMContentLoaded', async () => {
+    await loadCatalog();
     renderDishesGrid();
     updateCartUI();
 

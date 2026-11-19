@@ -189,6 +189,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return reply.status(404).send({ error: 'Register page not found' });
   });
 
+  // Menu & Inventory Configuration Portal Route
+  app.get('/menu-setup', async (_req, reply) => {
+    const menuSetupPath = path.resolve(process.cwd(), 'client/menu-setup.html');
+    if (fs.existsSync(menuSetupPath)) {
+      reply.type('text/html');
+      return reply.send(fs.readFileSync(menuSetupPath, 'utf8'));
+    }
+    return reply.status(404).send({ error: 'Menu setup page not found' });
+  });
+
   // Super Admin Portal Route
   app.get('/admin', async (_req, reply) => {
     const adminPath = path.resolve(process.cwd(), 'client/admin.html');

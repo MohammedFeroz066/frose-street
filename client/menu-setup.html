@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Menu & Category Setup — FROSE Street</title>
+  <meta name="description" content="Add categories, upload dish photos via camera or gallery, configure prices, and manage menu items for your restaurant stall.">
+  <meta name="theme-color" content="#5B0612">
+  <script>
+    (function() {
+      var token = localStorage.getItem('frose_auth_token');
+      if (!token) {
+        window.location.replace('/login');
+      }
+    })();
+  </script>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=3.3.0">
+  <style>
+    :root {
+      --saas-burgundy: #700A18;
+      --saas-burgundy-dark: #5B0612;
+      --saas-gold: #F59E0B;
+      --saas-canvas: #FDFBF9;
+      --saas-card-bg: #FFFFFF;
+      --saas-border: #EFE9E4;
+      --saas-text-dark: #111827;
+      --saas-text-muted: #6B7280;
+      --saas-emerald: #059669;
+    }
+
+    * { box-sizing: border-box; }
+    body.menu-setup-body {
+      background-color: var(--saas-canvas);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      margin: 0;
+      padding: 0;
+      color: var(--saas-text-dark);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      padding-bottom: 90px;
+    }
+
+    /* Top Navigation Header */
+    .setup-top-header {
+      background: linear-gradient(135deg, #5B0612 0%, #700A18 100%);
+      color: #FFFFFF;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 16px rgba(91, 6, 18, 0.25);
+    }
+    .setup-header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn-header-back {
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      color: #FFFFFF;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .btn-header-back:active { background: rgba(255, 255, 255, 0.3); }
+
+    .setup-header-titles h1 {
+      font-size: 15px;
+      font-weight: 900;
+      margin: 0;
+      letter-spacing: 0.3px;
+    }
+    .setup-header-titles p {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.82);
+      margin: 2px 0 0 0;
+      font-weight: 600;
+    }
+
+    /* Main Container */
+    .setup-container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Onboarding Hero Banner */
+    .onboarding-hero {
+      background: #FFFFFF;
+      border: 1.5px solid var(--saas-border);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .onboarding-hero-icon {
+      font-size: 32px;
+      background: #FFF8F6;
+      border: 1px solid #FFE4E6;
+      border-radius: 14px;
+      padding: 8px;
+      line-height: 1;
+    }
+    .onboarding-hero-content h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--saas-burgundy-dark);
+    }
+    .onboarding-hero-content p {
+      margin: 4px 0 0 0;
+      font-size: 12px;
+      color: var(--saas-text-muted);
+      line-height: 1.45;
+    }
+
+    /* Card Panels */
+    .setup-card {
+      background: #FFFFFF;
+      border: 1.5px solid var(--saas-border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+    }
+    .setup-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--saas-border);
+    }
+    .setup-card-header h3 {
+      margin: 0;
+      font-size: 14.5px;
+      font-weight: 800;
+      color: var(--saas-burgundy-dark);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Category Builder Form */
+    .category-input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .form-input-setup {
+      flex: 1;
+      height: 42px;
+      border: 1.5px solid var(--saas-border);
+      border-radius: 10px;
+      padding: 0 12px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--saas-text-dark);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .form-input-setup:focus {
+      border-color: var(--saas-burgundy);
+    }
+    .btn-add-category {
+      background: var(--saas-burgundy);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 10px;
+      padding: 0 16px;
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-add-category:hover { background: var(--saas-burgundy-dark); }
+
+    /* Category Badges Grid */
+    .categories-badges-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .category-badge-chip {
+      background: #FFF8F6;
+      border: 1px solid #FFE4E6;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--saas-burgundy-dark);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .category-badge-chip .chip-count {
+      background: var(--saas-burgundy);
+      color: #FFF;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 800;
+    }
+    .category-badge-chip .btn-chip-delete {
+      background: none;
+      border: none;
+      color: #9CA3AF;
+      cursor: pointer;
+      padding: 0;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .category-badge-chip .btn-chip-delete:hover { color: #DC2626; }
+
+    /* Add Item Form */
+    .item-form-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-row label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #374151;
+    }
+
+    /* Dual Mode Image Buttons */
+    .image-picker-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn-image-mode {
+      height: 44px;
+      border: 1.5px dashed var(--saas-burgundy);
+      background: #FFF8F6;
+      color: var(--saas-burgundy-dark);
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-image-mode:active {
+      background: #FEE2E2;
+      transform: scale(0.98);
+    }
+    .image-preview-box {
+      width: 100%;
+      height: 140px;
+      border-radius: 14px;
+      border: 1.5px solid var(--saas-border);
+      background: #F9FAFB;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      margin-top: 6px;
+    }
+    .image-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+    .image-preview-placeholder {
+      font-size: 12px;
+      color: var(--saas-text-muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* Active Food Images Picker Modal */
+    .preset-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .preset-modal.active { display: flex; }
+    .preset-modal-card {
+      background: #FFF;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .preset-item-card {
+      border: 2px solid var(--saas-border);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      text-align: center;
+      padding-bottom: 8px;
+      transition: border-color 0.15s ease;
+    }
+    .preset-item-card:hover, .preset-item-card.selected {
+      border-color: var(--saas-burgundy);
+      background: #FFF8F6;
+    }
+    .preset-item-card img {
+      width: 100%;
+      aspect-ratio: 1/1;
+      object-fit: cover;
+      display: block;
+    }
+    .preset-item-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--saas-text-dark);
+      margin-top: 6px;
+      padding: 0 4px;
+    }
+
+    /* Submit Button */
+    .btn-submit-dish {
+      height: 46px;
+      background: linear-gradient(135deg, #700A18 0%, #5B0612 100%);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(91, 6, 18, 0.25);
+      margin-top: 6px;
+    }
+    .btn-submit-dish:active { transform: scale(0.98); }
+
+    /* Menu Items Directory Table / Cards */
+    .items-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .item-row-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px;
+      border: 1px solid var(--saas-border);
+      border-radius: 12px;
+      background: #FFF;
+      gap: 12px;
+    }
+    .item-row-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      overflow: hidden;
+    }
+    .item-thumb-img {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: #F3F4F6;
+      flex-shrink: 0;
+    }
+    .item-meta {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .item-meta-name {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--saas-text-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .item-meta-category {
+      font-size: 11px;
+      color: var(--saas-text-muted);
+      margin-top: 2px;
+    }
+    .item-row-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .item-price-tag {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--saas-burgundy-dark);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .btn-item-delete {
+      background: none;
+      border: none;
+      color: #9CA3AF;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+    }
+    .btn-item-delete:hover { color: #DC2626; }
+
+    /* Sticky Bottom Launch Bar */
+    .sticky-bottom-launch {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #FFFFFF;
+      border-top: 1px solid var(--saas-border);
+      padding: 12px 18px;
+      display: flex;
+      justify-content: center;
+      z-index: 100;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+    }
+    .btn-launch-billing {
+      width: 100%;
+      max-width: 644px;
+      height: 46px;
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      font-size: 13.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+    .btn-launch-billing:active { transform: scale(0.98); }
+  </style>
+</head>
+<body class="menu-setup-body">
+
+  <!-- Top Navigation Header -->
+  <header class="setup-top-header">
+    <div class="setup-header-left">
+      <a href="/billing" class="btn-header-back" title="Back to Billing">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </a>
+      <div class="setup-header-titles">
+        <h1>🍽️ Menu &amp; Categories Setup</h1>
+        <p id="setup-stall-title">Configuring Stall Menu</p>
+      </div>
+    </div>
+    <div style="font-size: 11px; background: rgba(255,255,255,0.18); padding: 4px 10px; border-radius: 12px; font-weight: 700;">
+      Stall Owner
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="setup-container">
+
+    <!-- Onboarding Hero Banner -->
+    <section class="onboarding-hero">
+      <div class="onboarding-hero-icon">✨</div>
+      <div class="onboarding-hero-content">
+        <h2>Set Up Your Categories &amp; Dishes</h2>
+        <p>Step 1: Add your custom category names (e.g. Starters, Biryani Specials).<br>
+           Step 2: Add food items with photo (camera or gallery) and price in ₹.<br>
+           Step 3: Launch billing counter to start ringing up real orders!</p>
+      </div>
+    </section>
+
+    <!-- SECTION 1: Category Sections Builder -->
+    <section class="setup-card">
+      <div class="setup-card-header">
+        <h3><span>📁</span> Category Sections</h3>
+        <span style="font-size: 11px; color: var(--saas-text-muted);" id="category-count-label">0 Sections</span>
+      </div>
+
+      <div class="category-input-group">
+        <input type="text" id="input-category-name" class="form-input-setup" placeholder="e.g. Starters, Main Course, Drinks..." maxlength="30">
+        <button type="button" class="btn-add-category" id="btn-add-category" onclick="window.addCategorySection()">
+          <span>+ Add Section</span>
+        </button>
+      </div>
+
+      <!-- Categories Badges Grid -->
+      <div class="categories-badges-grid" id="categories-badges-container">
+        <!-- Dynamically rendered -->
+      </div>
+    </section>
+
+    <!-- SECTION 2: + Add Items Builder -->
+    <section class="setup-card">
+      <div class="setup-card-header">
+        <h3><span>➕</span> Add Menu Dish / Item</h3>
+        <button type="button" onclick="window.seedQuickStarterMenu()" style="background: none; border: 1px dashed var(--saas-burgundy); color: var(--saas-burgundy); border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 800; cursor: pointer;">
+          ⚡ 1-Tap Starter Pack
+        </button>
+      </div>
+
+      <form id="form-add-dish" onsubmit="window.submitAddDish(event)" class="item-form-grid">
+        <div class="form-row">
+          <label for="input-dish-name">Dish / Item Name *</label>
+          <input type="text" id="input-dish-name" class="form-input-setup" placeholder="e.g. Butter Naan, Chicken Biryani" required>
+        </div>
+
+        <div class="form-row">
+          <label for="select-dish-category">Category Section *</label>
+          <select id="select-dish-category" class="form-input-setup" required>
+            <!-- Dynamically populated from active categories -->
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label>Dish Photo * (Camera Capture or Gallery)</label>
+          <div class="image-picker-options">
+            <button type="button" class="btn-image-mode" onclick="window.triggerCameraUpload()">
+              <span>📸 Click Image</span>
+            </button>
+            <button type="button" class="btn-image-mode" onclick="window.openGalleryModal()">
+              <span>🖼️ Choose from Gallery</span>
+            </button>
+          </div>
+
+          <!-- Hidden File Inputs -->
+          <input type="file" id="camera-file-input" accept="image/*" capture="environment" style="display: none;" onchange="window.handleDeviceFileUpload(event)">
+          <input type="file" id="gallery-file-input" accept="image/*" style="display: none;" onchange="window.handleDeviceFileUpload(event)">
+
+          <!-- Image Preview -->
+          <div class="image-preview-box" id="image-preview-box">
+            <img id="image-preview-element" class="image-preview-img" src="" alt="Dish Preview">
+            <div id="image-preview-placeholder" class="image-preview-placeholder">
+              <span>📷 No photo selected</span><br>
+              <small>Click image or choose from gallery</small>
+            </div>
+          </div>
+          <input type="hidden" id="input-selected-image-url" value="/images/dishes/chicken-biryani-full.webp">
+        </div>
+
+        <div class="form-row">
+          <label for="input-dish-price">Price in Rupees (₹) *</label>
+          <input type="number" id="input-dish-price" class="form-input-setup" placeholder="e.g. 190" min="1" step="1" required>
+          <small style="font-size: 11px; color: var(--saas-text-muted);">Stored strictly in integer paise (₹190 = 19,000 paise). Zero decimal rounding.</small>
+        </div>
+
+        <button type="submit" class="btn-submit-dish" id="btn-save-dish">
+          <span>💾 Save &amp; Add to Menu</span>
+        </button>
+      </form>
+    </section>
+
+    <!-- SECTION 3: Active Menu Directory -->
+    <section class="setup-card">
+      <div class="setup-card-header">
+        <h3><span>📋</span> Configured Dishes</h3>
+        <span style="font-size: 11px; color: var(--saas-text-muted);" id="dish-count-label">0 Dishes</span>
+      </div>
+
+      <div class="items-list-container" id="items-list-container">
+        <!-- Rendered via JavaScript -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Sticky Bottom Launch Bar -->
+  <aside class="sticky-bottom-launch">
+    <a href="/billing" class="btn-launch-billing" id="btn-launch-billing">
+      <span>🚀 Launch Billing Counter (<strong id="bottom-launch-dish-count">0 Items</strong>) →</span>
+    </a>
+  </aside>
+
+  <!-- Verified Active Food Images Gallery Modal -->
+  <div class="preset-modal" id="gallery-modal">
+    <div class="preset-modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--saas-border); padding-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 15px; font-weight: 800; color: var(--saas-burgundy-dark);">🖼️ Choose from Gallery</h3>
+        <button type="button" onclick="window.closeGalleryModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+      </div>
+
+      <div style="margin-top: 10px; display: flex; gap: 8px;">
+        <button type="button" onclick="document.getElementById('gallery-file-input').click()" style="width: 100%; height: 38px; border: 1.5px solid var(--saas-burgundy); background: #FFF8F6; color: var(--saas-burgundy-dark); border-radius: 10px; font-weight: 800; font-size: 12px; cursor: pointer;">
+          📁 Browse Device Storage
+        </button>
+      </div>
+
+      <p style="font-size: 11.5px; color: var(--saas-text-muted); margin: 10px 0 4px 0;">Or select an authentic high-definition specialty dish:</p>
+
+      <div class="preset-grid" id="gallery-preset-grid">
+        <!-- Populated with the 10 active premium food images -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const AUTH_TOKEN = localStorage.getItem('frose_auth_token');
+      const CURRENT_VENDOR = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+
+      // The 10 Active Premium Food Images (Strictly operating with verified photos)
+      const ACTIVE_FOOD_IMAGES = [
+        { name: 'Chicken Biryani Full', url: '/images/dishes/chicken-biryani-full.webp' },
+        { name: 'Chicken Handi Pot', url: '/images/dishes/chicken-handi-biryani.webp' },
+        { name: 'Mini Chicken Biryani', url: '/images/dishes/mini-chicken-biryani.webp' },
+        { name: 'Chicken Family Pack (6)', url: '/images/dishes/chicken-family-pack-6-pcs.webp' },
+        { name: 'Chicken Jumbo Pack (8)', url: '/images/dishes/chicken-jumbo-pack-8-pcs.webp' },
+        { name: 'Mutton Biryani Full', url: '/images/dishes/mutton-biryani-full.webp' },
+        { name: 'Mutton Handi Pot', url: '/images/dishes/mutton-handi-biryani.webp' },
+        { name: 'Mini Mutton Biryani', url: '/images/dishes/mini-mutton-biryani.webp' },
+        { name: 'Double Gosh Mutton', url: '/images/dishes/mutton-biryani-double-gosh.webp' },
+        { name: 'Mutton Family Pack', url: '/images/dishes/mutton-family-pack.webp' }
+      ];
+
+      // In-Memory & LocalStorage State
+      let vendorCategories = ['Best Sellers', 'Starters', 'Main Course', 'Breads', 'Rice', 'Desserts', 'Drinks'];
+      let vendorDishes = [];
+
+      // History / Popstate controller
+      window.addEventListener('popstate', () => {
+        const modal = document.getElementById('gallery-modal');
+        if (modal && modal.classList.contains('active')) {
+          modal.classList.remove('active');
+          return;
+        }
+        window.location.replace('/billing');
+      });
+
+      // Initialization
+      async function init() {
+        if (CURRENT_VENDOR.businessName) {
+          const el = document.getElementById('setup-stall-title');
+          if (el) el.textContent = CURRENT_VENDOR.businessName + ' • Stall Menu';
+        }
+
+        loadSavedCategories();
+        renderGalleryPresets();
+        await fetchDishes();
+      }
+
+      function loadSavedCategories() {
+        try {
+          const saved = localStorage.getItem(`frose_cats_${CURRENT_VENDOR.id || 'default'}`);
+          if (saved) {
+            vendorCategories = JSON.parse(saved);
+          }
+        } catch (e) {}
+        renderCategories();
+      }
+
+      function saveCategories() {
+        try {
+          localStorage.setItem(`frose_cats_${CURRENT_VENDOR.id || 'default'}`, JSON.stringify(vendorCategories));
+        } catch (e) {}
+        renderCategories();
+      }
+
+      function renderCategories() {
+        const container = document.getElementById('categories-badges-container');
+        const select = document.getElementById('select-dish-category');
+        const countLabel = document.getElementById('category-count-label');
+        if (countLabel) countLabel.textContent = `${vendorCategories.length} Sections`;
+
+        if (container) {
+          container.innerHTML = vendorCategories.map(cat => `
+            <div class="category-badge-chip">
+              <span>${cat}</span>
+              <span class="chip-count">${vendorDishes.filter(d => (d.category || '').toLowerCase() === cat.toLowerCase()).length}</span>
+              ${cat !== 'Best Sellers' ? `<button type="button" class="btn-chip-delete" onclick="window.deleteCategorySection('${cat}')" title="Delete Section">✕</button>` : ''}
+            </div>
+          `).join('');
+        }
+
+        if (select) {
+          select.innerHTML = vendorCategories.map(cat => `
+            <option value="${cat}">${cat}</option>
+          `).join('');
+        }
+      }
+
+      window.addCategorySection = function () {
+        const input = document.getElementById('input-category-name');
+        const name = input?.value.trim();
+        if (!name) return;
+
+        if (!vendorCategories.some(c => c.toLowerCase() === name.toLowerCase())) {
+          vendorCategories.push(name);
+          saveCategories();
+        }
+        if (input) input.value = '';
+      };
+
+      window.deleteCategorySection = function (name) {
+        if (confirm(`Delete "${name}" section?`)) {
+          vendorCategories = vendorCategories.filter(c => c !== name);
+          saveCategories();
+        }
+      };
+
+      async function fetchDishes() {
+        try {
+          const res = await fetch('/api/v1/menu', {
+            headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            vendorDishes = data.items || [];
+          } else {
+            // Local fallback
+            const local = localStorage.getItem(`frose_dishes_${CURRENT_VENDOR.id || 'default'}`);
+            if (local) vendorDishes = JSON.parse(local);
+          }
+        } catch (e) {
+          const local = localStorage.getItem(`frose_dishes_${CURRENT_VENDOR.id || 'default'}`);
+          if (local) vendorDishes = JSON.parse(local);
+        }
+
+        renderDishes();
+        renderCategories();
+      }
+
+      function renderDishes() {
+        const container = document.getElementById('items-list-container');
+        const countLabel = document.getElementById('dish-count-label');
+        const bottomCount = document.getElementById('bottom-launch-dish-count');
+
+        if (countLabel) countLabel.textContent = `${vendorDishes.length} Dishes`;
+        if (bottomCount) bottomCount.textContent = `${vendorDishes.length} Items`;
+
+        if (!container) return;
+
+        if (vendorDishes.length === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 24px; color: var(--saas-text-muted); font-size: 12.5px;">
+              <div style="font-size: 28px; margin-bottom: 4px;">🍽️</div>
+              <strong>No dishes added yet!</strong><br>
+              Fill out the form above to add your first menu item.
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = vendorDishes.map(d => {
+          const price = d.priceRupees || (d.pricePaise ? d.pricePaise / 100 : 0);
+          const photo = d.imageUrl || '/images/dishes/chicken-biryani-full.webp';
+          return `
+            <div class="item-row-card">
+              <div class="item-row-left">
+                <img src="${photo}" class="item-thumb-img" alt="${d.name}" onerror="this.src='/images/dishes/chicken-biryani-full.webp'">
+                <div class="item-meta">
+                  <div class="item-meta-name">${d.name}</div>
+                  <div class="item-meta-category">📁 ${d.category || 'General'}</div>
+                </div>
+              </div>
+              <div class="item-row-right">
+                <div class="item-price-tag">₹${price}</div>
+                <button type="button" class="btn-item-delete" onclick="window.deleteDish('${d.id}')" title="Delete Item">🗑️</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      window.triggerCameraUpload = function () {
+        const cameraInput = document.getElementById('camera-file-input');
+        if (cameraInput) cameraInput.click();
+      };
+
+      window.openGalleryModal = function () {
+        history.pushState({ modal: 'gallery' }, '');
+        const modal = document.getElementById('gallery-modal');
+        if (modal) modal.classList.add('active');
+      };
+
+      window.closeGalleryModal = function () {
+        const modal = document.getElementById('gallery-modal');
+        if (modal) modal.classList.remove('active');
+      };
+
+      function renderGalleryPresets() {
+        const grid = document.getElementById('gallery-preset-grid');
+        if (!grid) return;
+        grid.innerHTML = ACTIVE_FOOD_IMAGES.map((img, idx) => `
+          <div class="preset-item-card ${idx === 0 ? 'selected' : ''}" onclick="window.selectPresetImage('${img.url}')">
+            <img src="${img.url}" alt="${img.name}">
+            <div class="preset-item-label">${img.name}</div>
+          </div>
+        `).join('');
+
+        // Default preview
+        window.selectPresetImage(ACTIVE_FOOD_IMAGES[0].url);
+      }
+
+      window.selectPresetImage = function (url) {
+        document.querySelectorAll('.preset-item-card').forEach(c => c.classList.remove('selected'));
+        const target = Array.from(document.querySelectorAll('.preset-item-card')).find(c => c.querySelector('img')?.getAttribute('src') === url);
+        if (target) target.classList.add('selected');
+
+        const previewImg = document.getElementById('image-preview-element');
+        const placeholder = document.getElementById('image-preview-placeholder');
+        const inputUrl = document.getElementById('input-selected-image-url');
+
+        if (previewImg && placeholder && inputUrl) {
+          previewImg.src = url;
+          previewImg.style.display = 'block';
+          placeholder.style.display = 'none';
+          inputUrl.value = url;
+        }
+
+        window.closeGalleryModal();
+      };
+
+      window.handleDeviceFileUpload = function (event) {
+        const file = event.target?.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const dataUrl = e.target?.result;
+          if (dataUrl) {
+            window.selectPresetImage(dataUrl);
+          }
+        };
+        reader.readAsDataURL(file);
+      };
+
+      window.submitAddDish = async function (event) {
+        event.preventDefault();
+        const name = document.getElementById('input-dish-name')?.value.trim();
+        const category = document.getElementById('select-dish-category')?.value;
+        const priceNum = parseFloat(document.getElementById('input-dish-price')?.value || '0');
+        const photoUrl = document.getElementById('input-selected-image-url')?.value || '/images/dishes/chicken-biryani-full.webp';
+
+        if (!name || priceNum <= 0) {
+          alert('Please enter a valid dish name and price.');
+          return;
+        }
+
+        // Strictly convert rupees to integer paise
+        const pricePaise = Math.round(priceNum * 100);
+
+        const newDish = {
+          name,
+          category,
+          pricePaise,
+          imageUrl: photoUrl,
+          isAvailable: true
+        };
+
+        try {
+          const res = await fetch('/api/v1/menu', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${AUTH_TOKEN}`
+            },
+            body: JSON.stringify(newDish)
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            vendorDishes.unshift(data.item);
+          } else {
+            // Fallback for standalone preview
+            vendorDishes.unshift({
+              id: 'dish-' + Date.now(),
+              name,
+              category,
+              pricePaise,
+              priceRupees: priceNum,
+              imageUrl: photoUrl,
+              isAvailable: true
+            });
+          }
+        } catch (e) {
+          vendorDishes.unshift({
+            id: 'dish-' + Date.now(),
+            name,
+            category,
+            pricePaise,
+            priceRupees: priceNum,
+            imageUrl: photoUrl,
+            isAvailable: true
+          });
+        }
+
+        // Cache update
+        try {
+          localStorage.setItem(`frose_dishes_${CURRENT_VENDOR.id || 'default'}`, JSON.stringify(vendorDishes));
+        } catch (e) {}
+
+        // Reset form
+        document.getElementById('input-dish-name').value = '';
+        document.getElementById('input-dish-price').value = '';
+
+        renderDishes();
+        renderCategories();
+        alert(`✅ "${name}" added to menu successfully!`);
+      };
+
+      window.deleteDish = async function (id) {
+        if (!confirm('Are you sure you want to delete this dish?')) return;
+        try {
+          await fetch(`/api/v1/menu/${id}`, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+          });
+        } catch (e) {}
+
+        vendorDishes = vendorDishes.filter(d => d.id !== id);
+        try {
+          localStorage.setItem(`frose_dishes_${CURRENT_VENDOR.id || 'default'}`, JSON.stringify(vendorDishes));
+        } catch (e) {}
+
+        renderDishes();
+        renderCategories();
+      };
+
+      window.seedQuickStarterMenu = async function () {
+        if (!confirm('Load 1-Tap Quick-Start Menu with popular street food items?')) return;
+        
+        const starters = [
+          { name: 'Special Chicken Biryani', category: 'Best Sellers', pricePaise: 19000, imageUrl: '/images/dishes/chicken-biryani-full.webp' },
+          { name: 'Chicken Handi Pot', category: 'Main Course', pricePaise: 24000, imageUrl: '/images/dishes/chicken-handi-biryani.webp' },
+          { name: 'Mini Biryani Bowl', category: 'Rice', pricePaise: 9000, imageUrl: '/images/dishes/mini-chicken-biryani.webp' },
+          { name: 'Mutton Special Plate', category: 'Best Sellers', pricePaise: 26000, imageUrl: '/images/dishes/mutton-biryani-full.webp' }
+        ];
+
+        for (const item of starters) {
+          try {
+            const res = await fetch('/api/v1/menu', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${AUTH_TOKEN}`
+              },
+              body: JSON.stringify(item)
+            });
+            if (res.ok) {
+              const data = await res.json();
+              vendorDishes.push(data.item);
+            }
+          } catch (e) {
+            vendorDishes.push({
+              id: 'dish-' + Math.random().toString(36).substring(2, 7),
+              ...item,
+              priceRupees: item.pricePaise / 100
+            });
+          }
+        }
+
+        try {
+          localStorage.setItem(`frose_dishes_${CURRENT_VENDOR.id || 'default'}`, JSON.stringify(vendorDishes));
+        } catch (e) {}
+
+        renderDishes();
+        renderCategories();
+        alert('🎉 Starter menu loaded successfully!');
+      };
+
+      document.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>

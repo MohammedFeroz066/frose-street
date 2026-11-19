@@ -509,7 +509,7 @@
   <!-- Top Nav Tabs Bar (Image 1 Parity) -->
   <nav class="nav-tabs-bar">
     <button class="nav-tab-pill active" onclick="window.switchTab('dashboard')">Dashboard</button>
-    <a href="/billing?setup=1" class="nav-tab-pill">Inventory</a>
+    <a href="/menu-setup" class="nav-tab-pill">Inventory</a>
     <button class="nav-tab-pill" onclick="window.openModal('pairing-modal')">Users</button>
     <button class="nav-tab-pill" onclick="window.openModal('settings-modal')">Settings</button>
   </nav>
@@ -751,8 +751,8 @@
       </div>
 
       <div style="display: flex; flex-direction: column; gap: 8px;">
-        <a href="/billing?setup=1" style="display: block; text-align: center; text-decoration: none; padding: 10px; border-radius: 8px; background: #5B0612; color: #FFF; font-weight: 700; font-size: 12.5px;">
-          📝 Edit Menu, Sections & Prices
+        <a href="/menu-setup" id="btn-settings-menu-setup" style="display: block; text-align: center; text-decoration: none; padding: 10px; border-radius: 8px; background: #5B0612; color: #FFF; font-weight: 700; font-size: 12.5px;">
+          🍽️ Manage Menu, Categories & Prices
         </a>
         <button onclick="window.handleLogout()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #FECACA; background: #FEF2F2; color: #991B1B; font-weight: 700; font-size: 12.5px; cursor: pointer;">
           🚪 Sign Out of Stall Account
@@ -809,8 +809,8 @@
     window.switchTab = function(tab) {
       document.querySelectorAll('.nav-tab-pill').forEach(btn => btn.classList.remove('active'));
       event.target?.classList.add('active');
-      if (tab === 'inventory' || tab === 'settings') {
-        window.location.href = '/billing?setup=1';
+      if (tab === 'inventory') {
+        window.location.href = '/menu-setup';
       }
     };
     window.handleLogout = function() {

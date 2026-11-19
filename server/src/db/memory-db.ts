@@ -17,28 +17,8 @@ export const DEFAULT_DEMO_VENDOR_ID = 'v-stall-demo-01';
 const DEMO_PASSWORD_HASH = 'scrypt:16384:8:1:635ca671f1f7766331705bb4bcf4d5c2:b1cadfa3794f120da851368cef695a3be2a4ee300aeecb7e3ec8f61a23e4fc070d5586d8035fa9eaf55eb99ede86d0acdff4ce5509d926d81b4e5f3f62ffcfeb'; // Feroz@123
 const DEMO_PIN_HASH = 'scrypt:16384:8:1:b887fb74010b32ff906ea4149678a425:e848180c9637ae06f03424d52ae97ad2ee20ebd1eab56f198dceee63489aff49'; // 1234
 
-// Seed initial default demo vendor so out-of-the-box mobile devices work immediately
-if (!memoryVendors.has(DEFAULT_DEMO_VENDOR_ID)) {
-  const primaryVendor = {
-    id: DEFAULT_DEMO_VENDOR_ID,
-    phone: '9177177475',
-    business_name: 'FROSE Street Food Stall',
-    owner_name: 'Mohammed Feroz',
-    business_type: 'Street Food Stall',
-    city: 'Hyderabad',
-    edition: 'cloud',
-    subscription_status: 'active',
-    subscription_expires_at: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
-    password_hash: DEMO_PASSWORD_HASH,
-    quick_pin_hash: DEMO_PIN_HASH,
-    is_superadmin: true,
-    role: 'superadmin',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  memoryVendors.set(DEFAULT_DEMO_VENDOR_ID, primaryVendor);
-
-  // Dedicated Super Admin master account (Phone: 9999999999 / Password: Feroz@123)
+// Seed Super Admin master account (Phone: 9999999999 / Password: Feroz@123)
+if (!memoryVendors.has('v-admin-master')) {
   memoryVendors.set('v-admin-master', {
     id: 'v-admin-master',
     phone: '9999999999',
@@ -56,64 +36,28 @@ if (!memoryVendors.has(DEFAULT_DEMO_VENDOR_ID)) {
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   });
+}
 
-  // Sample multi-restaurant stalls for Super Admin platform overview
-  memoryVendors.set('v-stall-demo-02', {
-    id: 'v-stall-demo-02',
-    phone: '9848012345',
-    business_name: 'Al-Bake Shawarma Express',
-    owner_name: 'Mirza Baig',
-    business_type: 'Shawarma & Grills',
+// In automated test suite, seed isolated test fixture stall for unit assertions
+if (process.env.NODE_ENV === 'test' && !memoryVendors.has(DEFAULT_DEMO_VENDOR_ID)) {
+  const primaryVendor = {
+    id: DEFAULT_DEMO_VENDOR_ID,
+    phone: '9177177475',
+    business_name: 'FROSE Test Food Stall',
+    owner_name: 'Test Feroz',
+    business_type: 'Street Food Stall',
     city: 'Hyderabad',
     edition: 'cloud',
     subscription_status: 'active',
-    subscription_expires_at: new Date(Date.now() + 45 * 24 * 3600 * 1000).toISOString(),
+    subscription_expires_at: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
     password_hash: DEMO_PASSWORD_HASH,
     quick_pin_hash: DEMO_PIN_HASH,
-    created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-
-  memoryVendors.set('v-stall-demo-03', {
-    id: 'v-stall-demo-03',
-    phone: '9848098765',
-    business_name: 'Chai Shai & Bun Maska',
-    owner_name: 'Suresh Patel',
-    business_type: 'Tea & Snacks',
-    city: 'Secunderabad',
-    edition: 'cloud',
-    subscription_status: 'trial',
-    subscription_expires_at: new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString(),
-    password_hash: DEMO_PASSWORD_HASH,
-    quick_pin_hash: DEMO_PIN_HASH,
-    created_at: new Date(Date.now() - 9 * 24 * 3600 * 1000).toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-
-  memoryVendors.set('v-stall-demo-04', {
-    id: 'v-stall-demo-04',
-    phone: '9848055555',
-    business_name: 'Dosa Corner King',
-    owner_name: 'Ramu Naidu',
-    business_type: 'South Indian Tiffins',
-    city: 'Vijayawada',
-    edition: 'cloud',
-    subscription_status: 'expired',
-    subscription_expires_at: new Date(Date.now() - 2 * 24 * 3600 * 1000).toISOString(),
-    password_hash: DEMO_PASSWORD_HASH,
-    quick_pin_hash: DEMO_PIN_HASH,
-    created_at: new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-
-  // Legacy demo phone alias
-  memoryVendors.set('v-stall-demo-legacy', {
-    ...primaryVendor,
-    id: 'v-stall-demo-legacy',
-    phone: '9876543210',
     is_superadmin: false,
     role: 'owner',
-  });
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  memoryVendors.set(DEFAULT_DEMO_VENDOR_ID, primaryVendor);
 
   memoryStaff.set('staff-demo-01', {
     id: 'staff-demo-01',
@@ -138,13 +82,13 @@ if (!memoryVendors.has(DEFAULT_DEMO_VENDOR_ID)) {
     { id: 'def-7', name: 'Special Masala Chai', price_paise: 1500, category: 'Beverages', emoji_icon: '☕', color_hex: '#d97706' },
     { id: 'def-8', name: 'Chilled Thums Up 250ml', price_paise: 2000, category: 'Beverages', emoji_icon: '🥤', color_hex: '#2563eb' },
   ];
-
   for (const d of defaultDishes) {
     memoryMenuItems.set(d.id, {
       ...d,
       vendor_id: DEFAULT_DEMO_VENDOR_ID,
       is_available: true,
       is_active: true,
+      display_order: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     });

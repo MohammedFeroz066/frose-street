@@ -300,62 +300,37 @@
         }
       }
 
-      // 4. Client-Side Standalone Authentication Fallback (Cloudflare Pages Static CDN & Offline PWA)
+      // 4. Standalone & Live Directory Authentication (Static CDN, Cloudflare Pages & Local Offline PWA)
       function handleClientAuthFallback(phone, password) {
-        const ACCOUNTS = {
-          '9177177475': {
-            id: 'v-stall-demo-01',
-            phone: '9177177475',
-            businessName: 'FROSE Street Food Stall',
-            ownerName: 'Mohammed Feroz',
-            role: 'superadmin',
-            isSuperadmin: true,
-            edition: 'cloud',
-            upiId: 'frosestreet@okaxis'
-          },
-          '9999999999': {
-            id: 'v-admin-master',
-            phone: '9999999999',
-            businessName: 'FROSE Platform HQ',
-            ownerName: 'Super Admin',
-            role: 'superadmin',
-            isSuperadmin: true,
-            edition: 'cloud',
-            upiId: 'frosehq@okaxis'
-          },
-          '9848012345': {
-            id: 'v-stall-demo-02',
-            phone: '9848012345',
-            businessName: 'Al-Bake Shawarma Express',
-            ownerName: 'Mirza Baig',
-            role: 'owner',
-            isSuperadmin: false,
-            edition: 'cloud',
-            upiId: 'albake@okaxis'
-          },
-          '9848098765': {
-            id: 'v-stall-demo-03',
-            phone: '9848098765',
-            businessName: 'Chai Shai & Bun Maska',
-            ownerName: 'Suresh Patel',
-            role: 'owner',
-            isSuperadmin: false,
-            edition: 'cloud',
-            upiId: 'chaishai@okaxis'
-          },
-          '9848055555': {
-            id: 'v-stall-demo-04',
-            phone: '9848055555',
-            businessName: 'Dosa Corner King',
-            ownerName: 'Ramu Naidu',
-            role: 'owner',
-            isSuperadmin: false,
-            edition: 'cloud',
-            upiId: 'dosacorner@okaxis'
-          }
+        // Built-in authentic Super Admin Master Account
+        const masterSuperAdmin = {
+          id: 'v-admin-master',
+          phone: '9999999999',
+          businessName: 'FROSE Platform HQ',
+          ownerName: 'Super Admin',
+          role: 'superadmin',
+          isSuperadmin: true,
+          edition: 'cloud',
+          upiId: 'frosehq@okaxis',
+          password: 'Feroz@123'
         };
 
-        if (!ACCOUNTS[phone]) {
+        // Live dynamic directory created via Super Admin console
+        let dynamicDirectory = {};
+        try {
+          dynamicDirectory = JSON.parse(localStorage.getItem('frose_vendors_directory') || '{}');
+        } catch (e) {
+          dynamicDirectory = {};
+        }
+
+        let userAccount = null;
+        if (phone === '9999999999') {
+          userAccount = masterSuperAdmin;
+        } else if (dynamicDirectory[phone]) {
+          userAccount = dynamicDirectory[phone];
+        }
+
+        if (!userAccount) {
           showAlert('❌ Account does not exist with this mobile number');
           return;
         }
@@ -369,7 +344,8 @@
           return;
         }
 
-        if (password !== 'Feroz@123') {
+        const expectedPassword = userAccount.password || 'Feroz@123';
+        if (password !== expectedPassword) {
           const failKey = 'frose_fails_' + phone;
           const fails = parseInt(localStorage.getItem(failKey) || '0', 10) + 1;
           localStorage.setItem(failKey, String(fails));
@@ -387,13 +363,19 @@
 
         localStorage.removeItem('frose_fails_' + phone);
         localStorage.removeItem('frose_lock_' + phone);
-        const vendor = ACCOUNTS[phone];
-        const token = 'frose_jwt_offline_' + btoa(JSON.stringify({ sub: vendor.id, phone: vendor.phone, role: vendor.role, isSuperadmin: vendor.isSuperadmin, ts: Date.now() }));
+        const token = 'frose_jwt_live_' + btoa(JSON.stringify({
+          sub: userAccount.id,
+          phone: userAccount.phone,
+          role: userAccount.role || (userAccount.isSuperadmin ? 'superadmin' : 'owner'),
+          isSuperadmin: !!userAccount.isSuperadmin,
+          ts: Date.now()
+        }));
+
         handleAuthSuccess({
           token,
-          vendor,
-          role: vendor.role,
-          isSuperadmin: vendor.isSuperadmin
+          vendor: userAccount,
+          role: userAccount.role || (userAccount.isSuperadmin ? 'superadmin' : 'owner'),
+          isSuperadmin: !!userAccount.isSuperadmin
         });
       }
 

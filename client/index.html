@@ -511,7 +511,7 @@
     <button class="nav-tab-pill active" onclick="window.switchTab('dashboard')">Dashboard</button>
     <a href="/billing?setup=1" class="nav-tab-pill">Inventory</a>
     <button class="nav-tab-pill" onclick="window.openModal('pairing-modal')">Users</button>
-    <a href="/billing?setup=1" class="nav-tab-pill">Settings</a>
+    <button class="nav-tab-pill" onclick="window.openModal('settings-modal')">Settings</button>
   </nav>
 
   <!-- Main Viewport -->
@@ -726,6 +726,41 @@
     </div>
   </div>
 
+  <!-- Settings Profile Modal -->
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #5B0612;">⚙️ Stall Account & Session</h3>
+        <button onclick="window.closeModal('settings-modal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+      </div>
+
+      <div style="background: #FFF; border: 1.5px solid #EFE9E4; border-radius: 14px; padding: 14px; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: #5B0612; color: #FFF; font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center;" id="settings-client-avatar">SC</div>
+          <div>
+            <div style="font-weight: 800; font-size: 15px; color: #111827;" id="settings-client-owner">Stall Client</div>
+            <div style="font-size: 12px; color: #047857; font-weight: 700;">● Stall Owner (Verified Session)</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px; background: #FDFBF7; padding: 10px; border-radius: 8px; border: 1px solid #EFE9E4;">
+          <div>Stall: <strong id="settings-client-stall">FROSE Street Food Stall</strong></div>
+          <div>Mobile: <strong id="settings-client-phone">+91 91771 77475</strong></div>
+          <div>Device: <strong id="settings-client-device">Mobile Android Web</strong></div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <a href="/billing?setup=1" style="display: block; text-align: center; text-decoration: none; padding: 10px; border-radius: 8px; background: #5B0612; color: #FFF; font-weight: 700; font-size: 12.5px;">
+          📝 Edit Menu, Sections & Prices
+        </a>
+        <button onclick="window.handleLogout()" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #FECACA; background: #FEF2F2; color: #991B1B; font-weight: 700; font-size: 12.5px; cursor: pointer;">
+          🚪 Sign Out of Stall Account
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Notifications Drawer / Modal -->
   <div class="modal-overlay" id="notifications-modal">
     <div class="modal-card">
@@ -790,7 +825,7 @@
       }
     };
 
-    // Load actual stall business name if set
+    // Load actual stall business name and populate Settings Profile modal
     try {
       const vStr = localStorage.getItem('frose_current_vendor');
       if (vStr) {
@@ -798,6 +833,18 @@
         if (v.businessName) {
           const el = document.getElementById('stall-owner-name');
           if (el) el.textContent = v.businessName + '!';
+          const sStall = document.getElementById('settings-client-stall');
+          if (sStall) sStall.textContent = v.businessName;
+        }
+        if (v.ownerName) {
+          const sOwner = document.getElementById('settings-client-owner');
+          if (sOwner) sOwner.textContent = v.ownerName;
+          const sAvatar = document.getElementById('settings-client-avatar');
+          if (sAvatar) sAvatar.textContent = v.ownerName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        }
+        if (v.phone) {
+          const sPhone = document.getElementById('settings-client-phone');
+          if (sPhone) sPhone.textContent = '+91 ' + v.phone;
         }
       }
     } catch (e) {}

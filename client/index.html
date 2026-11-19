@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=2.3.0">
+  <link rel="stylesheet" href="/css/style.css?v=3.6.0">
   <style>
     /* FROSE Street Luxury Burgundy Palette */
     :root {
@@ -726,7 +726,308 @@
     </div>
   </div>
 
-      <!-- Modern Professional SaaS Settings & Profile Modal (Design 3: Vertical Accordion Drawer) -->
+      
+<style id="frose-settings-bulletproof-css">
+  /* 100% Guaranteed Inline Styles for Settings Accordion (Design 3) */
+  html.modal-open,
+  body.modal-open {
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    touch-action: none !important;
+  }
+
+  #settings-modal.modal-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    z-index: 999999 !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    overscroll-behavior: contain !important;
+    touch-action: none !important;
+  }
+
+  #settings-modal.modal-overlay.active {
+    display: flex !important;
+  }
+
+  .sett-modal-card {
+    width: 100% !important;
+    max-width: 440px !important;
+    height: 86vh !important;
+    max-height: 720px !important;
+    padding: 0 !important;
+    border-radius: 24px !important;
+    overflow: hidden !important;
+    text-align: left !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4) !important;
+    background: #FFFFFF !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+  }
+
+  .sett-header {
+    flex-shrink: 0 !important;
+    padding: 16px 20px !important;
+    background: #FFFFFF !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+  }
+
+  .sett-header-title {
+    font-size: 17px !important;
+    font-weight: 900 !important;
+    color: #0F172A !important;
+    letter-spacing: -0.3px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+  }
+
+  .sett-header-sub {
+    font-size: 11.5px !important;
+    color: #64748B !important;
+    font-weight: 600 !important;
+    margin-top: 2px !important;
+  }
+
+  .sett-close-btn {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    border: 1px solid #E2E8F0 !important;
+    background: #F8FAFC !important;
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: #64748B !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sett-quick-bar {
+    flex-shrink: 0 !important;
+    display: flex !important;
+    gap: 8px !important;
+    padding: 10px 16px !important;
+    background: #F8FAFC !important;
+    border-bottom: 1px solid #E2E8F0 !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+  }
+  .sett-quick-bar::-webkit-scrollbar { display: none !important; }
+
+  .sett-quick-pill {
+    flex: 0 0 auto !important;
+    height: 32px !important;
+    padding: 0 14px !important;
+    border-radius: 18px !important;
+    background: #FFFFFF !important;
+    border: 1.5px solid #CBD5E1 !important;
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    color: #334155 !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    outline: none !important;
+  }
+
+  .sett-quick-pill.active {
+    background: #700A18 !important;
+    border-color: #700A18 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 6px rgba(112, 10, 24, 0.3) !important;
+  }
+
+  .sett-scroll-content {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    padding: 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .sett-acc-item {
+    flex-shrink: 0 !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 14px !important;
+    background: #FFFFFF !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+  }
+
+  .sett-acc-header {
+    min-height: 50px !important;
+    padding: 12px 14px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    cursor: pointer !important;
+    background: #FFFFFF !important;
+    border-radius: 12px !important;
+  }
+
+  .sett-acc-header.expanded {
+    background: #F8FAFC !important;
+    border-bottom: 1.5px solid #F1F5F9 !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+  }
+
+  .sett-acc-title-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-size: 13.5px !important;
+    font-weight: 800 !important;
+    color: #0F172A !important;
+  }
+
+  .sett-acc-chevron {
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background: #F8FAFC !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 11px !important;
+    color: #64748B !important;
+    font-weight: 900 !important;
+    flex-shrink: 0 !important;
+  }
+  .sett-acc-header.expanded .sett-acc-chevron {
+    background: #EFF6FF !important;
+    color: #2563EB !important;
+    transform: rotate(90deg) !important;
+  }
+
+  .sett-acc-body {
+    padding: 16px !important;
+    background: #FFFFFF !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  .sett-input-group {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+  }
+
+  .sett-label {
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    color: #334155 !important;
+    display: block !important;
+  }
+
+  .sett-input {
+    width: 100% !important;
+    height: 42px !important;
+    border-radius: 10px !important;
+    border: 1.5px solid #CBD5E1 !important;
+    padding: 0 14px !important;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    color: #0F172A !important;
+    background: #FAFAFA !important;
+    box-sizing: border-box !important;
+  }
+
+  .sett-btn-action {
+    height: 42px !important;
+    border-radius: 10px !important;
+    background: #700A18 !important;
+    color: #FFFFFF !important;
+    font-weight: 800 !important;
+    font-size: 13px !important;
+    border: none !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    box-shadow: 0 2px 8px rgba(112, 10, 24, 0.25) !important;
+  }
+
+  .sett-btn-secondary {
+    height: 36px !important;
+    border-radius: 8px !important;
+    background: #F1F5F9 !important;
+    border: 1px solid #CBD5E1 !important;
+    color: #334155 !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+  }
+
+  .sett-qr-preview-box {
+    width: 76px !important;
+    height: 76px !important;
+    border-radius: 10px !important;
+    background: #FFFFFF !important;
+    border: 1px solid #CBD5E1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sett-toggle-switch {
+    width: 44px !important;
+    height: 24px !important;
+    border-radius: 24px !important;
+    background: #22C55E !important;
+    position: relative !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: background 0.2s ease !important;
+  }
+  .sett-toggle-switch.off { background: #CBD5E1 !important; }
+
+  .sett-toggle-switch .toggle-thumb {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    background: #FFFFFF !important;
+    position: absolute !important;
+    top: 2px !important;
+    right: 2px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+  }
+  .sett-toggle-switch.off .toggle-thumb { right: auto !important; left: 2px !important; }
+</style>
+
+  <!-- Modern Professional SaaS Settings & Profile Modal (Design 3: Vertical Accordion Drawer) -->
   <div class="modal-overlay" id="settings-modal">
     <div class="modal-card sett-modal-card">
       <!-- Header -->

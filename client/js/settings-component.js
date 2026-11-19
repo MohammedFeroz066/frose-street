@@ -386,7 +386,35 @@
 
   // Export Global Trigger
   
-  // Background Scroll Locking Controller
+  
+  // Gold-Standard Bulletproof Mobile Scroll Locking Controller
+  let savedScrollY = 0;
+
+  function lockBackgroundScroll() {
+    savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.style.position = 'fixed';
+    document.body.style.top = '-' + savedScrollY + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.classList.add('modal-open');
+    document.body.classList.add('modal-open');
+  }
+
+  function unlockBackgroundScroll() {
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+    document.body.style.overflow = '';
+    document.documentElement.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    window.scrollTo(0, savedScrollY);
+  }
+
+  // Hook Modal Functions
   const originalOpenModal = window.openModal;
   const originalCloseModal = window.closeModal;
 
@@ -394,8 +422,7 @@
     if (originalOpenModal) originalOpenModal(modalId);
     const el = document.getElementById(modalId);
     if (el) el.classList.add('active');
-    document.body.classList.add('modal-open');
-    document.documentElement.classList.add('modal-open');
+    lockBackgroundScroll();
   };
 
   window.closeModal = function (modalId) {
@@ -405,15 +432,15 @@
 
     const activeModals = document.querySelectorAll('.modal-overlay.active');
     if (activeModals.length === 0) {
-      document.body.classList.remove('modal-open');
-      document.documentElement.classList.remove('modal-open');
+      unlockBackgroundScroll();
     }
   };
 
+  // Prevent background touch dragging on mobile
   document.addEventListener('touchmove', function (e) {
     if (document.body.classList.contains('modal-open')) {
-      const scrollable = e.target.closest('.sett-scroll-content, .modal-card');
-      if (!scrollable) {
+      const isInsideScrollable = e.target.closest('.sett-scroll-content, .modal-card');
+      if (!isInsideScrollable) {
         e.preventDefault();
       }
     }

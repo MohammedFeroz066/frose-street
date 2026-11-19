@@ -326,12 +326,9 @@
   };
 
   // Modal Controllers
-  window.openModal = function(id) {
-    document.getElementById(id)?.classList.add('active');
-  };
-  window.closeModal = function(id) {
-    document.getElementById(id)?.classList.remove('active');
-  };
+  // Unified Modal Controller with Gold-Standard Mobile Scroll Lock
+  let savedScrollY = 0;
+  // openModal & closeModal defined above
 
   window.openCheckoutDrawer = function() {
     const list = document.getElementById('checkout-cart-items');

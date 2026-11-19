@@ -652,11 +652,18 @@
   window.openModal = function (modalId) {
     const el = document.getElementById(modalId);
     if (el) el.classList.add('active');
+    document.body.classList.add('modal-open');
+    document.documentElement.classList.add('modal-open');
   };
 
   window.closeModal = function (modalId) {
     const el = document.getElementById(modalId);
     if (el) el.classList.remove('active');
+    const activeModals = document.querySelectorAll('.modal-overlay.active');
+    if (activeModals.length === 0) {
+      document.body.classList.remove('modal-open');
+      document.documentElement.classList.remove('modal-open');
+    }
   };
 
   window.handleLogout = function () {

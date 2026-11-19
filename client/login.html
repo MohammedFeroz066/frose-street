@@ -343,7 +343,6 @@
         } else if (dynamicDirectory[phone]) {
           userAccount = dynamicDirectory[phone];
         }
-        }
 
         if (!userAccount) {
           showAlert('❌ Account does not exist with this mobile number');
@@ -445,6 +444,30 @@
         // Resilient fallback for Cloudflare Pages static CDN / offline PWA
         handleClientAuthFallback(phone, password);
       });
+      // 6. Deep-Link Auto-Login & QR Pairing Support
+      (function checkDeepLinkParams() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const stallParam = params.get('stall') || params.get('phone');
+          const pwdParam = params.get('pwd') || params.get('password');
+          const auto = params.get('autologin');
+
+          if (stallParam && phoneInput) {
+            phoneInput.value = stallParam.replace(/\D/g, '').slice(-10);
+          }
+          if (pwdParam && pwdInput) {
+            pwdInput.value = pwdParam;
+          }
+          if (auto === '1' && phoneInput.value && pwdInput.value) {
+            setTimeout(() => {
+              if (formPwd) {
+                formPwd.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+              }
+            }, 300);
+          }
+        } catch (e) {}
+      })();
+
     })();
   </script>
 </body>

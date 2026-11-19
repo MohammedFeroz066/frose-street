@@ -692,3 +692,55 @@
   });
 
 })();
+
+  // Part 2: Remote Subscription Lockout Listener (Kill-Switch)
+  function getVendorKeyHelper() {
+    try {
+      const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+      return (v.phone || localStorage.getItem('frose_stall_phone') || '').replace(/\D/g, '').slice(-10);
+    } catch (e) {
+      return '';
+    }
+  }
+
+  if (typeof BroadcastChannel !== 'undefined') {
+    const subChannel = new BroadcastChannel('frose_telemetry');
+    subChannel.onmessage = (event) => {
+      const data = event.data;
+      if (data && data.type === 'SUBSCRIPTION_CHANGE') {
+        const vKey = getVendorKeyHelper();
+        if (data.stallPhone === vKey) {
+          if (data.lockout) {
+            window.lockCounterDueToSubscription(data.amountDuePaise || '89900');
+          } else {
+            window.unlockCounterSubscription();
+          }
+        }
+      }
+    };
+  }
+
+  window.lockCounterDueToSubscription = function(amountPaise) {
+    const modal = document.getElementById('modal-subscription-locked');
+    if (!modal) return;
+    const dueEl = document.getElementById('lock-amount-due');
+    const p = typeof amountPaise === 'string' ? BigInt(amountPaise) : BigInt(amountPaise || 89900n);
+    if (dueEl) dueEl.textContent = '₹' + Number(p / 100n).toLocaleString('en-IN');
+
+    const qrImg = document.getElementById('lock-qr-code-img');
+    if (qrImg) {
+      const upiUri = `upi://pay?pa=frosehq@okaxis&pn=FROSE+Street&am=${Number(p / 100n)}&tn=Stall-Renewal`;
+      qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(upiUri);
+    }
+    modal.style.display = 'flex';
+  };
+
+  window.unlockCounterSubscription = function() {
+    const modal = document.getElementById('modal-subscription-locked');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.contactSuperAdminWhatsApp = function() {
+    const msg = 'Hello Super Admin, I am at my counter and need to renew my FROSE Street subscription.';
+    window.open('https://api.whatsapp.com/send?phone=919999999999&text=' + encodeURIComponent(msg), '_blank');
+  };

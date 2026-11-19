@@ -1,0 +1,26 @@
+{
+  "subphase": "Phase 6 Subphase 2",
+  "title": "Central Cloud Sync, Live Order Telemetry & WebSocket Subscription Control",
+  "status": "PASS",
+  "criteria": {
+    "multiDeviceSyncParity": "PASS",
+    "liveOrderTurnoverTelemetry": "PASS",
+    "remoteSubscriptionKillSwitch": "PASS",
+    "instantReactivation": "PASS",
+    "crossBrowserMobileLoginFix": "PASS",
+    "zeroFloatingPointMoney": "PASS",
+    "testSuiteIntegrity": "PASS"
+  },
+  "tests": {
+    "e2e": "4 passed, 0 failed",
+    "typeScript": "0 errors",
+    "unit": "272 passed, 0 failed"
+  },
+  "screenshots": [
+    "docs/walkthroughs/screenshots/cloud-sync-and-subscription/01_desktop_super_admin_cloud_sync_parity.png",
+    "docs/walkthroughs/screenshots/cloud-sync-and-subscription/02_live_order_turnover_aggregation.png",
+    "docs/walkthroughs/screenshots/cloud-sync-and-subscription/03_counter_remotely_locked_subscription_overdue.png",
+    "docs/walkthroughs/screenshots/cloud-sync-and-subscription/04_counter_remotely_unlocked_instant_restore.png"
+  ],
+  "timestamp": "2026-11-19T12:10:00.000Z"
+}

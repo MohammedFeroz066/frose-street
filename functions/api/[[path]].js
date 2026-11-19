@@ -23,7 +23,7 @@ const VENDORS = [
     hasQuickPin: false,
     totalOrders: 42,
     lifetimeSalesPaise: '840000',
-    password: b.password || 'Feroz@123',
+    password: 'Feroz@123',
         createdAt: new Date().toISOString()
   },
   {

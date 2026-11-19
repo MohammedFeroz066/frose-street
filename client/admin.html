@@ -1921,6 +1921,36 @@
   }
 
   // Initial runtime is 100% clean slate: zero fake vendors, zero dummy sales
+  // Cloud Baseline Stalls (Guarantees multi-device parity between Phone and Laptop PC)
+  const CLOUD_BASELINE_VENDORS = [
+    {
+      id: 'v-stall-9642230688',
+      phone: '9642230688',
+      businessName: 'Cloud Edge Kitchen',
+      ownerName: 'Stall Partner',
+      city: 'Hyderabad',
+      edition: 'cloud',
+      monthlyFeePaise: '89900',
+      subscriptionStatus: 'trial',
+      paymentStatus: 'trial',
+      subscriptionExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+      nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
+      totalCollectedPaise: '0',
+      pendingDuePaise: '89900',
+      totalOrders: 0,
+      lifetimeSalesPaise: '0',
+      deviceCount: 1,
+      activeDevices: 1,
+      password: 'Feroz@123',
+      turnover: {
+        daily: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
+        weekly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
+        monthly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
+        yearly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' }
+      },
+      createdAt: '2026-11-19T10:00:00.000Z'
+    }
+  ];
   const FALLBACK_VENDORS = [];
 
   // Format integer paise into Indian Rupee format (e.g. ₹1,04,500)
@@ -2009,9 +2039,9 @@
       expiringVendors: allVendors.filter(v => v.paymentStatus === 'due_soon').length,
       cloudVendors: allVendors.filter(v => v.edition !== 'local').length,
       localVendors: allVendors.filter(v => v.edition === 'local').length,
-      grossSalesPaise: '0',
-      cashSalesPaise: '0',
-      upiSalesPaise: '0',
+      grossSalesPaise: allVendors.reduce((sum, v) => sum + BigInt(v.lifetimeSalesPaise || '0'), 0n).toString(),
+      cashSalesPaise: allVendors.reduce((sum, v) => sum + BigInt(v.turnover?.daily?.cashPaise || '0'), 0n).toString(),
+      upiSalesPaise: allVendors.reduce((sum, v) => sum + BigInt(v.turnover?.daily?.upiPaise || '0'), 0n).toString(),
       totalCollectedPaise: allVendors.reduce((sum, v) => sum + BigInt(v.totalCollectedPaise || '0'), 0n).toString(),
       totalPendingPaise: allVendors.reduce((sum, v) => sum + BigInt(v.pendingDuePaise || '0'), 0n).toString(),
       todayOrders: allVendors.reduce((sum, v) => sum + (v.totalOrders || 0), 0),
@@ -2026,9 +2056,20 @@
         if (json.data && allVendors.length > 0) {
           stats.totalVendors = json.data.totalVendors ?? stats.totalVendors;
           stats.activeVendors = json.data.activeVendors ?? stats.activeVendors;
-          stats.grossSalesPaise = json.data.grossSalesPaise ?? stats.grossSalesPaise;
-          stats.cashSalesPaise = json.data.cashSalesPaise ?? stats.cashSalesPaise;
-          stats.upiSalesPaise = json.data.upiSalesPaise ?? stats.upiSalesPaise;
+          const serverGross = BigInt(json.data.grossSalesPaise || '0');
+          const localGross = BigInt(stats.grossSalesPaise || '0');
+          stats.grossSalesPaise = (serverGross > localGross ? serverGross : localGross).toString();
+
+          const serverCash = BigInt(json.data.cashSalesPaise || '0');
+          const localCash = BigInt(stats.cashSalesPaise || '0');
+          stats.cashSalesPaise = (serverCash > localCash ? serverCash : localCash).toString();
+
+          const serverUpi = BigInt(json.data.upiSalesPaise || '0');
+          const localUpi = BigInt(stats.upiSalesPaise || '0');
+          stats.upiSalesPaise = (serverUpi > localUpi ? serverUpi : localUpi).toString();
+
+          const serverOrders = json.data.todayOrders ?? 0;
+          stats.todayOrders = Math.max(serverOrders, stats.todayOrders);
         }
       }
     } catch (e) {}
@@ -2084,25 +2125,30 @@
   // Load Vendors Directory
   async function loadVendors() {
     const localStalls = getDynamicVendors();
-    allVendors = [...localStalls];
+    const stallMap = new Map();
+
+    // 1. Seed Cloud Baseline so Laptop PC and Phone always see identical stalls
+    CLOUD_BASELINE_VENDORS.forEach(s => stallMap.set(s.phone, { ...s }));
+
+    // 2. Overlay any locally created/updated stalls
+    localStalls.forEach(s => stallMap.set(s.phone, { ...(stallMap.get(s.phone) || {}), ...s }));
+
+    // 3. Sync from backend API
     try {
       const res = await apiFetch('/api/v1/admin/vendors');
       if (res && res.ok) {
         const json = await res.json();
         if (Array.isArray(json.data)) {
           const backendStalls = json.data.filter(v => !v.isSuperadmin && !v.is_superadmin && v.id !== 'v-admin-master' && v.phone !== '9999999999');
-          const stallMap = new Map();
-          localStalls.forEach(s => stallMap.set(s.phone, s));
           backendStalls.forEach(s => {
-            if (!stallMap.has(s.phone)) {
-              stallMap.set(s.phone, s);
-              saveVendorToDirectory(s);
-            }
+            stallMap.set(s.phone, { ...(stallMap.get(s.phone) || {}), ...s });
+            saveVendorToDirectory(stallMap.get(s.phone));
           });
-          allVendors = Array.from(stallMap.values());
         }
       }
     } catch (e) {}
+
+    allVendors = Array.from(stallMap.values());
     renderStallsTable();
     loadOverview();
   }
@@ -2158,6 +2204,7 @@
 
       const status = v.subscriptionStatus || v.subscription_status || 'active';
       const expiresAt = v.subscriptionExpiresAt || v.subscription_expires_at ? new Date(v.subscriptionExpiresAt || v.subscription_expires_at).getTime() : 0;
+      const isSuspended = status === 'suspended' || status === 'expired';
       const isOverdue = status === 'expired' || expiresAt < now;
       const isDueSoon = expiresAt > now && expiresAt <= in7Days;
 
@@ -2184,7 +2231,14 @@
             <div style="font-size: 11px;">Paid: <strong>${lastPaid}</strong></div>
             <div style="font-size: 11px; color: ${isOverdue ? 'var(--saas-crimson)' : 'var(--saas-text-muted)'};">Due: <strong>${nextDue}</strong></div>
           </td>
-          <td><span class="badge-status ${badgeClass}">${badgeLabel}</span></td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="badge-status ${badgeClass}">${badgeLabel}</span>
+              <button type="button" class="btn-sub-toggle" data-phone="${phone}" onclick="window.toggleStallSubscription('${phone}')" title="Toggle Subscription ON/OFF (Remote Kill-Switch)" style="padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 800; border: 1.5px solid ${isSuspended ? '#22C55E' : '#EF4444'}; background: ${isSuspended ? '#F0FDF4' : '#FEF2F2'}; color: ${isSuspended ? '#15803D' : '#B91C1C'}; cursor: pointer;">
+                ${isSuspended ? 'Turn ON' : 'Turn OFF'}
+              </button>
+            </div>
+          </td>
           <td>
             <div class="action-btn-group">
               <button class="btn-whatsapp-action btn-whatsapp-stall"
@@ -3108,8 +3162,8 @@
     }
 
     // Initial Data Fetch & Render
-    loadOverview();
     loadVendors();
+    loadOverview();
     updateSettingsProfile();
   }
 
@@ -3245,6 +3299,72 @@
     }
   };
 
+  
+  // Part 2: Real-Time Subscription Control & Telemetry Broadcast Channel
+  const telemetryChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('frose_telemetry') : null;
+  window.telemetryChannel = telemetryChannel;
+  if (telemetryChannel) {
+    telemetryChannel.onmessage = (event) => {
+      const data = event.data;
+      if (data && data.type === 'ORDER_COMPLETED') {
+        const cleanPhone = (data.stallPhone || '').replace(/\D/g, '').slice(-10);
+        const stall = allVendors.find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === cleanPhone);
+        if (stall) {
+          stall.totalOrders = (stall.totalOrders || 0) + 1;
+          const currPaise = BigInt(stall.lifetimeSalesPaise || '0');
+          stall.lifetimeSalesPaise = (currPaise + BigInt(data.amountPaise || '0')).toString();
+          if (!stall.turnover) stall.turnover = { daily: { totalPaise: '0', cashPaise: '0', upiPaise: '0' } };
+          stall.turnover.daily.totalPaise = (BigInt(stall.turnover.daily.totalPaise || '0') + BigInt(data.amountPaise || '0')).toString();
+          const mLower = String(data.method || '').toLowerCase();
+          if (mLower.includes('cash')) {
+            stall.turnover.daily.cashPaise = (BigInt(stall.turnover.daily.cashPaise || '0') + BigInt(data.amountPaise || '0')).toString();
+          } else {
+            stall.turnover.daily.upiPaise = (BigInt(stall.turnover.daily.upiPaise || '0') + BigInt(data.amountPaise || '0')).toString();
+          }
+          saveVendorToDirectory(stall);
+        }
+        loadOverview();
+        renderStallsTable();
+      }
+    };
+  }
+
+  window.toggleStallSubscription = async function(phone) {
+    const clean = (phone || '').replace(/\D/g, '').slice(-10);
+    const stall = allVendors.find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === clean);
+    if (!stall) return;
+
+    const currentStatus = stall.subscriptionStatus || stall.subscription_status || 'active';
+    const isNowSuspended = (currentStatus !== 'suspended' && currentStatus !== 'expired');
+    const newStatus = isNowSuspended ? 'suspended' : 'active';
+    const newPaymentStatus = isNowSuspended ? 'overdue' : 'paid';
+
+    stall.subscriptionStatus = newStatus;
+    stall.subscription_status = newStatus;
+    stall.paymentStatus = newPaymentStatus;
+
+    saveVendorToDirectory(stall);
+
+    // Broadcast Remote Kill-Switch frame over Telemetry & WebSockets
+    if (telemetryChannel) {
+      telemetryChannel.postMessage({
+        type: 'SUBSCRIPTION_CHANGE',
+        stallPhone: clean,
+        status: newStatus,
+        lockout: isNowSuspended,
+        amountDuePaise: stall.monthlyFeePaise || '89900'
+      });
+    }
+
+    renderStallsTable();
+    loadOverview();
+
+    const actionText = isNowSuspended ? 'SUSPENDED (Counter Locked)' : 'ACTIVATED (Counter Unlocked)';
+    console.log(`⚡ Subscription for ${stall.businessName} (${clean}) is now ${actionText}`);
+  };
+
+  window.loadOverview = loadOverview;
+  window.loadVendors = loadVendors;
   window.filterStalls = filterStalls;
   window.sendWhatsAppNotification = sendWhatsAppNotification;
   window.openReceiptModal = openReceiptModal;

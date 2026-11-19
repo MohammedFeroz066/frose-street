@@ -62,6 +62,7 @@ export interface MenuItemsTable {
   category: string | null;
   emoji_icon: string | null;
   color_hex: string | null;
+  image_url?: string | null;
   display_order: number;
   is_available: boolean;
   is_active: boolean;

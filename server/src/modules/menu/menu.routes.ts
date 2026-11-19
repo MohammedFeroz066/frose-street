@@ -81,6 +81,7 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         category: body.category,
         emojiIcon: body.emojiIcon,
         colorHex: body.colorHex,
+        imageUrl: body.imageUrl,
         displayOrder: body.displayOrder,
         isAvailable: body.isAvailable,
       });

@@ -501,32 +501,10 @@
   <!-- 2. Main 2-Column POS Layout -->
   <main class="pos-main-container">
 
-    <!-- Left Category Sidebar (Image 2 Parity) -->
+    <!-- Left Category Sidebar (Dynamic Client Categories) -->
     <aside class="pos-category-sidebar" id="pos-category-sidebar">
-      <button type="button" class="category-sidebar-pill active" data-category="best-sellers" onclick="window.selectCategory('best-sellers')">
-        Best<br>Sellers
-      </button>
-      <button type="button" class="category-sidebar-pill" data-category="starters" onclick="window.selectCategory('starters')">
-        Starters
-      </button>
-      <button type="button" class="category-sidebar-pill" data-category="main-course" onclick="window.selectCategory('main-course')">
-        Main<br>Course
-      </button>
-      <button type="button" class="category-sidebar-pill" data-category="breads" onclick="window.selectCategory('breads')">
-        Breads
-      </button>
-      <button type="button" class="category-sidebar-pill" data-category="rice" onclick="window.selectCategory('rice')">
-        Rice
-      </button>
-      <button type="button" class="category-sidebar-pill" data-category="desserts" onclick="window.selectCategory('desserts')">
-        Desserts
-      </button>
-      <button type="button" class="category-sidebar-pill" data-category="drinks" onclick="window.selectCategory('drinks')">
-        Drinks
-      </button>
-
-      <!-- + Add Section Button -->
-      <button type="button" class="btn-add-section" onclick="window.openAddSectionModal()" title="Add Custom Menu Section">
+      <!-- Dynamically populated from vendor's custom categories -->
+      <button type="button" class="btn-add-section" onclick="window.location.href='/menu-setup'" title="Add Custom Menu Section">
         <span>+ Add</span>
         <span>Section</span>
       </button>
@@ -541,7 +519,7 @@
           <div class="toolbar-title">✨ Menu Customization</div>
           <div class="toolbar-subtitle">Add dishes, edit prices &amp; photos</div>
         </div>
-        <button type="button" class="btn-toolbar-add-dish" onclick="window.openAddDishModal()">
+        <button type="button" class="btn-toolbar-add-dish" onclick="window.location.href='/menu-setup'">
           ➕ Add Dish
         </button>
       </div>
@@ -648,13 +626,7 @@
         <div class="form-group-pos">
           <label class="form-label-pos">Section / Category *</label>
           <select id="input-dish-category" class="form-input-pos">
-            <option value="best-sellers">Best Sellers</option>
-            <option value="starters">Starters</option>
-            <option value="main-course">Main Course</option>
-            <option value="breads">Breads</option>
-            <option value="rice">Rice</option>
-            <option value="desserts">Desserts</option>
-            <option value="drinks">Drinks</option>
+            <!-- Dynamically populated from vendor's custom categories -->
           </select>
         </div>
 
@@ -708,13 +680,7 @@
         <div class="form-group-pos">
           <label class="form-label-pos">Section / Category *</label>
           <select id="edit-dish-category" class="form-input-pos">
-            <option value="best-sellers">Best Sellers</option>
-            <option value="starters">Starters</option>
-            <option value="main-course">Main Course</option>
-            <option value="breads">Breads</option>
-            <option value="rice">Rice</option>
-            <option value="desserts">Desserts</option>
-            <option value="drinks">Drinks</option>
+            <!-- Dynamically populated from vendor's custom categories -->
           </select>
         </div>
 

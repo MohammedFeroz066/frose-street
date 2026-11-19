@@ -10,6 +10,7 @@ export interface CreateMenuItemInput {
   category?: string;
   emojiIcon?: string;
   colorHex?: string;
+  imageUrl?: string;
   displayOrder?: number;
   isAvailable?: boolean;
 }
@@ -20,6 +21,7 @@ export interface UpdateMenuItemInput {
   category?: string;
   emojiIcon?: string;
   colorHex?: string;
+  imageUrl?: string;
   displayOrder?: number;
   isAvailable?: boolean;
 }
@@ -50,6 +52,7 @@ export class MenuService {
       category: item.category || 'General',
       emojiIcon: item.emoji_icon || '🍽️',
       colorHex: item.color_hex || '#f59e0b',
+      imageUrl: (item as any).image_url || null,
       displayOrder: item.display_order,
       isAvailable: item.is_available,
       isActive: item.is_active,
@@ -98,6 +101,7 @@ export class MenuService {
         category: input.category?.trim() || 'General',
         emoji_icon: input.emojiIcon || '🍽️',
         color_hex: input.colorHex || '#f59e0b',
+        image_url: input.imageUrl || null,
         display_order: displayOrder,
         is_available: input.isAvailable !== false,
         is_active: true,
@@ -114,6 +118,7 @@ export class MenuService {
       category: created.category,
       emojiIcon: created.emoji_icon,
       colorHex: created.color_hex,
+      imageUrl: (created as any).image_url || null,
       displayOrder: created.display_order,
       isAvailable: created.is_available,
       isActive: created.is_active,
@@ -186,6 +191,7 @@ export class MenuService {
       category: updated.category,
       emojiIcon: updated.emoji_icon,
       colorHex: updated.color_hex,
+      imageUrl: (updated as any).image_url || null,
       displayOrder: updated.display_order,
       isAvailable: updated.is_available,
       isActive: updated.is_active,

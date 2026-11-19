@@ -1802,12 +1802,22 @@
       </div>
 
       <!-- Content -->
-      <div style="padding: 22px; text-align: center;">
-        <div style="background: #F8FAFC; border: 2px dashed #CBD5E1; border-radius: 16px; padding: 14px; display: inline-block; margin-bottom: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+      <div style="padding: 20px; text-align: center;">
+        <!-- Dual Mode QR Switcher Tabs -->
+        <div style="display: flex; background: #F1F5F9; padding: 4px; border-radius: 12px; margin-bottom: 14px; border: 1px solid #E2E8F0;">
+          <button type="button" id="tab-qr-webapp" onclick="window.switchSetupQRTab('webapp')" style="flex: 1; height: 36px; border-radius: 9px; border: none; font-size: 11.5px; font-weight: 800; cursor: pointer; transition: all 0.2s; background: #FFF; color: #4A0E17; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+            🌐 1. Web App QR
+          </button>
+          <button type="button" id="tab-qr-backend" onclick="window.switchSetupQRTab('backend')" style="flex: 1; height: 36px; border-radius: 9px; border: none; font-size: 11.5px; font-weight: 800; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748B;">
+            📥 2. Download APK / Zip
+          </button>
+        </div>
+
+        <div style="background: #F8FAFC; border: 2px dashed #CBD5E1; border-radius: 16px; padding: 14px; display: inline-block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
           <img id="qr-modal-image" src="" alt="Stall Setup QR Code" style="width: 190px; height: 190px; display: block; border-radius: 8px; margin: 0 auto; object-fit: contain;" />
         </div>
 
-        <div style="font-size: 12px; color: #64748B; margin-bottom: 14px; line-height: 1.4;">
+        <div id="qr-modal-helper-text" style="font-size: 12px; color: #64748B; margin-bottom: 14px; line-height: 1.4;">
           Scan with phone camera to auto-login & install PWA. Works 100% offline after 10-second setup.
         </div>
 
@@ -1842,7 +1852,7 @@
         </div>
 
         <button id="btn-qr-modal-open" style="width: 100%; height: 38px; border-radius: 10px; border: none; background: #4A0E17; color: #FFF; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-          <span>👁️ Open Counter in New Tab</span>
+          <span id="btn-qr-modal-open-text">👁️ Open Counter in New Tab</span>
         </button>
       </div>
     </div>
@@ -3220,10 +3230,64 @@
     switchView('vendors');
   };
   
+  let currentStallForQR = null;
+  let activeQRMode = 'webapp';
   let activeQRSetupUrl = '';
+
+  window.switchSetupQRTab = function(mode) {
+    activeQRMode = mode;
+    const tabWeb = document.getElementById('tab-qr-webapp');
+    const tabBackend = document.getElementById('tab-qr-backend');
+    const qrImg = document.getElementById('qr-modal-image');
+    const helperText = document.getElementById('qr-modal-helper-text');
+    const openBtnText = document.getElementById('btn-qr-modal-open-text');
+    const openBtn = document.getElementById('btn-qr-modal-open');
+    const waBtn = document.getElementById('btn-qr-modal-whatsapp');
+
+    if (!currentStallForQR) return;
+    const phone = (currentStallForQR.phone || '').replace(/\D/g, '').slice(-10);
+    const pwd = currentStallForQR.password || 'Feroz@123';
+    const bName = currentStallForQR.businessName || currentStallForQR.business_name || 'Restaurant Stall';
+
+    const webUrl = window.location.origin + '/login?stall=' + phone + '&pwd=' + encodeURIComponent(pwd) + '&autologin=1';
+    const downloadUrl = window.location.origin + '/downloads/frose-street-local-cloud.apk';
+
+    if (mode === 'backend') {
+      if (tabWeb) { tabWeb.style.background = 'transparent'; tabWeb.style.color = '#64748B'; tabWeb.style.boxShadow = 'none'; }
+      if (tabBackend) { tabBackend.style.background = '#FFF'; tabBackend.style.color = '#4A0E17'; tabBackend.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)'; }
+      if (qrImg) qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' + encodeURIComponent(downloadUrl);
+      if (helperText) helperText.innerHTML = '📲 <strong>Scan to Download Phone Local Cloud APK & Zip.</strong><br>Runs local offline Fastify server on Port 3100 directly on customer phone with zero internet.';
+      if (openBtnText) openBtnText.textContent = '📥 Download Phone Local Cloud APK';
+      if (openBtn) openBtn.onclick = () => { window.open(downloadUrl, '_blank'); };
+      activeQRSetupUrl = downloadUrl;
+
+      if (waBtn) {
+        const waMsg = '🎉 *FROSE Street — Phone Local Cloud Engine*\n\nDownload the offline server for *' + bName + '* on your Android phone:\n' + downloadUrl + '\n\nRuns on Port 3100 with zero internet needed!';
+        waBtn.onclick = () => {
+          window.open('https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(waMsg), '_blank');
+        };
+      }
+    } else {
+      if (tabWeb) { tabWeb.style.background = '#FFF'; tabWeb.style.color = '#4A0E17'; tabWeb.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)'; }
+      if (tabBackend) { tabBackend.style.background = 'transparent'; tabBackend.style.color = '#64748B'; tabBackend.style.boxShadow = 'none'; }
+      if (qrImg) qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' + encodeURIComponent(webUrl);
+      if (helperText) helperText.innerHTML = 'Scan with phone camera to auto-login & install PWA. Works 100% offline after 10-second setup.';
+      if (openBtnText) openBtnText.textContent = '👁️ Open Counter in New Tab';
+      if (openBtn) openBtn.onclick = () => { window.open(webUrl, '_blank'); };
+      activeQRSetupUrl = webUrl;
+
+      if (waBtn) {
+        const waMsg = '🎉 *Welcome to FROSE Street!*\n\nYour billing counter for *' + bName + '* is ready.\n\n📲 *Setup counter on your phone:*\n' + webUrl + '\n\n🔑 *Login Credentials:*\nMobile: ' + phone + '\nPassword: ' + pwd;
+        waBtn.onclick = () => {
+          window.open('https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(waMsg), '_blank');
+        };
+      }
+    }
+  };
 
   window.openStallSetupQR = function(stall) {
     if (!stall) return;
+    currentStallForQR = stall;
     const modal = document.getElementById('modal-stall-setup-qr');
     if (!modal) return;
 
@@ -3237,28 +3301,7 @@
     document.getElementById('qr-modal-pwd').textContent = pwd;
     document.getElementById('qr-modal-plan').textContent = plan;
 
-    const setupUrl = window.location.origin + '/login?stall=' + phone + '&pwd=' + encodeURIComponent(pwd) + '&autologin=1';
-    activeQRSetupUrl = setupUrl;
-
-    const qrImg = document.getElementById('qr-modal-image');
-    if (qrImg) {
-      qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' + encodeURIComponent(setupUrl);
-    }
-
-    const waBtn = document.getElementById('btn-qr-modal-whatsapp');
-    if (waBtn) {
-      const waMsg = '🎉 *Welcome to FROSE Street!*\n\nYour billing counter for *' + bName + '* is ready.\n\n📲 *Setup counter on your phone:*\n' + setupUrl + '\n\n🔑 *Login Credentials:*\nMobile: ' + phone + '\nPassword: ' + pwd + '\n\n1. Open link on phone.\n2. Tap "Install to Home Screen" to use offline.\n3. Start billing immediately!';
-      waBtn.onclick = () => {
-        window.open('https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(waMsg), '_blank');
-      };
-    }
-
-    const openBtn = document.getElementById('btn-qr-modal-open');
-    if (openBtn) {
-      openBtn.onclick = () => {
-        window.open(setupUrl, '_blank');
-      };
-    }
+    window.switchSetupQRTab('webapp');
 
     const copyBtnText = document.getElementById('copy-btn-text');
     if (copyBtnText) copyBtnText.textContent = '📋 Copy Link';
@@ -3295,7 +3338,7 @@
         }
       });
     } else {
-      prompt('Copy setup URL:', activeQRSetupUrl);
+      prompt('Copy link:', activeQRSetupUrl);
     }
   };
 

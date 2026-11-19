@@ -14,6 +14,11 @@
   let currentTokenNumber = 1;
   let currentOrderType = 'counter'; // 'counter' | 'dinein'
 
+  function getVendorKey() {
+    const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+    return v.id || v.phone || localStorage.getItem('frose_stall_phone') || 'primary_vendor';
+  }
+
   // Format integer paise into exact Rupee string (e.g. ₹190.0)
   function formatRupees(paise) {
     const p = typeof paise === 'bigint' ? paise : BigInt(paise || 0);
@@ -22,24 +27,23 @@
     return `₹${rupees}${remainder === 0 ? '.0' : '.' + remainder.toString().padStart(2, '0')}`;
   }
 
-  // Load Menu Catalog
+  // Load Menu Catalog with instant live sync
   async function loadCatalog() {
-    const vendor = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-    const vendorId = vendor.id || 'default';
+    const vKey = getVendorKey();
     const token = localStorage.getItem('frose_auth_token');
 
-    // Load custom categories if present
+    // 1. Load custom categories
     let cats = [];
     try {
-      const savedCats = localStorage.getItem('frose_cats_' + vendorId);
+      const savedCats = localStorage.getItem('frose_cats_' + vKey) || localStorage.getItem('frose_cats_active');
       if (savedCats) {
         cats = JSON.parse(savedCats);
       }
     } catch (e) {}
 
-    // Check vendor-specific dishes in local cache first
+    // 2. Check vendor-specific dishes in local cache first (instant response, zero lag)
     try {
-      const localDishes = localStorage.getItem('frose_dishes_' + vendorId);
+      const localDishes = localStorage.getItem('frose_dishes_' + vKey) || localStorage.getItem('frose_dishes_active');
       if (localDishes) {
         const parsed = JSON.parse(localDishes);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -57,7 +61,7 @@
       }
     } catch (e) {}
 
-    // Try fetching from backend API
+    // 3. Try fetching from backend API
     if (token) {
       try {
         const res = await fetch('/api/v1/menu', {
@@ -71,7 +75,8 @@
               image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
               pricePaise: BigInt(item.pricePaise || 5000)
             }));
-            localStorage.setItem('frose_dishes_' + vendorId, JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
+            localStorage.setItem('frose_dishes_' + vKey, JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
+            localStorage.setItem('frose_dishes_active', JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
             if (cats.length === 0) {
               cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
             }
@@ -614,11 +619,65 @@
     }
   };
 
-  // First-Time Client Check & Initialization
-  document.addEventListener('DOMContentLoaded', async () => {
+  async function refreshPOS() {
     await loadCatalog();
     renderDishesGrid();
     updateCartUI();
+    populateProfileInfo();
+  }
+
+  function populateProfileInfo() {
+    try {
+      const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+      const name = v.businessName || localStorage.getItem('frose_stall_name') || 'Stall Client';
+      const owner = v.ownerName || 'Stall Owner';
+      const phone = v.phone || localStorage.getItem('frose_stall_phone') || '';
+      
+      const initials = (owner || name).split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'SC';
+
+      const avatarBadges = document.querySelectorAll('.pos-avatar-badge, #settings-client-avatar');
+      avatarBadges.forEach(el => el.textContent = initials);
+
+      const labelBadges = document.querySelectorAll('.pos-avatar-label, #settings-client-stall');
+      labelBadges.forEach(el => el.textContent = name);
+
+      const ownerEl = document.getElementById('settings-client-owner');
+      if (ownerEl) ownerEl.textContent = owner;
+
+      const phoneEl = document.getElementById('settings-client-phone');
+      if (phoneEl && phone) phoneEl.textContent = '+91 ' + phone;
+    } catch (e) {}
+  }
+
+  window.openModal = function (modalId) {
+    const el = document.getElementById(modalId);
+    if (el) el.classList.add('active');
+  };
+
+  window.closeModal = function (modalId) {
+    const el = document.getElementById(modalId);
+    if (el) el.classList.remove('active');
+  };
+
+  window.handleLogout = function () {
+    if (confirm('Sign out of Stall Account?')) {
+      localStorage.removeItem('frose_auth_token');
+      window.location.href = '/login';
+    }
+  };
+
+  // Immediate event bindings for back navigation / tab focus sync
+  window.addEventListener('pageshow', refreshPOS);
+  window.addEventListener('focus', refreshPOS);
+  window.addEventListener('storage', (e) => {
+    if (e.key && (e.key.startsWith('frose_dishes') || e.key.startsWith('frose_cats'))) {
+      refreshPOS();
+    }
+  });
+
+  // First-Time Client Check & Initialization
+  document.addEventListener('DOMContentLoaded', async () => {
+    await refreshPOS();
 
     // Check if routed with ?setup=1 or first-time login
     const urlParams = new URLSearchParams(window.location.search);

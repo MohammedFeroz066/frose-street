@@ -3600,3 +3600,352 @@ html, body {
     padding: 6px 8px !important;
   }
 }
+
+
+/* ==========================================================================
+   FROSE Street — Settings Design 3 (Pixel-Perfect Vertical Accordion Drawer)
+   ========================================================================== */
+.sett-modal-card {
+  width: 95% !important;
+  max-width: 460px !important;
+  height: 88vh !important;
+  max-height: 740px !important;
+  padding: 0 !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  text-align: left !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.35) !important;
+  background: #FFFFFF !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+.sett-header {
+  flex-shrink: 0;
+  padding: 16px 20px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sett-header-title {
+  font-size: 17px;
+  font-weight: 900;
+  color: #0F172A;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.sett-header-sub {
+  font-size: 11.5px;
+  color: #64748B;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.sett-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  font-size: 14px;
+  font-weight: 800;
+  color: #64748B;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sett-close-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+  border-color: #CBD5E1;
+}
+
+/* Quick Action Navigation Bar - Horizontal Chips with ZERO Squishing */
+.sett-quick-bar {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.sett-quick-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.sett-quick-pill {
+  flex: 0 0 auto !important;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 18px;
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #334155;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+.sett-quick-pill:hover {
+  background: #F1F5F9;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
+.sett-quick-pill.active {
+  background: #700A18 !important;
+  border-color: #700A18 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 6px rgba(112, 10, 24, 0.3) !important;
+}
+
+/* Scroll Container - Smooth Native Scrolling */
+.sett-scroll-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Accordion Item - NEVER Flex-Shrink */
+.sett-acc-item {
+  flex-shrink: 0 !important;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 14px;
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  transition: border-color 0.15s ease;
+}
+
+.sett-acc-item.is-open {
+  border-color: #CBD5E1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.sett-acc-header {
+  min-height: 50px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background: #FFFFFF;
+  user-select: none;
+  border-radius: 12px;
+  transition: background 0.15s ease;
+}
+
+.sett-acc-header:hover {
+  background: #F8FAFC;
+}
+
+.sett-acc-header.expanded {
+  background: #F8FAFC;
+  border-bottom: 1.5px solid #F1F5F9;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.sett-acc-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.sett-acc-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.sett-acc-chevron {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #F8FAFC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 900;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.sett-acc-header.expanded .sett-acc-chevron {
+  background: #EFF6FF;
+  color: #2563EB;
+  transform: rotate(90deg);
+}
+
+.sett-acc-body {
+  padding: 16px;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.sett-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sett-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #334155;
+  display: block;
+}
+
+.sett-input {
+  width: 100%;
+  height: 42px;
+  border-radius: 10px;
+  border: 1.5px solid #CBD5E1;
+  padding: 0 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0F172A;
+  background: #FAFAFA;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.sett-input:focus {
+  outline: none;
+  border-color: #700A18;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(112, 10, 24, 0.08);
+}
+
+.sett-btn-action {
+  height: 42px;
+  border-radius: 10px;
+  background: #700A18;
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(112, 10, 24, 0.25);
+  transition: all 0.15s ease;
+}
+
+.sett-btn-action:hover {
+  background: #560712;
+  box-shadow: 0 4px 12px rgba(112, 10, 24, 0.35);
+}
+
+.sett-btn-secondary {
+  height: 36px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.sett-btn-secondary:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.sett-qr-preview-box {
+  width: 76px;
+  height: 76px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+/* iOS-style toggle switches */
+.sett-toggle-switch {
+  width: 44px;
+  height: 24px;
+  border-radius: 24px;
+  background: #22C55E;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.sett-toggle-switch.off {
+  background: #CBD5E1;
+}
+
+.sett-toggle-switch .toggle-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sett-toggle-switch.off .toggle-thumb {
+  right: auto;
+  left: 2px;
+}

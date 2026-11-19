@@ -58,7 +58,8 @@ self.addEventListener('fetch', (event) => {
     event.request.url.includes('/api/') ||
     event.request.url.includes('/health') ||
     event.request.url.includes('/ws') ||
-    event.request.url.includes('/admin')
+    event.request.url.includes('/admin') ||
+    event.request.url.includes('/downloads/')
   ) {
     return;
   }

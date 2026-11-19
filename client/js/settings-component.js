@@ -1,5 +1,5 @@
 /**
- * FROSE Street — Unified Settings Component (Design 3: Vertical Accordion Drawer)
+ * FROSE Street — Unified Settings Component (Design 3: Pixel-Perfect Vertical Accordion Drawer)
  * Controls Stall Profile, Custom UPI Scanner QR, Dish Prices & Stock, Billing, KDS, Packaging, and Cloud Sync.
  */
 
@@ -52,7 +52,7 @@
       const sOwner = document.getElementById('sett-header-owner-name');
       const sAvatar = document.getElementById('sett-header-avatar');
       if (sStall) sStall.textContent = currentVendor.businessName || 'Stall Counter';
-      if (sOwner) sOwner.textContent = `${currentVendor.ownerName || 'Stall Owner'} • +91 ${currentVendor.phone || '9642230688'}`;
+      if (sOwner) sOwner.textContent = `${currentVendor.ownerName || 'Mohammed Feroz'} • +91 ${currentVendor.phone || '9642230688'}`;
       if (sAvatar) {
         const initials = (currentVendor.businessName || 'SC')
           .split(' ')
@@ -82,20 +82,28 @@
         if (customQr) {
           previewEl.innerHTML = `<img src="${customQr}" alt="Custom UPI QR" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" />`;
         } else {
-          // Default SVG BharatQR Preview
+          // Sharp, professional BharatQR vector icon preview
           previewEl.innerHTML = `
-            <svg viewBox="0 0 100 100" width="70" height="70">
-              <rect width="100" height="100" fill="#fff" rx="6"/>
-              <rect x="10" y="10" width="26" height="26" fill="#0F172A"/>
-              <rect x="14" y="14" width="18" height="18" fill="#fff"/>
-              <rect x="18" y="18" width="10" height="10" fill="#0F172A"/>
-              <rect x="64" y="10" width="26" height="26" fill="#0F172A"/>
-              <rect x="68" y="14" width="18" height="18" fill="#fff"/>
-              <rect x="72" y="18" width="10" height="10" fill="#0F172A"/>
-              <rect x="10" y="64" width="26" height="26" fill="#0F172A"/>
-              <rect x="14" y="68" width="18" height="18" fill="#fff"/>
-              <rect x="18" y="72" width="10" height="10" fill="#0F172A"/>
-              <rect x="42" y="42" width="16" height="16" fill="#700A18"/>
+            <svg viewBox="0 0 100 100" width="62" height="62">
+              <rect width="100" height="100" fill="#FFFFFF" rx="8"/>
+              <rect x="12" y="12" width="24" height="24" fill="#0F172A" rx="3"/>
+              <rect x="16" y="16" width="16" height="16" fill="#FFFFFF" rx="1"/>
+              <rect x="20" y="20" width="8" height="8" fill="#0F172A" rx="1"/>
+              <rect x="64" y="12" width="24" height="24" fill="#0F172A" rx="3"/>
+              <rect x="68" y="16" width="16" height="16" fill="#FFFFFF" rx="1"/>
+              <rect x="72" y="20" width="8" height="8" fill="#0F172A" rx="1"/>
+              <rect x="12" y="64" width="24" height="24" fill="#0F172A" rx="3"/>
+              <rect x="16" y="68" width="16" height="16" fill="#FFFFFF" rx="1"/>
+              <rect x="20" y="72" width="8" height="8" fill="#0F172A" rx="1"/>
+              <rect x="42" y="14" width="6" height="14" fill="#0F172A" rx="1"/>
+              <rect x="52" y="22" width="6" height="8" fill="#0F172A" rx="1"/>
+              <rect x="42" y="42" width="16" height="16" fill="#700A18" rx="2"/>
+              <rect x="14" y="44" width="18" height="6" fill="#0F172A" rx="1"/>
+              <rect x="64" y="44" width="8" height="14" fill="#0F172A" rx="1"/>
+              <rect x="78" y="44" width="8" height="8" fill="#0F172A" rx="1"/>
+              <rect x="44" y="68" width="14" height="6" fill="#0F172A" rx="1"/>
+              <rect x="64" y="68" width="22" height="6" fill="#0F172A" rx="1"/>
+              <rect x="70" y="80" width="16" height="6" fill="#0F172A" rx="1"/>
             </svg>
           `;
         }
@@ -116,7 +124,6 @@
       let dishes = rawDishes ? JSON.parse(rawDishes) : [];
 
       if (!Array.isArray(dishes) || dishes.length === 0) {
-        // Fallback default sample items if local cache empty
         dishes = [
           { id: 'd-1', name: 'Chicken Shawarma Roll', price: 120, inStock: true, category: 'Rolls' },
           { id: 'd-2', name: 'Paneer Butter Biryani', price: 180, inStock: true, category: 'Biryani' },
@@ -141,17 +148,17 @@
     }
 
     listContainer.innerHTML = activeDishes.map((dish, idx) => `
-      <div class="sett-dish-row" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #F1F5F9; gap: 8px;">
+      <div class="sett-dish-row" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F1F5F9; gap: 10px;">
         <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 13px; font-weight: 800; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dish.name}</div>
-          <div style="font-size: 11px; color: #64748B; font-weight: 600;">${dish.category || 'General'}</div>
+          <div style="font-size: 13.5px; font-weight: 800; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dish.name}</div>
+          <div style="font-size: 11px; color: #64748B; font-weight: 600; margin-top: 1px;">${dish.category || 'General'}</div>
         </div>
-        <div style="display: flex; align-items: center; gap: 6px;">
-          <span style="font-size: 12px; font-weight: 800; color: #700A18;">₹</span>
-          <input type="number" class="sett-dish-price-input" data-idx="${idx}" value="${dish.price || 0}" style="width: 70px; height: 32px; border-radius: 8px; border: 1.5px solid #CBD5E1; padding: 0 6px; font-size: 12.5px; font-weight: 800; color: #0F172A; text-align: right; background: #FFF;" />
+        <div style="display: flex; align-items: center; background: #F8FAFC; border: 1.5px solid #CBD5E1; border-radius: 8px; overflow: hidden; height: 34px;">
+          <span style="padding: 0 8px; font-size: 12.5px; font-weight: 800; color: #700A18; background: #F1F5F9; border-right: 1px solid #CBD5E1; line-height: 34px;">₹</span>
+          <input type="number" class="sett-dish-price-input" data-idx="${idx}" value="${dish.price || 0}" style="width: 58px; height: 34px; border: none; padding: 0 8px; font-size: 13px; font-weight: 800; color: #0F172A; text-align: right; background: #FFFFFF; outline: none;" />
         </div>
-        <div class="sett-toggle-switch ${dish.inStock !== false ? '' : 'off'}" data-dish-idx="${idx}" onclick="window.toggleDishStock(${idx})" style="width: 38px; height: 22px; border-radius: 20px; background: ${dish.inStock !== false ? '#22C55E' : '#CBD5E1'}; position: relative; cursor: pointer; flex-shrink: 0;">
-          <div style="width: 18px; height: 18px; border-radius: 50%; background: #FFF; position: absolute; top: 2px; ${dish.inStock !== false ? 'right: 2px;' : 'left: 2px;'} box-shadow: 0 1px 3px rgba(0,0,0,0.3); transition: all 0.2s ease;"></div>
+        <div class="sett-toggle-switch ${dish.inStock !== false ? '' : 'off'}" data-dish-idx="${idx}" onclick="window.toggleDishStock(${idx})" title="Toggle In-Stock / Sold-Out">
+          <div class="toggle-thumb"></div>
         </div>
       </div>
     `).join('');
@@ -186,7 +193,7 @@
   window.toggleAccordion = function (index) {
     const allHeaders = document.querySelectorAll('.sett-acc-header');
     const allBodies = document.querySelectorAll('.sett-acc-body');
-    const allChevrons = document.querySelectorAll('.sett-acc-chevron');
+    const allItems = document.querySelectorAll('.sett-acc-item');
 
     allBodies.forEach((body, i) => {
       if (i === index) {
@@ -196,9 +203,9 @@
           if (isHidden) allHeaders[i].classList.add('expanded');
           else allHeaders[i].classList.remove('expanded');
         }
-        if (allChevrons[i]) {
-          allChevrons[i].textContent = isHidden ? '▼' : '▶';
-          allChevrons[i].style.color = isHidden ? '#3B82F6' : '#94A3B8';
+        if (allItems[i]) {
+          if (isHidden) allItems[i].classList.add('is-open');
+          else allItems[i].classList.remove('is-open');
         }
       }
     });
@@ -206,10 +213,28 @@
 
   // Jump to specific accordion from Top Quick Bar
   window.jumpToAccordion = function (index) {
-    window.toggleAccordion(index);
+    // Update active pill state
+    document.querySelectorAll('.sett-quick-pill').forEach((pill, i) => {
+      if (i === index) pill.classList.add('active');
+      else pill.classList.remove('active');
+    });
+
+    // Ensure target accordion is opened
+    const allBodies = document.querySelectorAll('.sett-acc-body');
+    const allHeaders = document.querySelectorAll('.sett-acc-header');
+    const allItems = document.querySelectorAll('.sett-acc-item');
+
+    allBodies.forEach((body, i) => {
+      if (i === index) {
+        body.style.display = 'flex';
+        if (allHeaders[i]) allHeaders[i].classList.add('expanded');
+        if (allItems[i]) allItems[i].classList.add('is-open');
+      }
+    });
+
     const target = document.getElementById(`sett-acc-item-${index}`);
     if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   };
 

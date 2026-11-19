@@ -726,84 +726,285 @@
     </div>
   </div>
 
-    <!-- Modern Professional SaaS Settings & Profile Modal -->
+      <!-- Modern Professional SaaS Settings & Profile Modal (Design 3: Vertical Accordion Drawer) -->
   <div class="modal-overlay" id="settings-modal">
-    <div class="modal-card" style="max-width: 420px; border-radius: 22px; padding: 22px; box-shadow: 0 20px 45px rgba(0,0,0,0.22); border: 1px solid rgba(0,0,0,0.06);">
+    <div class="modal-card sett-modal-card">
       <!-- Header -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #F3F4F6;">
+      <div class="sett-header">
         <div>
-          <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #111827; letter-spacing: -0.3px;">Stall Settings</h3>
-          <span style="font-size: 11.5px; color: #6B7280; font-weight: 500;">Account, Menu & Configuration</span>
+          <div class="sett-header-title">⚙️ Stall Settings &amp; Controls</div>
+          <div class="sett-header-sub" id="sett-header-owner-name">Mohammed Feroz &bull; +91 96422 30688</div>
         </div>
-        <button type="button" onclick="window.closeModal('settings-modal')" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid #E5E7EB; background: #F9FAFB; font-size: 16px; cursor: pointer; color: #6B7280; display: flex; align-items: center; justify-content: center;">✕</button>
+        <button type="button" class="sett-close-btn" onclick="window.closeModal('settings-modal')" aria-label="Close Settings">✕</button>
       </div>
 
-      <!-- Stall Identity Banner -->
-      <div style="background: linear-gradient(135deg, #FFF9F7 0%, #FFF4F2 100%); border: 1.5px solid #FDE8E4; border-radius: 16px; padding: 14px; margin-bottom: 16px; display: flex; align-items: center; gap: 14px;">
-        <div style="width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #700A18 0%, #4A030C 100%); color: #F59E0B; font-weight: 900; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(112, 10, 24, 0.25); flex-shrink: 0;" id="settings-client-avatar">
-          SC
-        </div>
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 800; font-size: 15px; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="settings-client-stall">
-            Stall Client
-          </div>
-          <div style="font-size: 12px; color: #4B5563; font-weight: 600; margin-top: 2px;" id="settings-client-owner">
-            Owner Profile
-          </div>
-          <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 11px;">
-            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #10B981;"></span>
-            <span style="color: #059669; font-weight: 700;">Active Session</span>
-            <span style="color: #9CA3AF;">•</span>
-            <span style="color: #6B7280; font-weight: 600;" id="settings-client-phone">+91 98888 77777</span>
-          </div>
-        </div>
+      <!-- Quick Action Navigation Bar -->
+      <div class="sett-quick-bar">
+        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(0)">🏪 Profile</button>
+        <button type="button" class="sett-quick-pill active" onclick="window.jumpToAccordion(1)">💳 QR Code</button>
+        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(2)">🍽️ Dishes</button>
+        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(3)">🧾 Billing</button>
+        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(4)">🍳 Kitchen</button>
+        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(5)">📦 Packaging</button>
       </div>
 
-      <!-- Action Card Options -->
-      <div style="display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px;">
-        <!-- Option 1: Menu & Category Setup -->
-        <a href="/menu-setup" id="btn-settings-menu-setup" style="display: flex; align-items: center; justify-content: space-between; text-decoration: none; padding: 12px 14px; border-radius: 14px; background: #FFFFFF; border: 1.5px solid #F3F4F6; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 38px; height: 38px; border-radius: 10px; background: #FFF1F2; color: #BE123C; display: flex; align-items: center; justify-content: center; font-size: 18px;">🍽️</div>
-            <div>
-              <div style="font-size: 13.5px; font-weight: 800; color: #111827;">Menu & Categories</div>
-              <div style="font-size: 11px; color: #6B7280; font-weight: 500; margin-top: 1px;">Add categories, items, prices & photos</div>
-            </div>
-          </div>
-          <span style="color: #9CA3AF; font-size: 16px; font-weight: 700;">›</span>
-        </a>
+      <!-- Scrollable Accordion Content -->
+      <div class="sett-scroll-content">
 
-        <!-- Option 2: Daily Reports & Turnover -->
-        <div onclick="window.closeModal('settings-modal'); window.openModal('reports-modal');" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 14px; background: #FFFFFF; border: 1.5px solid #F3F4F6; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 38px; height: 38px; border-radius: 10px; background: #EFF6FF; color: #2563EB; display: flex; align-items: center; justify-content: center; font-size: 18px;">📊</div>
-            <div>
-              <div style="font-size: 13.5px; font-weight: 800; color: #111827;">Sales & Shift Reports</div>
-              <div style="font-size: 11px; color: #6B7280; font-weight: 500; margin-top: 1px;">View daily turnover, cash & UPI split</div>
+        <!-- Accordion 0: Profile & Identity -->
+        <div class="sett-acc-item" id="sett-acc-item-0">
+          <div class="sett-acc-header" onclick="window.toggleAccordion(0)">
+            <div class="sett-acc-title-group">
+              <span class="sett-acc-icon">🏪</span>
+              <span>Stall Profile &amp; Business Info</span>
             </div>
+            <span class="sett-acc-chevron">▶</span>
           </div>
-          <span style="color: #9CA3AF; font-size: 16px; font-weight: 700;">›</span>
+          <div class="sett-acc-body" style="display: none;">
+            <div class="sett-input-group">
+              <label class="sett-label">Stall Business Name *</label>
+              <input type="text" id="sett-business-name" class="sett-input" placeholder="e.g. Cloud Edge Kitchen" />
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">Owner Full Name *</label>
+              <input type="text" id="sett-owner-name" class="sett-input" placeholder="e.g. Mohammed Feroz" />
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">Counter Mobile (Registered)</label>
+              <input type="text" id="sett-phone" class="sett-input" readonly style="background: #F1F5F9; color: #64748B; font-weight: 700;" />
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">Stall Address / Landmark</label>
+              <input type="text" id="sett-address" class="sett-input" placeholder="e.g. Stall #4, Food Court, Hyderabad" />
+            </div>
+            <button type="button" class="sett-btn-action" onclick="window.saveStallProfile()">
+              <span>💾 Save Profile Changes</span>
+            </button>
+          </div>
         </div>
 
-        <!-- Option 3: Helper & Cook Phone Pairing -->
-        <div onclick="window.closeModal('settings-modal'); window.openModal('pairing-modal');" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: 14px; background: #FFFFFF; border: 1.5px solid #F3F4F6; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 38px; height: 38px; border-radius: 10px; background: #F0FDF4; color: #15803D; display: flex; align-items: center; justify-content: center; font-size: 18px;">👥</div>
-            <div>
-              <div style="font-size: 13.5px; font-weight: 800; color: #111827;">Helper Staff Pairing</div>
-              <div style="font-size: 11px; color: #6B7280; font-weight: 500; margin-top: 1px;">Connect cook/packer phone via Wi-Fi P2P</div>
+        <!-- Accordion 1: Payment Scanner & BharatQR (EXPANDED BY DEFAULT) -->
+        <div class="sett-acc-item" id="sett-acc-item-1">
+          <div class="sett-acc-header expanded" onclick="window.toggleAccordion(1)">
+            <div class="sett-acc-title-group">
+              <span class="sett-acc-icon">💳</span>
+              <span>Payment Scanner &amp; BharatQR</span>
+            </div>
+            <span class="sett-acc-chevron" style="color: #3B82F6;">▼</span>
+          </div>
+          <div class="sett-acc-body" style="display: flex;">
+            <div style="border: 2px dashed #CBD5E1; border-radius: 12px; padding: 12px; display: flex; gap: 14px; align-items: center; background: #F8FAFC;">
+              <div class="sett-qr-preview-box" id="sett-qr-preview-box">
+                <span style="font-size: 32px;">📱</span>
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 12.5px; font-weight: 800; color: #0F172A;">Counter Scanner Active</div>
+                <div style="font-size: 11px; color: #64748B; margin-top: 2px;" id="sett-qr-vpa-display">VPA: 9642230688@ybl</div>
+                <input type="file" id="sett-scanner-file" accept="image/*" style="display: none;" onchange="window.handleScannerImageUpload(event)" />
+                <button type="button" class="sett-btn-secondary" style="margin-top: 6px; border-color: #3B82F6; color: #1D4ED8; background: #EFF6FF;" onclick="document.getElementById('sett-scanner-file').click()">
+                  <span>📸 Upload New Scanner Image</span>
+                </button>
+              </div>
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">Counter UPI VPA ID *</label>
+              <input type="text" id="sett-upi-id" class="sett-input" placeholder="e.g. 9642230688@ybl" />
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">Payee Display Name</label>
+              <input type="text" id="sett-payee-name" class="sett-input" placeholder="e.g. Cloud Edge Kitchen" />
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
+              <div>
+                <div style="font-size: 12px; font-weight: 800; color: #0F172A;">Soundbox Voice Chime</div>
+                <div style="font-size: 10.5px; color: #64748B;">Audio confirmation when customer pays via UPI</div>
+              </div>
+              <div style="width: 36px; height: 20px; border-radius: 20px; background: #22C55E; position: relative;">
+                <div style="width: 16px; height: 16px; border-radius: 50%; background: #FFF; position: absolute; top: 2px; right: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+              </div>
+            </div>
+            <button type="button" class="sett-btn-action" onclick="window.savePaymentScanner()">
+              <span>💾 Save Payment Scanner</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Accordion 2: Menu Dishes & Instant Stock -->
+        <div class="sett-acc-item" id="sett-acc-item-2">
+          <div class="sett-acc-header" onclick="window.toggleAccordion(2)">
+            <div class="sett-acc-title-group">
+              <span class="sett-acc-icon">🍽️</span>
+              <span>Menu Dishes, Prices &amp; Stock</span>
+            </div>
+            <span class="sett-acc-chevron">▶</span>
+          </div>
+          <div class="sett-acc-body" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <span style="font-size: 11px; font-weight: 700; color: #64748B;">DISH NAME &bull; CATEGORY</span>
+              <span style="font-size: 11px; font-weight: 700; color: #64748B;">PRICE &bull; STOCK</span>
+            </div>
+            <div id="sett-dishes-list" style="display: flex; flex-direction: column; gap: 4px;">
+              <!-- Dynamically populated from local catalog -->
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 6px;">
+              <a href="/menu-setup" id="btn-settings-menu-setup" class="sett-btn-secondary" style="flex: 1; text-decoration: none; border-color: #CBD5E1; color: #0F172A;">
+                <span>📋 Open Menu Studio</span>
+              </a>
+              <button type="button" class="sett-btn-action" style="flex: 1;" onclick="window.saveDishChanges()">
+                <span>💾 Save Dish Changes</span>
+              </button>
             </div>
           </div>
-          <span style="color: #9CA3AF; font-size: 16px; font-weight: 700;">›</span>
         </div>
+
+        <!-- Accordion 3: Billing POS & Thermal Printer -->
+        <div class="sett-acc-item" id="sett-acc-item-3">
+          <div class="sett-acc-header" onclick="window.toggleAccordion(3)">
+            <div class="sett-acc-title-group">
+              <span class="sett-acc-icon">🧾</span>
+              <span>Billing POS, GST &amp; Thermal Printer</span>
+            </div>
+            <span class="sett-acc-chevron">▶</span>
+          </div>
+          <div class="sett-acc-body" style="display: none;">
+            <div class="sett-input-group">
+              <label class="sett-label">GST Tax Calculation Mode</label>
+              <select id="sett-gst-rate" class="sett-input">
+                <option value="0">0% GST (Exempt / Street Food Composition)</option>
+                <option value="5">5% Composite GST (Without ITC)</option>
+                <option value="18">18% Standard GST (Air Conditioned)</option>
+              </select>
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">Default Checkout Mode</label>
+              <select id="sett-default-payment" class="sett-input">
+                <option value="cash">💵 Cash Counter Default</option>
+                <option value="upi">📱 BharatQR / UPI Intent Default</option>
+                <option value="split">⚡ Split Tender (Cash + UPI)</option>
+              </select>
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">Bluetooth Thermal Printer Paper Roll</label>
+              <select id="sett-printer-width" class="sett-input">
+                <option value="58">58mm Paper Roll (Standard Pocket POS)</option>
+                <option value="80">80mm Paper Roll (Desktop Commercial)</option>
+              </select>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="sett-btn-secondary" style="flex: 1;" onclick="window.testThermalPrint()">
+                <span>🖨️ Test Thermal Slip</span>
+              </button>
+              <button type="button" class="sett-btn-action" style="flex: 1;" onclick="window.saveSubsystemPreferences()">
+                <span>💾 Save POS Defaults</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accordion 4: Kitchen KDS & Audio Lanes -->
+        <div class="sett-acc-item" id="sett-acc-item-4">
+          <div class="sett-acc-header" onclick="window.toggleAccordion(4)">
+            <div class="sett-acc-title-group">
+              <span class="sett-acc-icon">🍳</span>
+              <span>Kitchen Display (KDS) &amp; Chimes</span>
+            </div>
+            <span class="sett-acc-chevron">▶</span>
+          </div>
+          <div class="sett-acc-body" style="display: none;">
+            <div class="sett-input-group">
+              <label class="sett-label">New Order Audio Alert (KOT Chime)</label>
+              <select id="sett-kitchen-chime" class="sett-input">
+                <option value="loud">🔔 High Bell Ding (Loud Kitchen Mode)</option>
+                <option value="soft">🎵 Soft Electronic Tone</option>
+                <option value="mute">🔇 Mute / Visual Pulse Only</option>
+              </select>
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">Cook Prep Delay Warning Threshold</label>
+              <select id="sett-prep-delay" class="sett-input">
+                <option value="8">8 Minutes (Fast Food / Tea &amp; Snacks)</option>
+                <option value="12" selected>12 Minutes (Standard Rolls &amp; Biryani)</option>
+                <option value="20">20 Minutes (Dine-in Full Prep)</option>
+              </select>
+            </div>
+            <button type="button" class="sett-btn-action" onclick="window.saveSubsystemPreferences()">
+              <span>💾 Save Kitchen Defaults</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Accordion 5: Packaging & Token Numbers -->
+        <div class="sett-acc-item" id="sett-acc-item-5">
+          <div class="sett-acc-header" onclick="window.toggleAccordion(5)">
+            <div class="sett-acc-title-group">
+              <span class="sett-acc-icon">📦</span>
+              <span>Packaging Station &amp; Tokens</span>
+            </div>
+            <span class="sett-acc-chevron">▶</span>
+          </div>
+          <div class="sett-acc-body" style="display: none;">
+            <div class="sett-input-group">
+              <label class="sett-label">Token Number Generation Mode</label>
+              <select id="sett-token-mode" class="sett-input">
+                <option value="daily" selected>Daily Reset (Starts from #1 every morning)</option>
+                <option value="continuous">Continuous Rolling Number (1 to 9999)</option>
+              </select>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
+              <div>
+                <div style="font-size: 12px; font-weight: 800; color: #0F172A;">WhatsApp E-Bill Dispatch</div>
+                <div style="font-size: 10.5px; color: #64748B;">Send digital receipt link automatically</div>
+              </div>
+              <div style="width: 36px; height: 20px; border-radius: 20px; background: #22C55E; position: relative;">
+                <div style="width: 16px; height: 16px; border-radius: 50%; background: #FFF; position: absolute; top: 2px; right: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
+              </div>
+            </div>
+            <button type="button" class="sett-btn-action" onclick="window.saveSubsystemPreferences()">
+              <span>💾 Save Packaging Defaults</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Accordion 6: Offline Sync & Security -->
+        <div class="sett-acc-item" id="sett-acc-item-6">
+          <div class="sett-acc-header" onclick="window.toggleAccordion(6)">
+            <div class="sett-acc-title-group">
+              <span class="sett-acc-icon">☁️</span>
+              <span>Offline Database &amp; Cloud Telemetry</span>
+            </div>
+            <span class="sett-acc-chevron">▶</span>
+          </div>
+          <div class="sett-acc-body" style="display: none;">
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 12px; font-weight: 800; color: #0F172A;">Phone Storage (IndexedDB)</div>
+                <div style="font-size: 11px; color: #15803D; font-weight: 700;">● Operational &bull; Zero Pending Mutations</div>
+              </div>
+              <button type="button" class="sett-btn-action" style="height: 32px; padding: 0 12px; background: #059669;" onclick="window.forceCloudSync()">
+                <span>Sync Now</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden Compatibility Bridge -->
+        <div style="display: none;" aria-hidden="true">
+          <div id="settings-client-stall"></div>
+          <div id="settings-client-owner"></div>
+          <div id="settings-client-phone"></div>
+          <div id="settings-client-avatar"></div>
+        </div>
+
+        <!-- Exit & Sign Out -->
+        <button type="button" onclick="window.handleLogout ? window.handleLogout() : (localStorage.removeItem('frose_auth_token'), window.location.href='/login')" style="width: 100%; height: 44px; border-radius: 12px; border: 1.5px solid #FECACA; background: #FFF5F5; color: #DC2626; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
+          <span>🚪 Sign Out of Counter Account</span>
+        </button>
+
       </div>
-
-      <!-- Sign Out / Exit -->
-      <button type="button" onclick="window.handleLogout()" style="width: 100%; height: 42px; border-radius: 12px; border: 1.5px solid #FECACA; background: #FFF5F5; color: #DC2626; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        <span>🚪 Sign Out of Stall Account</span>
-      </button>
     </div>
   </div>
+  <script src="/js/settings-component.js"></script>
+
 
   <!-- Notifications Drawer / Modal -->
   <div class="modal-overlay" id="notifications-modal">

@@ -1,0 +1,20 @@
+{
+  "task": "Unified Settings Design 3 (Vertical Accordion Drawer)",
+  "verdict": "PASS",
+  "branch": "feature/settings-design-3-accordion",
+  "changedFiles": [
+    "client/js/settings-component.js",
+    "client/css/style.css",
+    "client/billing.html",
+    "client/index.html",
+    "client/sw.js",
+    "docs/walkthroughs/SETTINGS-DESIGN-3-ACCORDION-WALKTHROUGH.md",
+    "docs/reports/SETTINGS-DESIGN-3-ACCORDION-REPORT.md",
+    "docs/reports/SETTINGS-DESIGN-3-ACCORDION-REPORT.json"
+  ],
+  "metrics": {
+    "accordionSections": 7,
+    "syntaxErrors": 0,
+    "pwaCacheVersion": "v10"
+  }
+}

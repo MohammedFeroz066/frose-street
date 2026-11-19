@@ -3600,3 +3600,249 @@ html, body {
     padding: 6px 8px !important;
   }
 }
+
+
+/* ==========================================================================
+   FROSE Street — Settings Design 3 (Vertical Accordion Drawer)
+   ========================================================================== */
+.sett-modal-card {
+  max-width: 440px !important;
+  padding: 0 !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  text-align: left !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.3) !important;
+  background: #FFFFFF !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 90vh !important;
+}
+
+.sett-header {
+  padding: 16px 18px 12px;
+  background: #FFFFFF;
+  border-bottom: 1px solid #F1F5F9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sett-header-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #0F172A;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sett-header-sub {
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.sett-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #E2E8F0;
+  background: #F8FAFC;
+  font-size: 16px;
+  font-weight: 700;
+  color: #64748B;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.sett-close-btn:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+.sett-quick-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.sett-quick-pill {
+  flex: 1;
+  padding: 7px 6px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: #334155;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sett-quick-pill:hover, .sett-quick-pill.active {
+  border-color: #700A18;
+  color: #700A18;
+  background: #FFF5F5;
+}
+
+.sett-scroll-content {
+  padding: 14px 16px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sett-acc-item {
+  border: 1.5px solid #E2E8F0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #FFFFFF;
+  transition: border-color 0.15s ease;
+}
+
+.sett-acc-header {
+  padding: 13px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  background: #FFFFFF;
+  user-select: none;
+}
+
+.sett-acc-header:hover {
+  background: #F8FAFC;
+}
+
+.sett-acc-header.expanded {
+  background: #F8FAFC;
+  border-bottom: 1.5px solid #E2E8F0;
+}
+
+.sett-acc-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.sett-acc-icon {
+  font-size: 17px;
+}
+
+.sett-acc-chevron {
+  font-size: 13px;
+  color: #94A3B8;
+  font-weight: 800;
+  transition: transform 0.2s ease;
+}
+
+.sett-acc-body {
+  padding: 14px;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sett-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sett-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.sett-input {
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid #CBD5E1;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F172A;
+  background: #FAFAFA;
+  box-sizing: border-box;
+}
+
+.sett-input:focus {
+  outline: none;
+  border-color: #700A18;
+  background: #FFFFFF;
+}
+
+.sett-btn-action {
+  height: 38px;
+  border-radius: 10px;
+  background: #700A18;
+  color: #FFFFFF;
+  font-weight: 800;
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(112, 10, 24, 0.2);
+}
+
+.sett-btn-action:hover {
+  background: #560712;
+}
+
+.sett-btn-secondary {
+  height: 34px;
+  border-radius: 8px;
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  color: #334155;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sett-btn-secondary:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.sett-qr-preview-box {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  border: 1.5px dashed #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}

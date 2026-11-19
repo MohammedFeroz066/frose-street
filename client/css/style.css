@@ -727,6 +727,15 @@ html, body {
    MODALS (PIN & PAIRING) — BULLETPROOF OVERLAY
    ========================================================================== */
 
+/* Background Scroll Lock when any Modal is Active */
+body.modal-open,
+html.modal-open {
+  overflow: hidden !important;
+  height: 100% !important;
+  touch-action: none !important;
+  overscroll-behavior: contain !important;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -737,8 +746,9 @@ html, body {
   align-items: center;
   justify-content: center;
   padding: 12px;
-  overflow-y: auto;
+  overflow: hidden;
   box-sizing: border-box;
+  overscroll-behavior: contain !important;
 }
 
 .modal-overlay.active {

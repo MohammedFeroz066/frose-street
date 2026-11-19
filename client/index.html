@@ -1047,9 +1047,16 @@
   <script>
     window.openModal = function(id) {
       document.getElementById(id)?.classList.add('active');
+      document.body.classList.add('modal-open');
+      document.documentElement.classList.add('modal-open');
     };
     window.closeModal = function(id) {
       document.getElementById(id)?.classList.remove('active');
+      const activeModals = document.querySelectorAll('.modal-overlay.active');
+      if (activeModals.length === 0) {
+        document.body.classList.remove('modal-open');
+        document.documentElement.classList.remove('modal-open');
+      }
     };
     window.switchTab = function(tab) {
       document.querySelectorAll('.nav-tab-pill').forEach(btn => btn.classList.remove('active'));

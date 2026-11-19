@@ -385,6 +385,40 @@
   }
 
   // Export Global Trigger
+  
+  // Background Scroll Locking Controller
+  const originalOpenModal = window.openModal;
+  const originalCloseModal = window.closeModal;
+
+  window.openModal = function (modalId) {
+    if (originalOpenModal) originalOpenModal(modalId);
+    const el = document.getElementById(modalId);
+    if (el) el.classList.add('active');
+    document.body.classList.add('modal-open');
+    document.documentElement.classList.add('modal-open');
+  };
+
+  window.closeModal = function (modalId) {
+    if (originalCloseModal) originalCloseModal(modalId);
+    const el = document.getElementById(modalId);
+    if (el) el.classList.remove('active');
+
+    const activeModals = document.querySelectorAll('.modal-overlay.active');
+    if (activeModals.length === 0) {
+      document.body.classList.remove('modal-open');
+      document.documentElement.classList.remove('modal-open');
+    }
+  };
+
+  document.addEventListener('touchmove', function (e) {
+    if (document.body.classList.contains('modal-open')) {
+      const scrollable = e.target.closest('.sett-scroll-content, .modal-card');
+      if (!scrollable) {
+        e.preventDefault();
+      }
+    }
+  }, { passive: false });
+
   window.initSettingsModal = initSettings;
 
   // Auto-init on DOMContentLoaded

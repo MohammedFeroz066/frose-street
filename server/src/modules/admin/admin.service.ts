@@ -60,7 +60,8 @@ export class AdminService {
     let cloudVendors = 0;
     let localVendors = 0;
 
-    for (const v of vendors) {
+    const clientVendors = vendors.filter((v: any) => !v.is_superadmin);
+    for (const v of clientVendors) {
       if (v.edition === 'local') localVendors++;
       else cloudVendors++;
 
@@ -107,7 +108,7 @@ export class AdminService {
     const activeDevicesCount = devices.filter((d) => d.is_active).length;
 
     return {
-      totalVendors: vendors.length,
+      totalVendors: clientVendors.length,
       activeVendors: activeCount,
       trialVendors: trialCount,
       expiredVendors: expiredCount,
@@ -149,7 +150,8 @@ export class AdminService {
 
     const now = Date.now();
     const in7Days = now + 7 * 24 * 3600 * 1000;
-    return vendors.map((v) => {
+    const clientVendors = vendors.filter((v: any) => !v.is_superadmin);
+    return clientVendors.map((v) => {
       const stats = vendorSalesMap.get(v.id) || { count: 0, totalPaise: 0n };
       const vendorSubs = subscriptions.filter((s) => s.vendor_id === v.id);
       const vendorDevs = devices.filter((d) => d.vendor_id === v.id);
@@ -180,6 +182,8 @@ export class AdminService {
 
       return {
         id: v.id,
+        isSuperadmin: !!(v as any).is_superadmin,
+        role: (v as any).role || 'owner',
         businessName: v.business_name,
         ownerName: v.owner_name,
         phone: v.phone,

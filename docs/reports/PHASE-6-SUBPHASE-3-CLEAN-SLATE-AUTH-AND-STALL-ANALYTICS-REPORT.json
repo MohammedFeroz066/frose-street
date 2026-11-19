@@ -1,0 +1,33 @@
+{
+  "task": "Phase 6 Subphase 3: Clean Slate, Live Auth Persistence, Back Navigation & Stall Fiscal Analytics",
+  "status": "PASS",
+  "branch": "feat/clean-slate-auth-and-stall-analytics",
+  "baseCommit": "6ef296f",
+  "acceptanceCriteria": {
+    "AC_1_clean_slate_zero_data": "PASS",
+    "AC_2_live_provisioning_auth_sync": "PASS",
+    "AC_3_mobile_back_navigation": "PASS",
+    "AC_4_stall_fiscal_analytics_and_ledger": "PASS",
+    "AC_5_real_notifications_clearance": "PASS",
+    "AC_6_authenticated_user_profile_in_settings": "PASS",
+    "AC_7_type_safety_and_unit_tests": "PASS"
+  },
+  "metrics": {
+    "vitest_suites_passed": 23,
+    "vitest_tests_passed": 272,
+    "vitest_failures": 0,
+    "typescript_errors": 0,
+    "playwright_mobile_tests_passed": 7,
+    "playwright_mobile_tests_failed": 0
+  },
+  "evidenceFiles": [
+    "docs/walkthroughs/screenshots/clean-slate-and-analytics/01_clean_slate_zero_metrics_390x844.png",
+    "docs/walkthroughs/screenshots/clean-slate-and-analytics/02_vendor_created_and_provisioned_390x844.png",
+    "docs/walkthroughs/screenshots/clean-slate-and-analytics/03_stall_fiscal_analytics_and_ledger_390x844.png",
+    "docs/walkthroughs/screenshots/clean-slate-and-analytics/04_notifications_cleared_empty_state_390x844.png",
+    "docs/walkthroughs/screenshots/clean-slate-and-analytics/05_settings_authenticated_profile_390x844.png",
+    "docs/walkthroughs/screenshots/clean-slate-and-analytics/06_stall_client_login_success_390x844.png"
+  ],
+  "walkthroughDoc": "docs/walkthroughs/PHASE-6-SUBPHASE-3-CLEAN-SLATE-AUTH-AND-STALL-ANALYTICS-WALKTHROUGH.md",
+  "reportDoc": "docs/reports/PHASE-6-SUBPHASE-3-CLEAN-SLATE-AUTH-AND-STALL-ANALYTICS-REPORT.md"
+}

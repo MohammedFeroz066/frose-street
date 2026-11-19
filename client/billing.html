@@ -780,5 +780,32 @@
   <!-- PWA & Feature Logic -->
   <script type="module" src="/js/storage-adapter.js?v=2.3.0"></script>
   <script type="module" src="/js/billing.js?v=3.3.0"></script>
+
+  <script>
+    // Global Mobile History & Back Navigation Controller for Billing POS
+    if (!history.state) {
+      history.replaceState({ view: 'billing', root: true }, '', '');
+    }
+
+    window.addEventListener('popstate', (e) => {
+      // 1. If cart drawer is open, close it
+      const cartDrawer = document.getElementById('checkout-drawer');
+      if (cartDrawer && cartDrawer.classList.contains('active')) {
+        cartDrawer.classList.remove('active');
+        return;
+      }
+
+      // 2. If any modal is active, close it
+      const activeModals = document.querySelectorAll('.modal-overlay.active');
+      if (activeModals.length > 0) {
+        activeModals.forEach(m => m.classList.remove('active'));
+        return;
+      }
+
+      // 3. Otherwise navigate back to Dashboard
+      window.location.href = '/';
+    });
+  </script>
+
 </body>
 </html>

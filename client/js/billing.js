@@ -7,94 +7,10 @@
 (function () {
   'use strict';
 
-  // Seed Menu Items Matching Reference Image 2
-  const INITIAL_MENU = [
-    {
-      id: 'dish-naan-01',
-      name: 'Butter Naan',
-      pricePaise: 5000n, // ₹50.0
-      category: 'breads',
-      isBestSeller: true,
-      image: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400'
-    },
-    {
-      id: 'dish-chole-02',
-      name: 'Chole Bhature',
-      pricePaise: 19000n, // ₹190.0
-      category: 'main-course',
-      isBestSeller: true,
-      image: 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?w=400'
-    },
-    {
-      id: 'dish-dalfry-03',
-      name: 'Dal Fry',
-      pricePaise: 19000n, // ₹190.0
-      category: 'main-course',
-      isBestSeller: false,
-      image: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400'
-    },
-    {
-      id: 'dish-paneertikka-04',
-      name: 'Paneer Tikka',
-      pricePaise: 24000n, // ₹240.0
-      category: 'starters',
-      isBestSeller: false,
-      image: 'https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=400'
-    },
-    {
-      id: 'dish-mixveg-05',
-      name: 'Mix Veg',
-      pricePaise: 19000n, // ₹190.0
-      category: 'main-course',
-      isBestSeller: false,
-      image: 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400'
-    },
-    {
-      id: 'dish-punjabipaneer-06',
-      name: 'Punjabi Paneer',
-      pricePaise: 35000n, // ₹350.0
-      category: 'main-course',
-      isBestSeller: false,
-      image: 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400'
-    },
-    {
-      id: 'dish-chickenbiryani-07',
-      name: 'Chicken Biryani Full',
-      pricePaise: 22000n, // ₹220.0
-      category: 'rice',
-      isBestSeller: true,
-      image: '/images/dishes/chicken-biryani-full.webp'
-    },
-    {
-      id: 'dish-muttonbiryani-08',
-      name: 'Mutton Biryani Full',
-      pricePaise: 32000n, // ₹320.0
-      category: 'rice',
-      isBestSeller: false,
-      image: '/images/dishes/mutton-biryani-full.webp'
-    },
-    {
-      id: 'dish-momos-09',
-      name: 'Veg Steamed Momos',
-      pricePaise: 6000n, // ₹60.0
-      category: 'starters',
-      isBestSeller: false,
-      image: 'https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?w=400'
-    },
-    {
-      id: 'dish-chai-10',
-      name: 'Special Masala Chai',
-      pricePaise: 2000n, // ₹20.0
-      category: 'drinks',
-      isBestSeller: false,
-      image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=400'
-    }
-  ];
-
-  // In-Memory & Persisted State
+  // In-Memory & Persisted State (Clean Slate: strictly vendor-defined categories and items)
   let menuCatalog = [];
   const cart = new Map(); // dishId -> { item, quantity }
-  let activeCategory = 'best-sellers';
+  let activeCategory = '';
   let currentTokenNumber = 1;
   let currentOrderType = 'counter'; // 'counter' | 'dinein'
 
@@ -113,11 +29,11 @@
     const token = localStorage.getItem('frose_auth_token');
 
     // Load custom categories if present
+    let cats = [];
     try {
       const savedCats = localStorage.getItem('frose_cats_' + vendorId);
       if (savedCats) {
-        const cats = JSON.parse(savedCats);
-        renderSidebarCategories(cats);
+        cats = JSON.parse(savedCats);
       }
     } catch (e) {}
 
@@ -132,6 +48,10 @@
             image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
             pricePaise: BigInt(item.pricePaise || 5000)
           }));
+          if (cats.length === 0) {
+            cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
+          }
+          renderSidebarCategories(cats);
           return;
         }
       }
@@ -152,6 +72,10 @@
               pricePaise: BigInt(item.pricePaise || 5000)
             }));
             localStorage.setItem('frose_dishes_' + vendorId, JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
+            if (cats.length === 0) {
+              cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
+            }
+            renderSidebarCategories(cats);
             return;
           }
         }
@@ -160,20 +84,45 @@
 
     // Clean slate: if no custom dishes exist, start at empty so first-time onboarding shows
     menuCatalog = [];
+    renderSidebarCategories(cats);
   }
 
   function renderSidebarCategories(customCats) {
     const sidebar = document.getElementById('pos-category-sidebar');
     if (!sidebar) return;
 
-    let categories = ['Best Sellers', 'Starters', 'Main Course', 'Breads', 'Rice', 'Desserts', 'Drinks'];
+    let categories = [];
     if (Array.isArray(customCats) && customCats.length > 0) {
-      categories = Array.from(new Set([...categories, ...customCats]));
+      categories = [...customCats];
+    } else {
+      const dishCats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
+      if (dishCats.length > 0) {
+        categories = dishCats;
+      }
     }
 
-    const html = categories.map((cat, idx) => {
+    if (categories.length === 0) {
+      sidebar.innerHTML = `
+        <div style="padding: 14px 4px; text-align: center; color: #8C1D2F; font-size: 11px; font-weight: 800; line-height: 1.3;">
+          No Categories
+        </div>
+        <button type="button" class="btn-add-section" onclick="window.location.href='/menu-setup'" title="Add Custom Menu Section">
+          <span>+ Add</span>
+          <span>Category</span>
+        </button>
+      `;
+      return;
+    }
+
+    // Synchronize activeCategory
+    const validSlugs = categories.map(c => c.toLowerCase().replace(/\s+/g, '-'));
+    if (!activeCategory || (!validSlugs.includes(activeCategory) && !categories.some(c => c.toLowerCase() === activeCategory))) {
+      activeCategory = validSlugs[0];
+    }
+
+    const html = categories.map((cat) => {
       const slug = cat.toLowerCase().replace(/\s+/g, '-');
-      const isActive = activeCategory === slug || (idx === 0 && activeCategory === 'best-sellers');
+      const isActive = activeCategory === slug || activeCategory === cat.toLowerCase();
       return `
         <button type="button" class="category-sidebar-pill ${isActive ? 'active' : ''}" data-category="${slug}" onclick="window.selectCategory('${slug}')">
           ${cat.replace(' ', '<br>')}
@@ -182,7 +131,7 @@
     }).join('') + `
       <button type="button" class="btn-add-section" onclick="window.location.href='/menu-setup'" title="Add Custom Menu Section">
         <span>+ Add</span>
-        <span>Section</span>
+        <span>Category</span>
       </button>
     `;
 
@@ -204,15 +153,13 @@
     const grid = document.getElementById('pos-dishes-grid');
     if (!grid) return;
 
-    let filtered = [];
-    if (activeCategory === 'best-sellers') {
-      filtered = menuCatalog.filter(i => i.isBestSeller || (i.category || '').toLowerCase().includes('best'));
-      if (filtered.length === 0) filtered = menuCatalog;
-    } else {
-      filtered = menuCatalog.filter(i => {
-        const catSlug = (i.category || '').toLowerCase().replace(/\s+/g, '-');
-        return catSlug === activeCategory || (i.category || '').toLowerCase() === activeCategory;
-      });
+    let filtered = menuCatalog.filter(i => {
+      const catSlug = (i.category || '').toLowerCase().replace(/\s+/g, '-');
+      return catSlug === activeCategory || (i.category || '').toLowerCase() === activeCategory;
+    });
+
+    if (filtered.length === 0 && menuCatalog.length > 0 && !activeCategory) {
+      filtered = menuCatalog;
     }
 
     if (menuCatalog.length === 0) {
@@ -220,14 +167,11 @@
         <div class="pos-first-time-onboarding" id="onboarding-menu-banner" style="grid-column: 1 / -1; background: #FFFFFF; border: 2px dashed #700A18; border-radius: 16px; padding: 28px 18px; text-align: center; margin: 12px 0; box-shadow: 0 4px 14px rgba(112, 10, 24, 0.05);">
           <div style="font-size: 40px; margin-bottom: 10px;">🍽️</div>
           <h3 style="margin: 0 0 6px 0; font-size: 16.5px; font-weight: 900; color: #5B0612;">Welcome to Your Billing Counter!</h3>
-          <p style="margin: 0 0 18px 0; font-size: 12.5px; color: #6B7280; line-height: 1.5;">You haven't configured any categories or food items yet.<br>Create your first category and add dishes to start ringing up real orders.</p>
+          <p style="margin: 0 0 18px 0; font-size: 12.5px; color: #6B7280; line-height: 1.5;">You haven't configured any categories or food items yet.<br>Create your custom categories (e.g. Tea, Snacks, Momos) and add dishes to start ringing up real orders.</p>
           <div style="display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin: 0 auto;">
             <a href="/menu-setup" id="btn-onboarding-create-menu" style="background: linear-gradient(135deg, #700A18 0%, #5B0612 100%); color: #FFF; text-decoration: none; padding: 12px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(112, 10, 24, 0.3);">
               ⚙️ Create Your First Category & Items →
             </a>
-            <button type="button" id="btn-onboarding-starter-pack" onclick="window.seedQuickStarterMenu()" style="background: #FFF8F6; color: #700A18; border: 1.5px solid #700A18; padding: 10px 16px; border-radius: 10px; font-weight: 800; font-size: 12px; cursor: pointer;">
-              ⚡ 1-Tap Quick-Start Starter Menu
-            </button>
           </div>
         </div>
       `;
@@ -564,6 +508,24 @@
   window.openAddDishModal = function() {
     document.getElementById('input-dish-name').value = '';
     document.getElementById('input-dish-price').value = '';
+
+    const vendor = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+    const vendorId = vendor.id || 'default';
+    let cats = [];
+    try {
+      const savedCats = localStorage.getItem('frose_cats_' + vendorId);
+      if (savedCats) cats = JSON.parse(savedCats);
+    } catch (e) {}
+
+    const select = document.getElementById('input-dish-category');
+    if (select) {
+      if (cats.length === 0) {
+        select.innerHTML = '<option value="" disabled selected>⚠️ Please add a category first</option>';
+      } else {
+        select.innerHTML = cats.map(c => `<option value="${c.toLowerCase().replace(/\s+/g, '-')}">${c}</option>`).join('');
+      }
+    }
+
     window.openModal('modal-add-dish');
   };
 
@@ -579,7 +541,7 @@
       name,
       pricePaise: BigInt(priceRupees * 100),
       category,
-      isBestSeller: category === 'best-sellers',
+      isBestSeller: false,
       image: photo
     };
 
@@ -600,7 +562,24 @@
     document.getElementById('edit-dish-id').value = dish.id;
     document.getElementById('edit-dish-name').value = dish.name;
     document.getElementById('edit-dish-price').value = Number(dish.pricePaise / 100n);
-    document.getElementById('edit-dish-category').value = dish.category;
+
+    const vendor = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+    const vendorId = vendor.id || 'default';
+    let cats = [];
+    try {
+      const savedCats = localStorage.getItem('frose_cats_' + vendorId);
+      if (savedCats) cats = JSON.parse(savedCats);
+    } catch (e) {}
+
+    const select = document.getElementById('edit-dish-category');
+    if (select) {
+      if (cats.length === 0) {
+        select.innerHTML = `<option value="${dish.category}">${dish.category}</option>`;
+      } else {
+        select.innerHTML = cats.map(c => `<option value="${c.toLowerCase().replace(/\s+/g, '-')}">${c}</option>`).join('');
+      }
+      select.value = (dish.category || '').toLowerCase().replace(/\s+/g, '-');
+    }
 
     window.openModal('modal-edit-dish');
   };
@@ -621,40 +600,6 @@
     renderDishesGrid();
     updateCartUI();
     alert(`✅ Updated "${dish.name}" details and price!`);
-  };
-
-  
-  window.seedQuickStarterMenu = async function() {
-    const vendor = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-    const vendorId = vendor.id || 'default';
-    const token = localStorage.getItem('frose_auth_token');
-
-    const starterItems = [
-      { id: 'dish-biryani-01', name: 'Special Chicken Biryani', category: 'Best Sellers', pricePaise: 19000n, image: '/images/dishes/chicken-biryani-full.webp', isBestSeller: true },
-      { id: 'dish-handi-02', name: 'Chicken Handi Special', category: 'Main Course', pricePaise: 24000n, image: '/images/dishes/chicken-handi-biryani.webp', isBestSeller: true },
-      { id: 'dish-mini-03', name: 'Mini Biryani Bowl', category: 'Rice', pricePaise: 9000n, image: '/images/dishes/mini-chicken-biryani.webp', isBestSeller: false },
-      { id: 'dish-mutton-04', name: 'Mutton Royal Biryani', category: 'Best Sellers', pricePaise: 26000n, image: '/images/dishes/mutton-biryani-full.webp', isBestSeller: true }
-    ];
-
-    if (token) {
-      for (const item of starterItems) {
-        try {
-          await fetch('/api/v1/menu', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-            body: JSON.stringify({ name: item.name, category: item.category, pricePaise: Number(item.pricePaise), imageUrl: item.image })
-          });
-        } catch (e) {}
-      }
-    }
-
-    menuCatalog = [...starterItems];
-    try {
-      localStorage.setItem('frose_dishes_' + vendorId, JSON.stringify(starterItems.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
-    } catch (e) {}
-
-    renderDishesGrid();
-    updateCartUI();
   };
 
   window.deleteDish = function() {

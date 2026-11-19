@@ -60,9 +60,9 @@ async function run() {
   await page.click('#btn-bottom-add-restaurant');
   await page.waitForTimeout(600);
 
-  const testPhone = '9888877777';
+  const testPhone = '9' + Math.floor(100000000 + Math.random() * 900000000).toString();
   const testPassword = 'Password@123';
-  const testStallName = 'Royal Biryani & Rolls';
+  const testStallName = 'Feroz Chai & Snacks Hub';
 
   await page.fill('#page-add-stall-name', testStallName);
   await page.fill('#page-add-owner-name', 'Feroz Khan');
@@ -72,16 +72,18 @@ async function run() {
   await page.selectOption('#page-add-edition', 'cloud');
   await page.fill('#page-add-monthly-fee', '499');
   await page.selectOption('#page-add-initial-status', 'paid');
-  await page.fill('#page-add-upi', 'royalrolls@okaxis');
+  await page.fill('#page-add-upi', 'ferozsnacks@okaxis');
 
   await page.click('#btn-submit-add-stall-page');
   await page.waitForTimeout(1200);
 
-  console.log(`✓ Stall "${testStallName}" successfully provisioned!`);
+  console.log(`✓ Stall "${testStallName}" (${testPhone}) successfully provisioned!`);
 
   // STEP 2: Vendor Login with Credentials
   console.log('--- 2. Vendor Logs In ---');
   await page.goto(`${BASE_URL}/login`);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
   await page.waitForTimeout(600);
 
   await page.fill('#login-phone', testPhone);
@@ -124,39 +126,68 @@ async function run() {
     throw new Error(`Expected /menu-setup, got: ${setupUrl}`);
   }
 
-  // STEP 6: Add Category Section
-  console.log('--- 6. Adding Custom Category Section ---');
-  await page.fill('#input-category-name', 'Biryani Specials');
+  // STEP 6: Add Custom Category Sections (Zero Fake Categories: Tea, Snacks, Momos)
+  console.log('--- 6. Adding Custom Category Sections (Tea, Snacks, Momos) ---');
+  
+  // Add Category 1: Tea
+  await page.fill('#input-category-name', 'Tea');
   await page.click('#btn-add-category');
-  await page.waitForTimeout(500);
-
-  const badgesText = await page.locator('#categories-badges-container').textContent();
-  if (!badgesText.includes('Biryani Specials')) {
-    throw new Error('Category "Biryani Specials" was not added!');
-  }
-  console.log('✓ Category "Biryani Specials" added successfully!');
-
-  // STEP 7: Add Dish with Dual-Mode Image & Integer Paise Price
-  console.log('--- 7. Adding Dish with Image and Price in ₹ ---');
-  await page.fill('#input-dish-name', 'Hyderabadi Chicken Biryani');
-  await page.selectOption('#select-dish-category', 'Biryani Specials');
-
-  // Choose from Gallery
-  await page.click('button:has-text("Choose from Gallery")');
-  await page.waitForTimeout(500);
-  await page.click('#gallery-preset-grid .preset-item-card:first-child');
   await page.waitForTimeout(400);
 
-  await page.fill('#input-dish-price', '220');
-  await page.click('#btn-save-dish');
-  await page.waitForTimeout(1000);
+  // Add Category 2: Snacks
+  await page.fill('#input-category-name', 'Snacks');
+  await page.click('#btn-add-category');
+  await page.waitForTimeout(400);
 
-  // Add a second dish: Butter Naan (Price: 50)
-  await page.fill('#input-dish-name', 'Crispy Butter Naan');
-  await page.selectOption('#select-dish-category', 'Breads');
-  await page.fill('#input-dish-price', '50');
+  // Add Category 3: Momos
+  await page.fill('#input-category-name', 'Momos');
+  await page.click('#btn-add-category');
+  await page.waitForTimeout(400);
+
+  const badgesText = await page.locator('#categories-badges-container').textContent();
+  console.log(`Configured Category Badges: ${badgesText.replace(/\s+/g, ' ')}`);
+  if (!badgesText.includes('Tea') || !badgesText.includes('Snacks') || !badgesText.includes('Momos')) {
+    throw new Error('Custom categories (Tea, Snacks, Momos) were not added properly!');
+  }
+  if (badgesText.includes('Starters') || badgesText.includes('Main Course') || badgesText.includes('Breads')) {
+    throw new Error('Found unwanted default categories in badges!');
+  }
+  console.log('✓ Only custom categories (Tea, Snacks, Momos) exist in setup.');
+
+  // STEP 7: Add Dishes under Client Custom Categories
+  console.log('--- 7. Adding Dishes under Custom Categories ---');
+  // Dish 1: Special Masala Chai under Tea (₹20)
+  await page.fill('#input-dish-name', 'Special Masala Chai');
+  await page.selectOption('#select-dish-category', 'Tea');
+  await page.click('button:has-text("Choose from Gallery")');
+  await page.waitForTimeout(400);
+  await page.click('#gallery-preset-grid .preset-item-card:first-child');
+  await page.waitForTimeout(300);
+  await page.fill('#input-dish-price', '20');
   await page.click('#btn-save-dish');
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(800);
+
+  // Dish 2: Crispy Veg Samosa under Snacks (₹30)
+  await page.fill('#input-dish-name', 'Crispy Veg Samosa');
+  await page.selectOption('#select-dish-category', 'Snacks');
+  await page.click('button:has-text("Choose from Gallery")');
+  await page.waitForTimeout(400);
+  await page.click('#gallery-preset-grid .preset-item-card:nth-child(2)');
+  await page.waitForTimeout(300);
+  await page.fill('#input-dish-price', '30');
+  await page.click('#btn-save-dish');
+  await page.waitForTimeout(800);
+
+  // Dish 3: Steamed Veg Momos under Momos (₹80)
+  await page.fill('#input-dish-name', 'Steamed Veg Momos');
+  await page.selectOption('#select-dish-category', 'Momos');
+  await page.click('button:has-text("Choose from Gallery")');
+  await page.waitForTimeout(400);
+  await page.click('#gallery-preset-grid .preset-item-card:nth-child(3)');
+  await page.waitForTimeout(300);
+  await page.fill('#input-dish-price', '80');
+  await page.click('#btn-save-dish');
+  await page.waitForTimeout(800);
 
   const dishesList = await page.locator('#items-list-container').textContent();
   console.log(`Dishes in Directory: ${dishesList.replace(/\s+/g, ' ').substring(0, 80)}...`);
@@ -177,9 +208,16 @@ async function run() {
   console.log(`Sidebar Categories: ${sidebarContent.replace(/\s+/g, ' ')}`);
   console.log(`Dishes Grid: ${dishesGridContent.replace(/\s+/g, ' ').substring(0, 100)}...`);
 
-  if (!dishesGridContent.includes('Hyderabadi Chicken Biryani')) {
-    throw new Error('Created dish "Hyderabadi Chicken Biryani" not found in POS grid!');
+  if (!sidebarContent.includes('Tea') || !sidebarContent.includes('Snacks') || !sidebarContent.includes('Momos')) {
+    throw new Error('Sidebar does not contain client categories (Tea, Snacks, Momos)!');
   }
+  if (sidebarContent.includes('Starters') || sidebarContent.includes('Main Course') || sidebarContent.includes('Breads')) {
+    throw new Error('Sidebar contains unwanted default restaurant categories!');
+  }
+
+  // Switch to Snacks category
+  await page.click('.category-sidebar-pill[data-category="snacks"]');
+  await page.waitForTimeout(500);
 
   await page.screenshot({ path: path.join(ARTIFACT_DIR, '04_billing_menu_pos_with_new_dishes_390x844.png') });
   await page.screenshot({ path: path.join(DOCS_DIR, '04_billing_menu_pos_with_new_dishes_390x844.png') });
@@ -187,7 +225,7 @@ async function run() {
 
   // STEP 9: Test In-Card Stepper (+ and -) and Floating Cart Pill
   console.log('--- 9. Testing In-Card Steppers and Floating Cart Pill ---');
-  // Click '+' on first dish
+  // Click '+' on Samosa
   await page.click('.pos-dish-card:first-child .btn-dish-add-circle');
   await page.waitForTimeout(500);
 
@@ -195,16 +233,18 @@ async function run() {
   const stepper = await page.locator('.pos-dish-card:first-child .dish-stepper-pill').textContent();
   console.log(`Stepper content: ${stepper.trim()}`);
 
-  // Cart pill stats
-  const cartPillStats = await page.locator('#cart-pill-stats').textContent();
-  console.log(`Floating Cart Pill: ${cartPillStats}`);
-
   // Increment with '+' inside stepper
   await page.click('.pos-dish-card:first-child .dish-stepper-pill .btn-stepper-action:has-text("+")');
   await page.waitForTimeout(400);
 
-  const updatedCartPill = await page.locator('#cart-pill-stats').textContent();
-  console.log(`Updated Floating Cart Pill: ${updatedCartPill}`);
+  // Switch to Tea category and add 1 chai
+  await page.click('.category-sidebar-pill[data-category="tea"]');
+  await page.waitForTimeout(400);
+  await page.click('.pos-dish-card:first-child .btn-dish-add-circle');
+  await page.waitForTimeout(400);
+
+  const cartPillStats = await page.locator('#cart-pill-stats').textContent();
+  console.log(`Floating Cart Pill: ${cartPillStats}`);
 
   await page.screenshot({ path: path.join(ARTIFACT_DIR, '05_billing_pos_in_card_stepper_and_cart_390x844.png') });
   await page.screenshot({ path: path.join(DOCS_DIR, '05_billing_pos_in_card_stepper_and_cart_390x844.png') });

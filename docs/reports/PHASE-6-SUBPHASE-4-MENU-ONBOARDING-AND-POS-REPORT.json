@@ -1,36 +1,28 @@
 {
-  "task": "Phase 6 Subphase 4: First-Time Client Onboarding, Category Sections, Dual-Mode Image Picker & Menu POS",
-  "status": "PASS",
+  "phase": "Phase 6",
+  "subphase": "Subphase 4",
+  "title": "Client Onboarding, Category Builder & POS Parity",
   "branch": "feat/client-menu-onboarding-and-pos",
-  "baseCommit": "9ad7b05",
-  "acceptanceCriteria": {
-    "AC_1_super_admin_stall_provisioning": "PASS",
-    "AC_2_client_dashboard_4_cards": "PASS",
-    "AC_3_first_time_onboarding_prompt": "PASS",
-    "AC_4_dedicated_menu_setup_page": "PASS",
-    "AC_5_category_section_creation": "PASS",
-    "AC_6_dual_mode_image_and_dish_addition": "PASS",
-    "AC_7_billing_counter_sync": "PASS",
-    "AC_8_in_card_steppers_and_floating_cart": "PASS",
-    "AC_9_checkout_and_token_flash": "PASS",
-    "AC_10_type_safety_and_unit_tests": "PASS"
+  "verdict": "PASS",
+  "cleanSlate": {
+    "zeroDefaultCategories": true,
+    "clientCategoriesExample": ["Tea", "Snacks", "Momos"],
+    "zeroQuarantinedImagesUsed": true
   },
-  "metrics": {
-    "vitest_suites_passed": 23,
-    "vitest_tests_passed": 272,
-    "vitest_failures": 0,
-    "typescript_errors": 0,
-    "playwright_mobile_tests_passed": 10,
-    "playwright_mobile_tests_failed": 0
+  "tests": {
+    "typeScriptErrors": 0,
+    "vitestSuitesPassed": 23,
+    "vitestTestsPassed": 272,
+    "vitestTestsFailed": 0,
+    "playwrightStagesPassed": 10,
+    "playwrightStagesFailed": 0
   },
-  "evidenceFiles": [
-    "docs/walkthroughs/screenshots/menu-onboarding/01_client_dashboard_4_options_390x844.png",
-    "docs/walkthroughs/screenshots/menu-onboarding/02_first_time_billing_onboarding_prompt_390x844.png",
-    "docs/walkthroughs/screenshots/menu-onboarding/03_menu_setup_page_with_items_390x844.png",
-    "docs/walkthroughs/screenshots/menu-onboarding/04_billing_menu_pos_with_new_dishes_390x844.png",
-    "docs/walkthroughs/screenshots/menu-onboarding/05_billing_pos_in_card_stepper_and_cart_390x844.png",
-    "docs/walkthroughs/screenshots/menu-onboarding/06_order_token_flash_confirmation_390x844.png"
-  ],
-  "walkthroughDoc": "docs/walkthroughs/PHASE-6-SUBPHASE-4-MENU-ONBOARDING-AND-POS-WALKTHROUGH.md",
-  "reportDoc": "docs/reports/PHASE-6-SUBPHASE-4-MENU-ONBOARDING-AND-POS-REPORT.md"
+  "screenshots": [
+    "01_client_dashboard_4_options_390x844.png",
+    "02_first_time_billing_onboarding_prompt_390x844.png",
+    "03_menu_setup_page_with_items_390x844.png",
+    "04_billing_menu_pos_with_new_dishes_390x844.png",
+    "05_billing_pos_in_card_stepper_and_cart_390x844.png",
+    "06_order_token_flash_confirmation_390x844.png"
+  ]
 }

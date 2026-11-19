@@ -510,7 +510,7 @@
       <div class="onboarding-hero-icon">✨</div>
       <div class="onboarding-hero-content">
         <h2>Set Up Your Categories &amp; Dishes</h2>
-        <p>Step 1: Add your custom category names (e.g. Starters, Biryani Specials).<br>
+        <p>Step 1: Add your custom category names (e.g. Tea, Snacks, Momos, Beverages).<br>
            Step 2: Add food items with photo (camera or gallery) and price in ₹.<br>
            Step 3: Launch billing counter to start ringing up real orders!</p>
       </div>
@@ -524,7 +524,7 @@
       </div>
 
       <div class="category-input-group">
-        <input type="text" id="input-category-name" class="form-input-setup" placeholder="e.g. Starters, Main Course, Drinks..." maxlength="30">
+        <input type="text" id="input-category-name" class="form-input-setup" placeholder="e.g. Tea, Snacks, Momos, Burgers..." maxlength="30">
         <button type="button" class="btn-add-category" id="btn-add-category" onclick="window.addCategorySection()">
           <span>+ Add Section</span>
         </button>
@@ -540,15 +540,12 @@
     <section class="setup-card">
       <div class="setup-card-header">
         <h3><span>➕</span> Add Menu Dish / Item</h3>
-        <button type="button" onclick="window.seedQuickStarterMenu()" style="background: none; border: 1px dashed var(--saas-burgundy); color: var(--saas-burgundy); border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 800; cursor: pointer;">
-          ⚡ 1-Tap Starter Pack
-        </button>
       </div>
 
       <form id="form-add-dish" onsubmit="window.submitAddDish(event)" class="item-form-grid">
         <div class="form-row">
           <label for="input-dish-name">Dish / Item Name *</label>
-          <input type="text" id="input-dish-name" class="form-input-setup" placeholder="e.g. Butter Naan, Chicken Biryani" required>
+          <input type="text" id="input-dish-name" class="form-input-setup" placeholder="e.g. Masala Chai, Steamed Momos, Samosa" required>
         </div>
 
         <div class="form-row">
@@ -658,8 +655,8 @@
         { name: 'Mutton Family Pack', url: '/images/dishes/mutton-family-pack.webp' }
       ];
 
-      // In-Memory & LocalStorage State
-      let vendorCategories = ['Best Sellers', 'Starters', 'Main Course', 'Breads', 'Rice', 'Desserts', 'Drinks'];
+      // In-Memory & LocalStorage State (Clean Slate: strictly vendor-defined categories)
+      let vendorCategories = [];
       let vendorDishes = [];
 
       // History / Popstate controller
@@ -689,8 +686,12 @@
           const saved = localStorage.getItem(`frose_cats_${CURRENT_VENDOR.id || 'default'}`);
           if (saved) {
             vendorCategories = JSON.parse(saved);
+          } else {
+            vendorCategories = [];
           }
-        } catch (e) {}
+        } catch (e) {
+          vendorCategories = [];
+        }
         renderCategories();
       }
 
@@ -705,22 +706,34 @@
         const container = document.getElementById('categories-badges-container');
         const select = document.getElementById('select-dish-category');
         const countLabel = document.getElementById('category-count-label');
-        if (countLabel) countLabel.textContent = `${vendorCategories.length} Sections`;
+        if (countLabel) countLabel.textContent = `${vendorCategories.length} Categories`;
 
         if (container) {
-          container.innerHTML = vendorCategories.map(cat => `
-            <div class="category-badge-chip">
-              <span>${cat}</span>
-              <span class="chip-count">${vendorDishes.filter(d => (d.category || '').toLowerCase() === cat.toLowerCase()).length}</span>
-              ${cat !== 'Best Sellers' ? `<button type="button" class="btn-chip-delete" onclick="window.deleteCategorySection('${cat}')" title="Delete Section">✕</button>` : ''}
-            </div>
-          `).join('');
+          if (vendorCategories.length === 0) {
+            container.innerHTML = `
+              <div style="grid-column: 1 / -1; padding: 14px 12px; background: #FFF8F6; border: 1.5px dashed #700A18; border-radius: 10px; text-align: center; color: #700A18; font-size: 12px; font-weight: 700;">
+                💡 No categories yet. Type a category name above (e.g. <strong>Tea</strong>, <strong>Snacks</strong>, <strong>Momos</strong>) and tap "+ Add Section"!
+              </div>
+            `;
+          } else {
+            container.innerHTML = vendorCategories.map(cat => `
+              <div class="category-badge-chip">
+                <span>${cat}</span>
+                <span class="chip-count">${vendorDishes.filter(d => (d.category || '').toLowerCase() === cat.toLowerCase()).length}</span>
+                <button type="button" class="btn-chip-delete" onclick="window.deleteCategorySection('${cat}')" title="Delete Section">✕</button>
+              </div>
+            `).join('');
+          }
         }
 
         if (select) {
-          select.innerHTML = vendorCategories.map(cat => `
-            <option value="${cat}">${cat}</option>
-          `).join('');
+          if (vendorCategories.length === 0) {
+            select.innerHTML = '<option value="" disabled selected>⚠️ Please add a category section above first</option>';
+          } else {
+            select.innerHTML = vendorCategories.map(cat => `
+              <option value="${cat}">${cat}</option>
+            `).join('');
+          }
         }
       }
 
@@ -737,10 +750,8 @@
       };
 
       window.deleteCategorySection = function (name) {
-        if (confirm(`Delete "${name}" section?`)) {
-          vendorCategories = vendorCategories.filter(c => c !== name);
-          saveCategories();
-        }
+        vendorCategories = vendorCategories.filter(c => c !== name);
+        saveCategories();
       };
 
       async function fetchDishes() {
@@ -960,48 +971,6 @@
 
         renderDishes();
         renderCategories();
-      };
-
-      window.seedQuickStarterMenu = async function () {
-        if (!confirm('Load 1-Tap Quick-Start Menu with popular street food items?')) return;
-        
-        const starters = [
-          { name: 'Special Chicken Biryani', category: 'Best Sellers', pricePaise: 19000, imageUrl: '/images/dishes/chicken-biryani-full.webp' },
-          { name: 'Chicken Handi Pot', category: 'Main Course', pricePaise: 24000, imageUrl: '/images/dishes/chicken-handi-biryani.webp' },
-          { name: 'Mini Biryani Bowl', category: 'Rice', pricePaise: 9000, imageUrl: '/images/dishes/mini-chicken-biryani.webp' },
-          { name: 'Mutton Special Plate', category: 'Best Sellers', pricePaise: 26000, imageUrl: '/images/dishes/mutton-biryani-full.webp' }
-        ];
-
-        for (const item of starters) {
-          try {
-            const res = await fetch('/api/v1/menu', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${AUTH_TOKEN}`
-              },
-              body: JSON.stringify(item)
-            });
-            if (res.ok) {
-              const data = await res.json();
-              vendorDishes.push(data.item);
-            }
-          } catch (e) {
-            vendorDishes.push({
-              id: 'dish-' + Math.random().toString(36).substring(2, 7),
-              ...item,
-              priceRupees: item.pricePaise / 100
-            });
-          }
-        }
-
-        try {
-          localStorage.setItem(`frose_dishes_${CURRENT_VENDOR.id || 'default'}`, JSON.stringify(vendorDishes));
-        } catch (e) {}
-
-        renderDishes();
-        renderCategories();
-        alert('🎉 Starter menu loaded successfully!');
       };
 
       document.addEventListener('DOMContentLoaded', init);

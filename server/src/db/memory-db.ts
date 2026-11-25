@@ -14,15 +14,15 @@ export const memoryPairingTokens = new Map<string, any>();
 
 export const DEFAULT_DEMO_VENDOR_ID = 'v-stall-demo-01';
 
-const DEMO_PASSWORD_HASH = 'scrypt:16384:8:1:635ca671f1f7766331705bb4bcf4d5c2:b1cadfa3794f120da851368cef695a3be2a4ee300aeecb7e3ec8f61a23e4fc070d5586d8035fa9eaf55eb99ede86d0acdff4ce5509d926d81b4e5f3f62ffcfeb'; // Feroz@123
-const DEMO_PIN_HASH = 'scrypt:16384:8:1:b887fb74010b32ff906ea4149678a425:e848180c9637ae06f03424d52ae97ad2ee20ebd1eab56f198dceee63489aff49'; // 1234
+const DEMO_PASSWORD_HASH = process.env.TEST_PASSWORD_HASH || 'scrypt:16384:8:1:635ca671f1f7766331705bb4bcf4d5c2:b1cadfa3794f120da851368cef695a3be2a4ee300aeecb7e3ec8f61a23e4fc070d5586d8035fa9eaf55eb99ede86d0acdff4ce5509d926d81b4e5f3f62ffcfeb';
+const DEMO_PIN_HASH = process.env.TEST_PIN_HASH || 'scrypt:16384:8:1:b887fb74010b32ff906ea4149678a425:e848180c9637ae06f03424d52ae97ad2ee20ebd1eab56f198dceee63489aff49';
 
 
 // In automated test suite, seed isolated test fixture stall for unit assertions
 if (process.env.NODE_ENV === 'test' && !memoryVendors.has(DEFAULT_DEMO_VENDOR_ID)) {
   const primaryVendor = {
     id: DEFAULT_DEMO_VENDOR_ID,
-    phone: '9177177475',
+    phone: process.env.TEST_VENDOR_PHONE || '9177177475',
     business_name: 'FROSE Test Food Stall',
     owner_name: 'Test Feroz',
     business_type: 'Street Food Stall',
@@ -43,7 +43,7 @@ if (process.env.NODE_ENV === 'test' && !memoryVendors.has(DEFAULT_DEMO_VENDOR_ID
     id: 'staff-demo-01',
     vendor_id: DEFAULT_DEMO_VENDOR_ID,
     name: 'Mohammed Feroz',
-    phone: '9177177475',
+    phone: process.env.TEST_VENDOR_PHONE || '9177177475',
     role: 'cashier',
     is_active: true,
     password_hash: DEMO_PASSWORD_HASH,

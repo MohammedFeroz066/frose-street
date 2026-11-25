@@ -303,31 +303,7 @@
       // 4. Standalone & Live Directory Authentication (Static CDN, Cloudflare Pages & Local Offline PWA)
       function handleClientAuthFallback(phone, password) {
         // Built-in authentic Super Admin Master Account
-        const masterDirectory = {
-          '9999999999': {
-            id: 'v-admin-master',
-            phone: '9999999999',
-            businessName: 'FROSE Platform HQ',
-            ownerName: 'Super Admin',
-            role: 'superadmin',
-            isSuperadmin: true,
-            edition: 'cloud',
-            upiId: 'frosehq@okaxis',
-            password: 'Feroz@123'
-          },
-          '9642230688': {
-            id: 'v-stall-9642230688',
-            phone: '9642230688',
-            businessName: 'Cloud Edge Kitchen',
-            ownerName: 'Stall Partner',
-            role: 'owner',
-            isSuperadmin: false,
-            edition: 'cloud',
-            subscriptionStatus: 'trial',
-            monthlyFeePaise: '89900',
-            password: 'Feroz@123'
-          }
-        };
+        const masterDirectory = {};
 
         // Live dynamic directory created via Super Admin console
         let dynamicDirectory = {};
@@ -358,7 +334,7 @@
           return;
         }
 
-        const expectedPassword = userAccount.password || 'Feroz@123';
+        const expectedPassword = userAccount.password;
         if (password !== expectedPassword) {
           const failKey = 'frose_fails_' + phone;
           const fails = parseInt(localStorage.getItem(failKey) || '0', 10) + 1;

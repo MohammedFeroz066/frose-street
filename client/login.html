@@ -270,7 +270,7 @@
 
       // 3. Successful Authentication Dispatch
       function handleAuthSuccess(data) {
-        localStorage.setItem('frose_auth_token', data.token);
+        localStorage.removeItem('frose_auth_token'); localStorage.setItem('frose_session_active', '1');
         if (data.vendor) {
           localStorage.setItem('frose_current_vendor', JSON.stringify(data.vendor));
           if (data.vendor.businessName) localStorage.setItem('frose_stall_name', data.vendor.businessName);
@@ -387,7 +387,8 @@
         try {
           res = await fetch('/api/v1/auth/login', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+            credentials: 'same-origin',
             body: JSON.stringify({ phone, password })
           });
           if (res && res.status !== 405) {

@@ -8,8 +8,8 @@
   <meta name="theme-color" content="#0F172A">
     <script>
     (function() {
-      var token = localStorage.getItem('frose_auth_token');
-      if (!token) {
+      var session = localStorage.getItem('frose_session_active') || localStorage.getItem('frose_license_token');
+      if (!session) {
         window.location.replace('/login');
       }
     })();

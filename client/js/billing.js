@@ -79,7 +79,7 @@
   // Load Menu Catalog with instant live sync
   async function loadCatalog() {
     const vKey = getVendorKey();
-    const token = localStorage.getItem('frose_auth_token');
+    const sessionActive = localStorage.getItem('frose_session_active');
 
     // 1. Load custom categories
     let cats = [];
@@ -119,10 +119,10 @@
     } catch (e) {}
 
     // 3. Try fetching from backend API
-    if (token) {
+    if (sessionActive) {
       try {
         const res = await fetch('/api/v1/menu', {
-          headers: { Authorization: 'Bearer ' + token }
+          headers: { 'X-FROSE-CSRF': '1' }, credentials: 'same-origin'
         });
         if (res.ok) {
           const data = await res.json();
@@ -799,8 +799,16 @@
     }
   };
 
-  window.handleLogout = function () {
+  window.handleLogout = async function () {
     if (confirm('Sign out of Stall Account?')) {
+      try {
+        await fetch('/api/v1/auth/logout', {
+          method: 'POST',
+          headers: { 'X-FROSE-CSRF': '1' },
+          credentials: 'same-origin'
+        });
+      } catch (e) {}
+      localStorage.removeItem('frose_session_active');
       localStorage.removeItem('frose_auth_token');
       window.location.href = '/login';
     }

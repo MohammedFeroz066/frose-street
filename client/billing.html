@@ -8,8 +8,8 @@
   <meta name="theme-color" content="#5B0612">
     <script>
     (function() {
-      var token = localStorage.getItem('frose_auth_token');
-      if (!token) {
+      var session = localStorage.getItem('frose_session_active') || localStorage.getItem('frose_license_token');
+      if (!session) {
         window.location.replace('/login');
         return;
       }
@@ -1438,7 +1438,7 @@
         </div>
 
         <!-- Exit & Sign Out -->
-        <button type="button" onclick="window.handleLogout ? window.handleLogout() : (localStorage.removeItem('frose_auth_token'), window.location.href='/login')" style="width: 100%; height: 44px; border-radius: 12px; border: 1.5px solid #FECACA; background: #FFF5F5; color: #DC2626; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
+        <button type="button" onclick="window.handleLogout ? window.handleLogout() : (localStorage.removeItem('frose_session_active'), window.location.href='/login')" style="width: 100%; height: 44px; border-radius: 12px; border: 1.5px solid #FECACA; background: #FFF5F5; color: #DC2626; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
           <span>🚪 Sign Out of Counter Account</span>
         </button>
 

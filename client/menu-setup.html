@@ -8,8 +8,8 @@
   <meta name="theme-color" content="#5B0612">
   <script>
     (function() {
-      var token = localStorage.getItem('frose_auth_token');
-      if (!token) {
+      var session = localStorage.getItem('frose_session_active') || localStorage.getItem('frose_license_token');
+      if (!session) {
         window.location.replace('/login');
       }
     })();
@@ -638,7 +638,7 @@
 
   <script>
     (function () {
-      const AUTH_TOKEN = localStorage.getItem('frose_auth_token');
+      const AUTH_TOKEN = localStorage.getItem('frose_session_active');
       const CURRENT_VENDOR = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
       function getVendorKey() {
         return CURRENT_VENDOR.id || CURRENT_VENDOR.phone || localStorage.getItem('frose_stall_phone') || 'primary_vendor';

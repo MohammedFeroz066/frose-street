@@ -341,7 +341,9 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-FROSE-CSRF': '1',
           },
+          credentials: 'same-origin',
           body: JSON.stringify({
             businessName: stallName,
             phone,
@@ -375,7 +377,7 @@
           localStorage.setItem('frose_current_vendor', JSON.stringify(data.vendor));
           localStorage.setItem('frose_stall_name', data.vendor.businessName);
           localStorage.setItem('frose_stall_phone', data.vendor.phone);
-          localStorage.setItem('frose_auth_token', data.token);
+          localStorage.removeItem('frose_auth_token'); localStorage.setItem('frose_session_active', '1');
         } catch {
           // LocalStorage fallback
         }

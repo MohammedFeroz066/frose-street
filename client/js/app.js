@@ -143,12 +143,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnOpenPairing?.addEventListener('click', async () => {
     try {
-      const token = localStorage.getItem('frose_auth_token') || '';
       const res = await fetch('/api/v1/devices/pairing-token', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
-          authorization: token ? `Bearer ${token}` : '',
+          'X-FROSE-CSRF': '1'
         },
       });
       if (res.ok) {
@@ -179,19 +179,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 5. Fetch Live Galla Summary Glance
   async function loadGallaGlance() {
-    const token = localStorage.getItem('frose_auth_token');
-    if (!token) {
+    const sessionActive = localStorage.getItem('frose_session_active');
+    if (!sessionActive) {
       window.location.replace('/login');
       return;
     }
     try {
       const res = await fetch('/api/v1/galla/summary', {
-        headers: {
-          authorization: `Bearer ${token}`,
-        },
+        credentials: 'same-origin'
       });
       if (res.status === 401) {
-        localStorage.removeItem('frose_auth_token');
+        localStorage.removeItem('frose_session_active');
         window.location.replace('/login');
         return;
       }

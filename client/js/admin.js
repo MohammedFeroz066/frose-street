@@ -7,8 +7,8 @@
   'use strict';
 
   // 1. Session & Auth Verification
-  const token = localStorage.getItem('frose_auth_token');
-  if (!token) {
+  const sessionActive = localStorage.getItem('frose_session_active');
+  if (!sessionActive) {
     window.location.replace('/login');
     return;
   }
@@ -47,9 +47,9 @@
       ...(options.headers || {})
     };
     try {
-      const res = await fetch(endpoint, { ...options, headers });
+      const res = await fetch(endpoint, { ...options, headers, credentials: 'same-origin' });
       if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem('frose_auth_token');
+        localStorage.removeItem('frose_session_active'); localStorage.removeItem('frose_auth_token');
         window.location.replace('/login');
         return null;
       }
@@ -603,7 +603,7 @@
     const bLogout = e.target.closest('#btn-bottom-logout, #btn-menu-logout');
     if (bLogout) {
       if (confirm('Sign out of Super Admin Console?')) {
-        localStorage.removeItem('frose_auth_token');
+        localStorage.removeItem('frose_session_active'); localStorage.removeItem('frose_auth_token');
         window.location.replace('/login');
       }
       return;
@@ -861,7 +861,7 @@
     if (mLogout) {
       mLogout.addEventListener('click', () => {
         if (confirm('Sign out of Super Admin Console?')) {
-          localStorage.removeItem('frose_auth_token');
+          localStorage.removeItem('frose_session_active'); localStorage.removeItem('frose_auth_token');
           window.location.replace('/login');
         }
       });
@@ -989,7 +989,7 @@
   };
   window.adminLogout = function() {
     if (confirm('Sign out of Super Admin Console?')) {
-      localStorage.removeItem('frose_auth_token');
+      localStorage.removeItem('frose_session_active'); localStorage.removeItem('frose_auth_token');
       window.location.replace('/login');
     }
   };

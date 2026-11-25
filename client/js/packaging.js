@@ -135,7 +135,7 @@
         });
         const data = await res.json();
         if (res.ok && data.token) {
-          localStorage.setItem('frose_auth_token', data.token);
+          localStorage.setItem('frose_device_token', data.token); localStorage.setItem('frose_session_active', '1');
           if (data.device && data.device.businessName) {
             localStorage.setItem('frose_stall_name', data.device.businessName);
           }
@@ -324,7 +324,7 @@
 
     // Call API: update to 'served'
     try {
-      const token = localStorage.getItem('frose_auth_token') || '';
+      const token = localStorage.getItem('frose_device_token') || '';
       const res = await fetch(`/api/v1/orders/${orderId}/status`, {
         method: 'PATCH',
         headers: {
@@ -381,7 +381,7 @@
 
     // 2. Fetch from backend API
     try {
-      const token = localStorage.getItem('frose_auth_token') || '';
+      const token = localStorage.getItem('frose_device_token') || '';
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const res = await fetch('/api/v1/orders/live', { headers });
@@ -416,7 +416,7 @@
   function initWebSocket() {
     if (reconnectTimer) clearTimeout(reconnectTimer);
 
-    const token = localStorage.getItem('frose_auth_token') || localStorage.getItem('frose_device_token') || '';
+    const token = localStorage.getItem('frose_device_token') || '';
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 
@@ -569,7 +569,7 @@
       });
       const data = await res.json();
       if (res.ok && data.token) {
-        localStorage.setItem('frose_auth_token', data.token);
+        localStorage.setItem('frose_device_token', data.token); localStorage.setItem('frose_session_active', '1');
         if (data.vendor && data.vendor.businessName) {
           localStorage.setItem('frose_stall_name', data.vendor.businessName);
           if (stallNameEl) stallNameEl.textContent = data.vendor.businessName;
@@ -659,7 +659,7 @@
     // Check QR pairing
     checkUrlPairing();
 
-    if (!localStorage.getItem('frose_auth_token')) {
+    if (!localStorage.getItem('frose_session_active') && !localStorage.getItem('frose_device_token')) {
       window.location.replace('/login');
       return;
     }

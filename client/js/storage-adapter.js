@@ -396,15 +396,15 @@
     }
 
     _getHeaders() {
-      const token = typeof localStorage !== 'undefined' ? localStorage.getItem('frose_auth_token') : '';
       return {
         'Content-Type': 'application/json',
-        authorization: token ? `Bearer ${token}` : ''
+        'X-FROSE-CSRF': '1'
       };
     }
 
     async getNextAtomicToken() {
       const res = await fetch(`${this.baseUrl}/api/v1/orders/next-token`, {
+        credentials: 'same-origin',
         headers: this._getHeaders()
       });
       if (!res.ok) throw new Error('Failed to fetch next token from cloud');
@@ -414,6 +414,7 @@
 
     async createOrder(input) {
       const res = await fetch(`${this.baseUrl}/api/v1/orders`, {
+        credentials: 'same-origin',
         method: 'POST',
         headers: this._getHeaders(),
         body: JSON.stringify(input)
@@ -424,6 +425,7 @@
 
     async updateOrderStatus(orderId, status) {
       const res = await fetch(`${this.baseUrl}/api/v1/orders/${orderId}/status`, {
+        credentials: 'same-origin',
         method: 'PATCH',
         headers: this._getHeaders(),
         body: JSON.stringify({ status })
@@ -434,6 +436,7 @@
 
     async getLiveOrders() {
       const res = await fetch(`${this.baseUrl}/api/v1/orders/live`, {
+        credentials: 'same-origin',
         headers: this._getHeaders()
       });
       if (!res.ok) throw new Error('Cloud live orders fetch failed');
@@ -443,6 +446,7 @@
 
     async getGallaSummary() {
       const res = await fetch(`${this.baseUrl}/api/v1/galla/summary`, {
+        credentials: 'same-origin',
         headers: this._getHeaders()
       });
       if (!res.ok) throw new Error('Cloud galla summary failed');

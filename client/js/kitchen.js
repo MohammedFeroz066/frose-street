@@ -362,6 +362,20 @@
   // --- 8. FETCH LIVE QUEUE ---
 
   async function fetchLiveOrders() {
+    // 1. Instant local queue sync (zero network delay)
+    try {
+      const localQueue = localStorage.getItem('frose_live_orders_queue');
+      if (localQueue) {
+        const parsed = JSON.parse(localQueue);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          kitchenOrders = parsed.filter(o => o.status === 'pending' || o.status === 'in_prep');
+          renderQueue();
+          hideReconnectBanner();
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fetch from backend API
     try {
       const token = localStorage.getItem('frose_auth_token') || '';
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -373,18 +387,28 @@
           kitchenOrders = data.kitchenQueue;
           renderQueue();
           hideReconnectBanner();
+          try {
+            localStorage.setItem('frose_live_orders_queue', JSON.stringify(kitchenOrders));
+          } catch (_) {}
         }
       } else {
         renderQueue();
+        if (isSoloCounterDevice()) hideReconnectBanner();
       }
     } catch (err) {
-      console.warn('Failed to fetch live orders:', err);
+      console.warn('Fetch note (operating in local counter mode):', err);
       renderQueue();
-      showReconnectBanner();
+      if (!isSoloCounterDevice()) {
+        showReconnectBanner();
+      } else {
+        hideReconnectBanner();
+      }
     }
   }
 
   // --- 9. WEBSOCKET REAL-TIME SYNC & AUTO-RECONNECT ---
+  let heartbeatInterval = null;
+
   function initWebSocket() {
     if (reconnectTimer) clearTimeout(reconnectTimer);
 
@@ -399,6 +423,13 @@
         console.log('⚡ KDS WebSocket Connected');
         hideReconnectBanner();
         fetchLiveOrders();
+
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        heartbeatInterval = setInterval(() => {
+          if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+            wsConnection.send(JSON.stringify({ event: 'ping' }));
+          }
+        }, 25000);
       };
 
       wsConnection.onmessage = (event) => {
@@ -413,18 +444,37 @@
       };
 
       wsConnection.onclose = () => {
-        console.warn('WebSocket closed, attempting reconnect...');
-        showReconnectBanner();
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        if (!isSoloCounterDevice()) {
+          showReconnectBanner();
+        }
         scheduleReconnect();
       };
 
       wsConnection.onerror = () => {
-        showReconnectBanner();
+        if (!isSoloCounterDevice()) {
+          showReconnectBanner();
+        }
       };
     } catch (err) {
-      showReconnectBanner();
+      if (!isSoloCounterDevice()) {
+        showReconnectBanner();
+      }
       scheduleReconnect();
     }
+  }
+
+  // Cross-Tab Local P2P Channel for Solo Stall Counters
+  if (typeof BroadcastChannel !== 'undefined') {
+    const orderChannel = new BroadcastChannel('frose_orders');
+    orderChannel.onmessage = (event) => {
+      const msg = event.data;
+      if (msg && msg.event === 'order:new' && msg.data) {
+        handleNewIncomingOrder(msg.data);
+      } else if (msg && msg.event === 'order:status_changed' && msg.data) {
+        handleRemoteStatusChange(msg.data);
+      }
+    };
   }
 
   function scheduleReconnect() {
@@ -435,7 +485,15 @@
     }, 3000);
   }
 
+  function isSoloCounterDevice() {
+    return !!localStorage.getItem('frose_current_vendor') || !localStorage.getItem('frose_is_slave_screen');
+  }
+
   function showReconnectBanner() {
+    if (isSoloCounterDevice()) {
+      if (reconnectBanner) reconnectBanner.style.display = 'none';
+      return;
+    }
     if (reconnectBanner) reconnectBanner.style.display = 'block';
   }
 

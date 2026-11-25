@@ -365,6 +365,21 @@
   // --- 7. FETCH LIVE QUEUES ---
 
   async function fetchLiveOrders() {
+    // 1. Instant local queue sync
+    try {
+      const localQueue = localStorage.getItem('frose_live_orders_queue');
+      if (localQueue) {
+        const parsed = JSON.parse(localQueue);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          waitingOrders = parsed.filter(o => o.status === 'pending' || o.status === 'in_prep');
+          readyOrders = parsed.filter(o => o.status === 'ready');
+          renderLanes();
+          hideReconnectBanner();
+        }
+      }
+    } catch (_) {}
+
+    // 2. Fetch from backend API
     try {
       const token = localStorage.getItem('frose_auth_token') || '';
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -382,15 +397,22 @@
         hideReconnectBanner();
       } else {
         renderLanes();
+        if (isSoloCounterDevice()) hideReconnectBanner();
       }
     } catch (err) {
-      console.warn('Failed to fetch live orders:', err);
+      console.warn('Fetch note (operating in local counter mode):', err);
       renderLanes();
-      showReconnectBanner();
+      if (!isSoloCounterDevice()) {
+        showReconnectBanner();
+      } else {
+        hideReconnectBanner();
+      }
     }
   }
 
   // --- 8. WEBSOCKET SYNC & RECONNECT ---
+  let heartbeatInterval = null;
+
   function initWebSocket() {
     if (reconnectTimer) clearTimeout(reconnectTimer);
 
@@ -405,13 +427,19 @@
         console.log('⚡ Packaging WebSocket Connected');
         hideReconnectBanner();
         fetchLiveOrders();
+
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        heartbeatInterval = setInterval(() => {
+          if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+            wsConnection.send(JSON.stringify({ event: 'ping' }));
+          }
+        }, 25000);
       };
 
       wsConnection.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
           if (msg.event === 'order:new' && msg.data) {
-            // New order punched at billing: goes into waitingOrders
             if (!waitingOrders.some((o) => o.id === msg.data.id) && !readyOrders.some((o) => o.id === msg.data.id)) {
               waitingOrders.unshift(msg.data);
               renderLanes();
@@ -430,17 +458,47 @@
       };
 
       wsConnection.onclose = () => {
-        showReconnectBanner();
+        if (heartbeatInterval) clearInterval(heartbeatInterval);
+        if (!isSoloCounterDevice()) {
+          showReconnectBanner();
+        }
         scheduleReconnect();
       };
 
       wsConnection.onerror = () => {
-        showReconnectBanner();
+        if (!isSoloCounterDevice()) {
+          showReconnectBanner();
+        }
       };
     } catch (err) {
-      showReconnectBanner();
+      if (!isSoloCounterDevice()) {
+        showReconnectBanner();
+      }
       scheduleReconnect();
     }
+  }
+
+  // Cross-Tab Local P2P Channel for Solo Stall Counters
+  if (typeof BroadcastChannel !== 'undefined') {
+    const orderChannel = new BroadcastChannel('frose_orders');
+    orderChannel.onmessage = (event) => {
+      const msg = event.data;
+      if (msg && msg.event === 'order:new' && msg.data) {
+        if (!waitingOrders.some((o) => o.id === msg.data.id) && !readyOrders.some((o) => o.id === msg.data.id)) {
+          waitingOrders.unshift(msg.data);
+          renderLanes();
+        }
+      } else if (msg && msg.event === 'order:status_changed' && msg.data) {
+        const { id, newStatus } = msg.data;
+        if (newStatus === 'ready') {
+          promoteOrderToReady(id);
+        } else if (newStatus === 'served' || newStatus === 'cancelled') {
+          readyOrders = readyOrders.filter((o) => o.id !== id);
+          waitingOrders = waitingOrders.filter((o) => o.id !== id);
+          renderLanes();
+        }
+      }
+    };
   }
 
   function scheduleReconnect() {
@@ -451,7 +509,15 @@
     }, 3000);
   }
 
+  function isSoloCounterDevice() {
+    return !!localStorage.getItem('frose_current_vendor') || !localStorage.getItem('frose_is_slave_screen');
+  }
+
   function showReconnectBanner() {
+    if (isSoloCounterDevice()) {
+      if (reconnectBanner) reconnectBanner.style.display = 'none';
+      return;
+    }
     if (reconnectBanner) reconnectBanner.style.display = 'block';
   }
 

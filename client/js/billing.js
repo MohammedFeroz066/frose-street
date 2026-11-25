@@ -434,7 +434,10 @@
     currentOrderType = type;
     const bCounter = document.getElementById('btn-type-counter');
     const bDine = document.getElementById('btn-type-dinein');
+    if (!bCounter || !bDine) return;
     if (type === 'counter') {
+      bCounter.classList.add('active');
+      bDine.classList.remove('active');
       bCounter.style.background = '#5B0612';
       bCounter.style.color = '#fff';
       bCounter.style.border = '1.5px solid #5B0612';
@@ -442,6 +445,8 @@
       bDine.style.color = '#374151';
       bDine.style.border = '1.5px solid #E5E7EB';
     } else {
+      bDine.classList.add('active');
+      bCounter.classList.remove('active');
       bDine.style.background = '#5B0612';
       bDine.style.color = '#fff';
       bDine.style.border = '1.5px solid #5B0612';
@@ -544,11 +549,41 @@
     if (fToken) fToken.textContent = tokenStr;
 
     let totalPaise = 0n;
+    const itemsList = [];
     cart.forEach(({ item, quantity }) => {
       totalPaise += item.pricePaise * BigInt(quantity);
+      itemsList.push({
+        id: item.id,
+        name: item.name,
+        quantity,
+        pricePaise: item.pricePaise.toString()
+      });
     });
     const fAmount = document.getElementById('flash-token-amount');
     if (fAmount) fAmount.textContent = `${formatRupees(totalPaise)} Paid (${method})`;
+
+    // Local P2P Instant Sync to Kitchen & Packaging Stations
+    const orderData = {
+      id: 'ord-' + Date.now(),
+      tokenNo: currentTokenNumber,
+      tokenNumber: currentTokenNumber,
+      orderType: currentOrderType, // 'counter' | 'dinein'
+      items: itemsList,
+      totalPaise: totalPaise.toString(),
+      paymentMethod: method,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const orderChannel = new BroadcastChannel('frose_orders');
+        orderChannel.postMessage({ event: 'order:new', data: orderData });
+      }
+      const existingQueue = JSON.parse(localStorage.getItem('frose_live_orders_queue') || '[]');
+      existingQueue.unshift(orderData);
+      localStorage.setItem('frose_live_orders_queue', JSON.stringify(existingQueue.slice(0, 50)));
+    } catch (_) {}
 
     window.openModal('token-flash-modal');
     cart.clear();
@@ -779,6 +814,11 @@
   // First-Time Client Check & Initialization
   document.addEventListener('DOMContentLoaded', async () => {
     await refreshPOS();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('type') === 'dinein') {
+      window.setOrderType('dinein');
+    }
 
     // Check if routed with ?setup=1 or first-time login
     const urlParams = new URLSearchParams(window.location.search);

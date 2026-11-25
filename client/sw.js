@@ -5,7 +5,7 @@
  * Cache-first for immutable static icons, stale-while-revalidate for CSS/JS
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v35-solo-p2p-bridge';
+const CACHE_NAME = 'frose-street-v9-production-v50-clean-menu-modal-fix';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',

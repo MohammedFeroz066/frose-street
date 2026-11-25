@@ -25,9 +25,11 @@
     "@fastify/websocket": "^8.3.1",
     "dotenv": "^16.4.5",
     "fastify": "^4.28.1",
+    "jose": "^6.2.18",
     "kysely": "^0.27.3",
     "pg": "^8.12.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

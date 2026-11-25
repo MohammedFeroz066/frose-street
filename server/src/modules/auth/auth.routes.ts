@@ -7,6 +7,7 @@ import { getDatabase } from '../../db/database.js';
 import { loadConfig } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
 import { PaymentService } from '../payments/payment.service.js';
+import { RegisterSchema, RegisterStallSchema, validateSchema } from './auth.schemas.js';
 
 export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   const config = loadConfig();
@@ -28,11 +29,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.post('/register', async (request, reply) => {
     const db = getDatabase();
-    const body = request.body as any;
-
-    if (!body || !body.phone || !body.password || !body.businessName) {
-      throw AppError.badRequest('Phone, password, and business name are required', 'MISSING_FIELDS');
-    }
+    const body = validateSchema(RegisterSchema, request.body);
 
     const { vendor, staff } = await AuthService.registerVendor(db, {
       phone: body.phone,
@@ -82,15 +79,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   app.post('/register-stall', async (request, reply) => {
     try {
       const db = getDatabase();
-      const body = request.body as any;
-
-      if (!body || !body.phone) {
-        throw AppError.badRequest('Please enter a valid 10-digit mobile number', 'INVALID_PHONE');
-      }
-
-      if (!body.businessName || body.businessName.trim().length === 0) {
-        throw AppError.badRequest('Stall / Business name is required', 'MISSING_BUSINESS_NAME');
-      }
+      const body = validateSchema(RegisterStallSchema, request.body);
 
       const { vendor, staff, seededItemsCount } = await AuthService.registerVendor(db, {
         phone: body.phone,

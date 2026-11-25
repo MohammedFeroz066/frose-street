@@ -27,6 +27,28 @@
     return `₹${rupees}${remainder === 0 ? '.0' : '.' + remainder.toString().padStart(2, '0')}`;
   }
 
+    // Clean Slate Legacy Dummy Items Purge & Filter
+  const LEGACY_DUMMY_IDS = new Set([
+    'dish-naan-01', 'dish-chole-02', 'dish-dalfry-03', 'dish-paneertikka-04',
+    'dish-mixveg-05', 'dish-punjabipaneer-06', 'dish-chickenbiryani-07',
+    'dish-muttonbiryani-08', 'dish-momos-09', 'dish-chai-10',
+    'def-1', 'def-2', 'def-3', 'def-4', 'def-5', 'def-6', 'def-7', 'def-8',
+    'd-1', 'd-2', 'd-3'
+  ]);
+
+  const LEGACY_DUMMY_NAMES = new Set([
+    'Butter Naan', 'Chole Bhature', 'Dal Fry', 'Paneer Tikka', 'Mix Veg',
+    'Punjabi Paneer', 'Chicken Biryani Full', 'Mutton Biryani Full',
+    'Chicken Shawarma Roll', 'Paneer Butter Biryani', 'French Fries Masala'
+  ]);
+
+  function isUserCustomDish(item) {
+    if (!item || !item.name) return false;
+    if (LEGACY_DUMMY_IDS.has(item.id)) return false;
+    if (LEGACY_DUMMY_NAMES.has(item.name)) return false;
+    return true;
+  }
+
   // Load Menu Catalog with instant live sync
   async function loadCatalog() {
     const vKey = getVendorKey();
@@ -46,17 +68,25 @@
       const localDishes = localStorage.getItem('frose_dishes_' + vKey) || localStorage.getItem('frose_dishes_active');
       if (localDishes) {
         const parsed = JSON.parse(localDishes);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          menuCatalog = parsed.map(item => ({
-            ...item,
-            image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
-            pricePaise: BigInt(item.pricePaise || 5000)
-          }));
-          if (cats.length === 0) {
-            cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
+        if (Array.isArray(parsed)) {
+          const userDishes = parsed.filter(isUserCustomDish);
+          if (userDishes.length > 0) {
+            menuCatalog = userDishes.map(item => ({
+              ...item,
+              image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
+              pricePaise: BigInt(item.pricePaise || 5000)
+            }));
+            if (cats.length === 0) {
+              cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
+            }
+            renderSidebarCategories(cats);
+            return;
+          } else {
+            // Local cache only contained legacy dummy dishes: purge them completely!
+            localStorage.removeItem('frose_dishes_' + vKey);
+            localStorage.removeItem('frose_dishes_active');
+            localStorage.removeItem('frose_custom_menu_catalog');
           }
-          renderSidebarCategories(cats);
-          return;
         }
       }
     } catch (e) {}
@@ -69,25 +99,28 @@
         });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.items) && data.items.length > 0) {
-            menuCatalog = data.items.map(item => ({
-              ...item,
-              image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
-              pricePaise: BigInt(item.pricePaise || 5000)
-            }));
-            localStorage.setItem('frose_dishes_' + vKey, JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
-            localStorage.setItem('frose_dishes_active', JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
-            if (cats.length === 0) {
-              cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
+          if (Array.isArray(data.items)) {
+            const userDishes = data.items.filter(isUserCustomDish);
+            if (userDishes.length > 0) {
+              menuCatalog = userDishes.map(item => ({
+                ...item,
+                image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
+                pricePaise: BigInt(item.pricePaise || 5000)
+              }));
+              localStorage.setItem('frose_dishes_' + vKey, JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
+              localStorage.setItem('frose_dishes_active', JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
+              if (cats.length === 0) {
+                cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
+              }
+              renderSidebarCategories(cats);
+              return;
             }
-            renderSidebarCategories(cats);
-            return;
           }
         }
       } catch (e) {}
     }
 
-    // Clean slate: if no custom dishes exist, start at empty so first-time onboarding shows
+    // Clean slate: strictly 0 dishes so counter starts empty with + Add Dish
     menuCatalog = [];
     renderSidebarCategories(cats);
   }
@@ -169,13 +202,18 @@
 
     if (menuCatalog.length === 0) {
       grid.innerHTML = `
-        <div class="pos-first-time-onboarding" id="onboarding-menu-banner" style="grid-column: 1 / -1; background: #FFFFFF; border: 2px dashed #700A18; border-radius: 16px; padding: 28px 18px; text-align: center; margin: 12px 0; box-shadow: 0 4px 14px rgba(112, 10, 24, 0.05);">
-          <div style="font-size: 40px; margin-bottom: 10px;">🍽️</div>
-          <h3 style="margin: 0 0 6px 0; font-size: 16.5px; font-weight: 900; color: #5B0612;">Welcome to Your Billing Counter!</h3>
-          <p style="margin: 0 0 18px 0; font-size: 12.5px; color: #6B7280; line-height: 1.5;">You haven't configured any categories or food items yet.<br>Create your custom categories (e.g. Tea, Snacks, Momos) and add dishes to start ringing up real orders.</p>
-          <div style="display: flex; flex-direction: column; gap: 10px; max-width: 340px; margin: 0 auto;">
-            <a href="/menu-setup" id="btn-onboarding-create-menu" style="background: linear-gradient(135deg, #700A18 0%, #5B0612 100%); color: #FFF; text-decoration: none; padding: 12px 18px; border-radius: 12px; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(112, 10, 24, 0.3);">
-              ⚙️ Create Your First Category & Items →
+        <div class="pos-first-time-onboarding" id="onboarding-menu-banner" style="grid-column: 1 / -1; background: #FFFFFF; border: 2px dashed #700A18; border-radius: 20px; padding: 36px 18px; text-align: center; margin: 12px 6px; box-shadow: 0 4px 18px rgba(112, 10, 24, 0.06);">
+          <div style="font-size: 46px; margin-bottom: 8px;">🍽️</div>
+          <h3 style="margin: 0 0 6px 0; font-size: 17px; font-weight: 900; color: #5B0612;">Menu is Clean &amp; Empty</h3>
+          <p style="margin: 0 0 18px 0; font-size: 12.5px; color: #64748B; line-height: 1.5; max-width: 320px; margin-left: auto; margin-right: auto;">
+            Zero dummy dishes. Tap below to create your dishes, set prices in ₹, and start instant billing.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 10px; max-width: 260px; margin: 0 auto;">
+            <button type="button" id="btn-onboarding-add-dish" onclick="window.openAddDishModal()" style="background: linear-gradient(135deg, #700A18 0%, #5B0612 100%); color: #FFF; border: none; padding: 13px 18px; border-radius: 12px; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(112, 10, 24, 0.28); cursor: pointer;">
+              ➕ Add Dish
+            </button>
+            <a href="/menu-setup" id="btn-onboarding-create-menu" style="background: #F8FAFC; color: #334155; text-decoration: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 12px; border: 1.5px solid #CBD5E1; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              📋 Open Menu Studio →
             </a>
           </div>
         </div>
@@ -408,26 +446,50 @@
     const upiAmountEl = document.getElementById('upi-qr-amount');
     if (upiAmountEl) upiAmountEl.textContent = formatted;
 
+    // Link uploaded custom scanner QR, UPI ID, and Payee display name
+    const customQr = localStorage.getItem('frose_custom_scanner_qr');
+    const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+    const upiId = v.upiId || localStorage.getItem('frose_custom_upi_id') || '9642230688@ybl';
+    const payeeName = v.businessName || v.payeeName || v.name || 'Cloud Edge Kitchen';
+
+    const upiVpaEl = document.getElementById('upi-qr-vpa');
+    if (upiVpaEl) {
+      upiVpaEl.textContent = `${payeeName} • ${upiId}`;
+    }
+
     const qrCanvas = document.getElementById('upi-qr-code-canvas');
     if (qrCanvas) {
-      qrCanvas.innerHTML = `
-        <svg viewBox="0 0 160 160" width="160" height="160">
-          <rect width="160" height="160" fill="#fff" rx="8"/>
-          <rect x="20" y="20" width="40" height="40" fill="#111827"/>
-          <rect x="26" y="26" width="28" height="28" fill="#fff"/>
-          <rect x="32" y="32" width="16" height="16" fill="#111827"/>
-          <rect x="100" y="20" width="40" height="40" fill="#111827"/>
-          <rect x="106" y="26" width="28" height="28" fill="#fff"/>
-          <rect x="112" y="32" width="16" height="16" fill="#111827"/>
-          <rect x="20" y="100" width="40" height="40" fill="#111827"/>
-          <rect x="26" y="106" width="28" height="28" fill="#fff"/>
-          <rect x="32" y="112" width="16" height="16" fill="#111827"/>
-          <rect x="70" y="30" width="15" height="15" fill="#111827"/>
-          <rect x="75" y="60" width="20" height="20" fill="#111827"/>
-          <rect x="105" y="75" width="25" height="15" fill="#111827"/>
-          <rect x="65" y="105" width="30" height="25" fill="#111827"/>
-        </svg>
-      `;
+      if (customQr) {
+        // Render the stall's uploaded custom scanner QR code photo
+        qrCanvas.innerHTML = `
+          <div style="background: #FFFFFF; padding: 10px; border-radius: 14px; display: inline-block; box-shadow: 0 4px 14px rgba(0,0,0,0.06); border: 1.5px solid #E2E8F0;">
+            <img src="${customQr}" alt="Counter UPI Scanner" id="cart-upi-scanner-img" style="max-width: 220px; max-height: 220px; width: 200px; height: 200px; object-fit: contain; border-radius: 8px; display: block; margin: 0 auto;" />
+            <div style="margin-top: 6px; font-size: 11px; font-weight: 800; color: #059669; display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <span>✅ Counter Scanner Active</span>
+            </div>
+          </div>
+        `;
+      } else {
+        // High-clarity fallback BharatQR
+        qrCanvas.innerHTML = `
+          <svg viewBox="0 0 160 160" width="160" height="160">
+            <rect width="160" height="160" fill="#fff" rx="8"/>
+            <rect x="20" y="20" width="40" height="40" fill="#111827"/>
+            <rect x="26" y="26" width="28" height="28" fill="#fff"/>
+            <rect x="32" y="32" width="16" height="16" fill="#111827"/>
+            <rect x="100" y="20" width="40" height="40" fill="#111827"/>
+            <rect x="106" y="26" width="28" height="28" fill="#fff"/>
+            <rect x="112" y="32" width="16" height="16" fill="#111827"/>
+            <rect x="20" y="100" width="40" height="40" fill="#111827"/>
+            <rect x="26" y="106" width="28" height="28" fill="#fff"/>
+            <rect x="32" y="112" width="16" height="16" fill="#111827"/>
+            <rect x="70" y="30" width="15" height="15" fill="#111827"/>
+            <rect x="75" y="60" width="20" height="20" fill="#111827"/>
+            <rect x="105" y="75" width="25" height="15" fill="#111827"/>
+            <rect x="65" y="105" width="30" height="25" fill="#111827"/>
+          </svg>
+        `;
+      }
     }
 
     window.openModal('upi-qr-modal');
@@ -508,24 +570,27 @@
 
   // Dish Management (Add & Edit)
   window.openAddDishModal = function() {
-    document.getElementById('input-dish-name').value = '';
-    document.getElementById('input-dish-price').value = '';
+    const nameEl = document.getElementById('input-dish-name');
+    const priceEl = document.getElementById('input-dish-price');
+    if (nameEl) nameEl.value = '';
+    if (priceEl) priceEl.value = '';
 
-    const vendor = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-    const vendorId = vendor.id || 'default';
+    const vKey = getVendorKey();
     let cats = [];
     try {
-      const savedCats = localStorage.getItem('frose_cats_' + vendorId);
+      const savedCats = localStorage.getItem('frose_cats_' + vKey) || localStorage.getItem('frose_cats_active');
       if (savedCats) cats = JSON.parse(savedCats);
     } catch (e) {}
 
     const select = document.getElementById('input-dish-category');
     if (select) {
-      if (cats.length === 0) {
-        select.innerHTML = '<option value="" disabled selected>⚠️ Please add a category first</option>';
-      } else {
-        select.innerHTML = cats.map(c => `<option value="${c.toLowerCase().replace(/\s+/g, '-')}">${c}</option>`).join('');
+      if (!cats || cats.length === 0) {
+        cats = ['Special Items'];
+        localStorage.setItem('frose_cats_' + vKey, JSON.stringify(cats));
+        localStorage.setItem('frose_cats_active', JSON.stringify(cats));
+        renderSidebarCategories(cats);
       }
+      select.innerHTML = cats.map(c => `<option value="${c.toLowerCase().replace(/\s+/g, '-')}">${c}</option>`).join('');
     }
 
     window.openModal('modal-add-dish');
@@ -539,19 +604,20 @@
     const photo = document.getElementById('input-dish-photo-select').value;
 
     const newDish = {
-      id: 'dish-' + Math.random().toString(36).substring(2, 9),
+      id: 'dish-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
       name,
       pricePaise: BigInt(priceRupees * 100),
-      category,
+      category: category || 'special-items',
       isBestSeller: false,
       image: photo
     };
 
     menuCatalog.push(newDish);
     saveCatalog();
+    renderDishesGrid();
+    updateCartUI();
     window.closeModal('modal-add-dish');
-    window.selectCategory(category);
-    alert(`✅ "${name}" successfully added to ${category}!`);
+    if (category) window.selectCategory(category);
   };
 
   let activeEditingDishId = null;

@@ -1,10 +1,11 @@
 /**
  * FROSE Street Service Worker (Phase 16 Production)
- * Network-first strategy for navigation / HTML (ensures live updates always load)
+ * frose-street-v9-production compatibility
+ * Instant Stale-While-Revalidate strategy for navigation / HTML (0-lag iOS-style app feel)
  * Cache-first for immutable static icons, stale-while-revalidate for CSS/JS
  */
 
-const CACHE_NAME = 'frose-street-v11-settings-bulletproof';
+const CACHE_NAME = 'frose-street-v9-production-v12-ios-fast';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -13,6 +14,7 @@ const PRECACHE_ASSETS = [
   '/billing.html',
   '/kitchen.html',
   '/packaging.html',
+  '/menu-setup.html',
   '/css/style.css',
   '/js/storage-adapter.js',
   '/js/escpos-generator.js',
@@ -32,7 +34,7 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('⚡ Pre-caching offline PWA assets (v9)');
+      console.log('⚡ Pre-caching offline PWA assets (v9-production)');
       return cache.addAll(PRECACHE_ASSETS);
     })
   );
@@ -65,23 +67,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first strategy for HTML pages & navigation requests
+  // Instant Stale-While-Revalidate for HTML pages & navigation (Zero-lag 120fps iOS navigation)
   if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-          }
-          return networkResponse;
-        })
-        .catch(async () => {
-          // Serve exact requested page if cached, otherwise fall back to portal home
-          const cached = await caches.match(event.request);
-          if (cached) return cached;
-          return (await caches.match('/index.html')) || Response.error();
-        })
+      caches.match(event.request).then((cachedResponse) => {
+        const fetchPromise = fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+            }
+            return networkResponse;
+          })
+          .catch(() => null);
+
+        // If page is cached, serve immediately in 0ms, revalidate in background
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetchPromise.then((res) => res || caches.match('/index.html') || Response.error());
+      })
     );
     return;
   }

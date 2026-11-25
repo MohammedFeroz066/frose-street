@@ -728,6 +728,37 @@
 
       
 <style id="frose-settings-bulletproof-css">
+  /* Apple iOS 120fps Fluid View Transitions & Instant Touch Responsiveness */
+  @view-transition {
+    navigation: auto;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  ::view-transition-old(root) {
+    animation: 200ms cubic-bezier(0.32, 0.72, 0, 1) both iosSlideOut;
+  }
+  ::view-transition-new(root) {
+    animation: 240ms cubic-bezier(0.32, 0.72, 0, 1) both iosSlideIn;
+  }
+  @keyframes iosSlideOut {
+    from { opacity: 1; transform: translate3d(0, 0, 0); }
+    to { opacity: 0.88; transform: translate3d(-18%, 0, 0); }
+  }
+  @keyframes iosSlideIn {
+    from { opacity: 0; transform: translate3d(100%, 0, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+  .pos-main-container, .stall-dashboard-container {
+    animation: iosPageEnter 0.22s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+    will-change: transform, opacity;
+  }
+  @keyframes iosPageEnter {
+    from { opacity: 0; transform: translate3d(0, 6px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+
   /* 100% Guaranteed Inline Styles for Settings Accordion (Design 3) */
   html.modal-open,
   body.modal-open {
@@ -1345,6 +1376,7 @@
   <!-- Scripts -->
   <script type="module" src="/js/storage-adapter.js?v=2.3.0"></script>
   <script type="module" src="/js/app.js?v=2.3.0"></script>
+  <script src="/js/ios-fast-nav.js" defer></script>
   <script>
     window.openModal = function(id) {
       document.getElementById(id)?.classList.add('active');

@@ -113,22 +113,34 @@
     }
   }
 
-  // Load Dishes for Quick Editor
+  // Load Dishes for Quick Editor (Clean Slate: strictly vendor dishes, zero fake seeds)
   function loadDishesList() {
     const listContainer = document.getElementById('sett-dishes-list');
     if (!listContainer) return;
 
     try {
-      const vKey = currentVendor?.phone || 'active';
+      const vKey = currentVendor?.phone || currentVendor?.id || 'active';
       const rawDishes = localStorage.getItem('frose_dishes_' + vKey) || localStorage.getItem('frose_dishes_active');
       let dishes = rawDishes ? JSON.parse(rawDishes) : [];
 
-      if (!Array.isArray(dishes) || dishes.length === 0) {
-        dishes = [
-          { id: 'd-1', name: 'Chicken Shawarma Roll', price: 120, inStock: true, category: 'Rolls' },
-          { id: 'd-2', name: 'Paneer Butter Biryani', price: 180, inStock: true, category: 'Biryani' },
-          { id: 'd-3', name: 'French Fries Masala', price: 80, inStock: false, category: 'Sides' }
-        ];
+      const legacyDummyIds = new Set([
+        'dish-naan-01', 'dish-chole-02', 'dish-dalfry-03', 'dish-paneertikka-04',
+        'dish-mixveg-05', 'dish-punjabipaneer-06', 'dish-chickenbiryani-07',
+        'dish-muttonbiryani-08', 'dish-momos-09', 'dish-chai-10',
+        'def-1', 'def-2', 'def-3', 'def-4', 'def-5', 'def-6', 'def-7', 'def-8',
+        'd-1', 'd-2', 'd-3'
+      ]);
+
+      const legacyDummyNames = new Set([
+        'Chicken Shawarma Roll', 'Paneer Butter Biryani', 'French Fries Masala',
+        'Butter Naan', 'Chole Bhature', 'Dal Fry', 'Paneer Tikka', 'Mix Veg',
+        'Punjabi Paneer', 'Chicken Biryani Full', 'Mutton Biryani Full'
+      ]);
+
+      if (Array.isArray(dishes)) {
+        dishes = dishes.filter(d => !legacyDummyIds.has(d.id) && !legacyDummyNames.has(d.name));
+      } else {
+        dishes = [];
       }
 
       activeDishes = dishes;
@@ -143,7 +155,14 @@
     if (!listContainer) return;
 
     if (activeDishes.length === 0) {
-      listContainer.innerHTML = `<div style="text-align: center; color: #94A3B8; font-size: 12px; padding: 12px;">No dishes found. Tap "+ Add Dish" below.</div>`;
+      listContainer.innerHTML = `
+        <div style="text-align: center; padding: 22px 10px; color: #64748B;">
+          <div style="font-size: 32px; margin-bottom: 6px;">🍽️</div>
+          <div style="font-weight: 800; font-size: 13.5px; color: #0F172A;">Your Menu is Empty</div>
+          <div style="font-size: 11.5px; margin-top: 2px; color: #64748B;">Zero dummy dishes. Ready for your stall items.</div>
+          <a href="/menu-setup" class="sett-btn-primary" style="display: inline-flex; width: auto; margin-top: 10px; padding: 7px 16px; font-size: 11.5px; text-decoration: none;">+ Add First Dish</a>
+        </div>
+      `;
       return;
     }
 
@@ -259,7 +278,7 @@
     showToast('✅ Stall profile updated successfully!');
   };
 
-  // Save Payment Scanner & UPI
+  // Save Payment Scanner & UPI (Fully linked to Cart Checkout)
   window.savePaymentScanner = function () {
     const upiId = document.getElementById('sett-upi-id')?.value.trim();
     const payee = document.getElementById('sett-payee-name')?.value.trim();
@@ -274,11 +293,13 @@
     if (payee) currentVendor.payeeName = payee;
 
     localStorage.setItem('frose_current_vendor', JSON.stringify(currentVendor));
+    localStorage.setItem('frose_custom_upi_id', upiId);
+    if (payee) localStorage.setItem('frose_custom_payee_name', payee);
     loadScannerSettings();
     showToast('✅ Payment UPI & Scanner settings saved!');
   };
 
-  // Handle Scanner Image Upload
+  // Handle Scanner Image Upload with Client-Side Downscaling & Compression
   window.handleScannerImageUpload = function (event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -290,23 +311,49 @@
 
     const reader = new FileReader();
     reader.onload = function (e) {
-      const dataUrl = e.target.result;
-      try {
-        localStorage.setItem('frose_custom_scanner_qr', dataUrl);
+      const rawUrl = e.target.result;
+      const img = new Image();
+      img.onload = function () {
+        // Downscale to max 600px width/height for fast loading and low storage footprint
+        const maxDim = 600;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+
+        try {
+          localStorage.setItem('frose_custom_scanner_qr', compressedDataUrl);
+          loadScannerSettings();
+          showToast('📸 Custom UPI Scanner photo uploaded and active in Checkout!');
+        } catch (err) {
+          localStorage.setItem('frose_custom_scanner_qr', rawUrl);
+          loadScannerSettings();
+          showToast('📸 Custom UPI Scanner photo uploaded!');
+        }
+      };
+      img.onerror = function() {
+        localStorage.setItem('frose_custom_scanner_qr', rawUrl);
         loadScannerSettings();
-        showToast('📸 Custom UPI Scanner QR photo uploaded!');
-      } catch (err) {
-        alert('Image file is too large for local cache. Please select a smaller photo under 2MB.');
-      }
+        showToast('📸 Custom UPI Scanner photo uploaded!');
+      };
+      img.src = rawUrl;
     };
     reader.readAsDataURL(file);
-  };
-
-  // Toggle Dish In-Stock / Out-of-Stock
-  window.toggleDishStock = function (idx) {
-    if (!activeDishes[idx]) return;
-    activeDishes[idx].inStock = activeDishes[idx].inStock === false ? true : false;
-    renderDishesList();
   };
 
   // Save Dish Prices & Availability

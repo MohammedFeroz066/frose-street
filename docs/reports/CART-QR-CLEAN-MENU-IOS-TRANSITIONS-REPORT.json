@@ -1,0 +1,38 @@
+{
+  "task": "Custom Payment Scanner in Cart UPI, Clean Slate 0-Dishes Menu, and iOS 120fps Zero-Lag Transitions",
+  "status": "PASS",
+  "branch": "feature/cart-custom-qr-clean-menu-and-ios-transitions",
+  "baseBranch": "master",
+  "repository": "frose-street",
+  "date": "2026-11-25",
+  "testResults": {
+    "vitest": {
+      "totalSuites": 23,
+      "passedSuites": 23,
+      "failedSuites": 0,
+      "totalTests": 272,
+      "passedTests": 272,
+      "failedTests": 0
+    },
+    "typescript": {
+      "errors": 0
+    },
+    "playwright": {
+      "totalTests": 5,
+      "passedTests": 5,
+      "failedTests": 0
+    }
+  },
+  "acceptanceCriteria": [
+    { "criterion": "Uploaded Scanner QR renders in Cart Checkout Modal", "status": "PASS" },
+    { "criterion": "Vendor UPI ID and Payee Name bind to Cart Checkout VPA display", "status": "PASS" },
+    { "criterion": "Zero dummy dishes loaded on counter init", "status": "PASS" },
+    { "criterion": "Clean state empty banner with prominent '+ Add Dish' button", "status": "PASS" },
+    { "criterion": "Zero lag iOS page transitions and touch-response optimization", "status": "PASS" }
+  ],
+  "screenshots": [
+    "docs/walkthroughs/screenshots/cart-qr-clean-menu/01_clean_slate_zero_dummy_dishes_390x844.png",
+    "docs/walkthroughs/screenshots/cart-qr-clean-menu/02_settings_with_uploaded_scanner_390x844.png",
+    "docs/walkthroughs/screenshots/cart-qr-clean-menu/03_cart_checkout_upi_custom_scanner_390x844.png"
+  ]
+}

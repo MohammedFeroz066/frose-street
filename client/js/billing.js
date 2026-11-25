@@ -485,12 +485,12 @@
     // Link uploaded custom scanner QR, UPI ID, and Payee display name
     const customQr = localStorage.getItem('frose_custom_scanner_qr');
     const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-    const upiId = v.upiId || localStorage.getItem('frose_custom_upi_id') || '9642230688@ybl';
+    const upiId = v.upiId || localStorage.getItem('frose_custom_upi_id') || '';
     const payeeName = v.businessName || v.payeeName || v.name || 'Cloud Edge Kitchen';
 
     const upiVpaEl = document.getElementById('upi-qr-vpa');
     if (upiVpaEl) {
-      upiVpaEl.textContent = `${payeeName} • ${upiId}`;
+      upiVpaEl.textContent = upiId ? `${payeeName} • ${upiId}` : 'Set up payment QR in settings';
     }
 
     const qrCanvas = document.getElementById('upi-qr-code-canvas');
@@ -506,7 +506,11 @@
           </div>
         `;
       } else {
-        // High-clarity fallback BharatQR
+        if (!upiId) {
+          qrCanvas.innerHTML = '<div style="background:#FFF;padding:24px;border-radius:14px;text-align:center;border:1.5px dashed #CBD5E1;color:#64748B;"><div style="font-size:32px;margin-bottom:6px;">📷</div><div style="font-size:13px;font-weight:800;color:#0F172A;margin-bottom:4px;">Set up payment QR</div><div style="font-size:11px;">Configure UPI VPA or scanner in settings.</div></div>';
+          window.openModal('upi-qr-modal');
+          return;
+        }
         qrCanvas.innerHTML = `
           <svg viewBox="0 0 160 160" width="160" height="160">
             <rect width="160" height="160" fill="#fff" rx="8"/>
@@ -883,5 +887,10 @@
 
   window.contactSuperAdminWhatsApp = function() {
     const msg = 'Hello Super Admin, I am at my counter and need to renew my FROSE Street subscription.';
-    window.open('https://api.whatsapp.com/send?phone=919999999999&text=' + encodeURIComponent(msg), '_blank');
+    const supportPhone = localStorage.getItem('frose_support_phone') || '';
+    if (supportPhone) {
+      window.open('https://api.whatsapp.com/send?phone=' + encodeURIComponent(supportPhone) + '&text=' + encodeURIComponent(msg), '_blank');
+    } else {
+      alert('Support contact is not configured. Please contact platform administrator.');
+    }
   };

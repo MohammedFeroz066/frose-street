@@ -26,9 +26,9 @@
         id: 'v-stall-default',
         businessName: 'Cloud Edge Kitchen',
         ownerName: 'Mohammed Feroz',
-        phone: '9642230688',
+        phone: '',
         city: 'Hyderabad',
-        upiId: '9642230688@ybl',
+        upiId: '',
         payeeName: 'Cloud Edge Kitchen'
       };
 
@@ -44,7 +44,7 @@
       if (oName) oName.value = currentVendor.ownerName || '';
       if (phone) phone.value = currentVendor.phone ? `+91 ${currentVendor.phone}` : '+91 96422 30688';
       if (addr) addr.value = currentVendor.address || currentVendor.city || 'Stall #4, Food Court, Hyderabad';
-      if (upi) upi.value = currentVendor.upiId || '9642230688@ybl';
+      if (upi) upi.value = currentVendor.upiId || '';
       if (payee) payee.value = currentVendor.payeeName || currentVendor.businessName || 'Cloud Edge Kitchen';
 
       // Header strip
@@ -52,7 +52,7 @@
       const sOwner = document.getElementById('sett-header-owner-name');
       const sAvatar = document.getElementById('sett-header-avatar');
       if (sStall) sStall.textContent = currentVendor.businessName || 'Stall Counter';
-      if (sOwner) sOwner.textContent = `${currentVendor.ownerName || 'Mohammed Feroz'} • +91 ${currentVendor.phone || '9642230688'}`;
+      if (sOwner) sOwner.textContent = currentVendor.phone ? `${currentVendor.ownerName || 'Stall Partner'} • +91 ${currentVendor.phone}` : (currentVendor.ownerName || 'Stall Partner');
       if (sAvatar) {
         const initials = (currentVendor.businessName || 'SC')
           .split(' ')
@@ -75,7 +75,13 @@
       const vpaDisplay = document.getElementById('sett-qr-vpa-display');
 
       if (vpaDisplay && currentVendor) {
-        vpaDisplay.textContent = `VPA: ${currentVendor.upiId || '9642230688@ybl'}`;
+        if (currentVendor && currentVendor.upiId) {
+          vpaDisplay.textContent = `VPA: ${currentVendor.upiId}`;
+          vpaDisplay.style.color = '#10B981';
+        } else {
+          vpaDisplay.textContent = 'Set up payment QR in settings';
+          vpaDisplay.style.color = '#EF4444';
+        }
       }
 
       if (previewEl) {
@@ -296,7 +302,7 @@
     const payee = document.getElementById('sett-payee-name')?.value.trim();
 
     if (!upiId) {
-      alert('Please enter a valid UPI VPA ID (e.g. 9642230688@ybl).');
+      alert('Please enter a valid UPI VPA ID (e.g. mystall@upi).');
       return;
     }
 

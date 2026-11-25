@@ -6,19 +6,38 @@
   <title>Billing & Menu POS — FROSE Street</title>
   <meta name="description" content="Ultra-fast, formal two-color enterprise POS for street food vendors, carts, and stalls.">
   <meta name="theme-color" content="#5B0612">
-  <script>
+    <script>
     (function() {
       var token = localStorage.getItem('frose_auth_token');
       if (!token) {
         window.location.replace('/login');
+        return;
       }
+      // Mandatory hard clean-slate purge for installed mobile PWA
+      var PURGE_KEY = 'frose_clean_slate_2026_v12';
+      if (!localStorage.getItem(PURGE_KEY)) {
+        for (var i = localStorage.length - 1; i >= 0; i--) {
+          var k = localStorage.key(i);
+          if (k && (k.indexOf('frose_dishes') === 0 || k.indexOf('frose_cats') === 0 || k === 'frose_custom_menu_catalog')) {
+            localStorage.removeItem(k);
+          }
+        }
+        localStorage.setItem(PURGE_KEY, 'true');
+      }
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          for (var r of regs) { r.update(); }
+        });
+      }
+
     })();
   </script>
   <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=3.6.0">
+  <link rel="stylesheet" href="/css/style.css?v=6.0.0">
   <style>
     /* Image 2 Parity Styling */
     :root {
@@ -744,9 +763,9 @@
   </div>
 
   <!-- PWA & Feature Logic -->
-  <script type="module" src="/js/storage-adapter.js?v=2.3.0"></script>
-  <script type="module" src="/js/billing.js?v=3.3.0"></script>
-  <script src="/js/ios-fast-nav.js" defer></script>
+  <script type="module" src="/js/storage-adapter.js?v=6.0.0"></script>
+  <script type="module" src="/js/billing.js?v=6.0.0"></script>
+  <script src="/js/ios-fast-nav.js?v=6.0.0" defer></script>
 
   <script>
     // Global Mobile History & Back Navigation Controller for Billing POS

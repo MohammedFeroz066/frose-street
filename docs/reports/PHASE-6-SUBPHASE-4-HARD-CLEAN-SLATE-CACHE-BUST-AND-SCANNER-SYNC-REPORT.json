@@ -1,0 +1,21 @@
+{
+  "task": "Hard Clean Slate 0-Dishes Enforcement and PWA Cache Busting",
+  "status": "PASS",
+  "branch": "feature/hard-clean-slate-cache-bust-and-scanner-sync",
+  "tests": {
+    "typescript": "PASS (0 errors)",
+    "vitest": {
+      "suitesPassed": 23,
+      "suitesFailed": 0,
+      "testsPassed": 272,
+      "testsFailed": 0
+    },
+    "playwright": {
+      "passed": 5,
+      "failed": 0
+    }
+  },
+  "cacheBustVersion": "v6.0.0",
+  "serviceWorkerCache": "frose-street-v9-production-v30-clean-slate",
+  "cleanSlatePurgeKey": "frose_clean_slate_2026_v12"
+}

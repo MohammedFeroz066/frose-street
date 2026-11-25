@@ -224,6 +224,9 @@
       if (i === index) {
         const isHidden = body.style.display === 'none' || !body.style.display;
         body.style.display = isHidden ? 'flex' : 'none';
+        body.style.flexDirection = 'column';
+        body.style.width = '100%';
+        body.style.boxSizing = 'border-box';
         if (allHeaders[i]) {
           if (isHidden) allHeaders[i].classList.add('expanded');
           else allHeaders[i].classList.remove('expanded');
@@ -252,6 +255,9 @@
     allBodies.forEach((body, i) => {
       if (i === index) {
         body.style.display = 'flex';
+        body.style.flexDirection = 'column';
+        body.style.width = '100%';
+        body.style.boxSizing = 'border-box';
         if (allHeaders[i]) allHeaders[i].classList.add('expanded');
         if (allItems[i]) allItems[i].classList.add('is-open');
       }
@@ -492,7 +498,7 @@
   // Prevent background touch dragging on mobile
   document.addEventListener('touchmove', function (e) {
     if (document.body.classList.contains('modal-open')) {
-      const isInsideScrollable = e.target.closest('.sett-scroll-content, .modal-card');
+      const isInsideScrollable = e.target.closest('.sett-scroll-content, .sett-quick-bar, .sett-modal-card');
       if (!isInsideScrollable) {
         e.preventDefault();
       }

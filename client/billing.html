@@ -14,11 +14,11 @@
         return;
       }
       // Mandatory hard clean-slate purge for installed mobile PWA
-      var PURGE_KEY = 'frose_clean_slate_2026_v12';
+      var PURGE_KEY = 'frose_clean_slate_2026_v99_permanent_empty';
       if (!localStorage.getItem(PURGE_KEY)) {
         for (var i = localStorage.length - 1; i >= 0; i--) {
           var k = localStorage.key(i);
-          if (k && (k.indexOf('frose_dishes') === 0 || k.indexOf('frose_cats') === 0 || k === 'frose_custom_menu_catalog')) {
+          if (k && (k.indexOf('frose_dishes') === 0 || k.indexOf('frose_cats') === 0 || k === 'frose_custom_menu_catalog' || k.indexOf('frose_menu') === 0)) {
             localStorage.removeItem(k);
           }
         }
@@ -37,7 +37,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=7.0.0">
+  <link rel="stylesheet" href="/css/style.css?v=8.0.0">
   <style>
     /* Image 2 Parity Styling */
     :root {
@@ -555,7 +555,7 @@
   <!-- 3. Floating Bottom Cart Pill (Image 2 Parity) -->
   <div class="pos-floating-cart-pill" id="pos-floating-cart-pill" onclick="window.openCheckoutDrawer()">
     <span class="cart-pill-icon">🛒</span>
-    <span class="cart-pill-stats" id="cart-pill-stats">3 • &#8377;430</span>
+    <span class="cart-pill-stats" id="cart-pill-stats">0 • &#8377;0.0</span>
     <span class="cart-pill-divider"></span>
     <span class="cart-pill-action">Order &rarr;</span>
   </div>
@@ -763,9 +763,9 @@
   </div>
 
   <!-- PWA & Feature Logic -->
-  <script type="module" src="/js/storage-adapter.js?v=7.0.0"></script>
-  <script type="module" src="/js/billing.js?v=7.0.0"></script>
-  <script src="/js/ios-fast-nav.js?v=7.0.0" defer></script>
+  <script type="module" src="/js/storage-adapter.js?v=8.0.0"></script>
+  <script type="module" src="/js/billing.js?v=8.0.0"></script>
+  <script src="/js/ios-fast-nav.js?v=8.0.0" defer></script>
 
   <script>
     // Global Mobile History & Back Navigation Controller for Billing POS
@@ -826,7 +826,7 @@
     to { opacity: 1; transform: translate3d(0, 0, 0); }
   }
 
-  /* 100% Guaranteed Inline Styles for Settings Accordion (Design 3) */
+  /* 100% Guaranteed Bulletproof Inline Styles for Settings Modal (Design 3) */
   html.modal-open,
   body.modal-open {
     position: fixed !important;
@@ -839,6 +839,8 @@
   #settings-modal.modal-overlay {
     position: fixed !important;
     inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
     background: rgba(15, 23, 42, 0.75) !important;
     backdrop-filter: blur(8px) !important;
     -webkit-backdrop-filter: blur(8px) !important;
@@ -856,13 +858,14 @@
     display: flex !important;
   }
 
+  /* Settings Modal Card: Completely decoupled from .modal-card to prevent mobile 320px squash */
   .sett-modal-card {
-    width: 100% !important;
+    width: 95vw !important;
     max-width: 440px !important;
-    height: 86vh !important;
+    height: 88vh !important;
     max-height: 720px !important;
     padding: 0 !important;
-    border-radius: 24px !important;
+    border-radius: 20px !important;
     overflow: hidden !important;
     text-align: left !important;
     border: 1px solid rgba(0, 0, 0, 0.12) !important;
@@ -871,20 +874,25 @@
     display: flex !important;
     flex-direction: column !important;
     box-sizing: border-box !important;
+    margin: auto !important;
   }
 
   .sett-header {
     flex-shrink: 0 !important;
-    padding: 16px 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 14px 18px !important;
     background: #FFFFFF !important;
-    border-bottom: 1px solid #E2E8F0 !important;
+    border-bottom: 1.5px solid #F1F5F9 !important;
     display: flex !important;
+    flex-direction: row !important;
     justify-content: space-between !important;
     align-items: center !important;
+    text-align: left !important;
   }
 
   .sett-header-title {
-    font-size: 17px !important;
+    font-size: 16px !important;
     font-weight: 900 !important;
     color: #0F172A !important;
     letter-spacing: -0.3px !important;
@@ -892,6 +900,7 @@
     align-items: center !important;
     gap: 8px !important;
     margin: 0 !important;
+    text-align: left !important;
   }
 
   .sett-header-sub {
@@ -899,29 +908,36 @@
     color: #64748B !important;
     font-weight: 600 !important;
     margin-top: 2px !important;
+    text-align: left !important;
   }
 
   .sett-close-btn {
     width: 32px !important;
     height: 32px !important;
     border-radius: 50% !important;
-    border: 1px solid #E2E8F0 !important;
+    border: 1.5px solid #E2E8F0 !important;
     background: #F8FAFC !important;
     font-size: 14px !important;
-    font-weight: 800 !important;
+    font-weight: 900 !important;
     color: #64748B !important;
     cursor: pointer !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     flex-shrink: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
   }
 
   .sett-quick-bar {
     flex-shrink: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     gap: 8px !important;
-    padding: 10px 16px !important;
+    padding: 10px 14px !important;
     background: #F8FAFC !important;
     border-bottom: 1px solid #E2E8F0 !important;
     overflow-x: auto !important;
@@ -947,6 +963,7 @@
     justify-content: center !important;
     gap: 5px !important;
     outline: none !important;
+    white-space: nowrap !important;
   }
 
   .sett-quick-pill.active {
@@ -956,13 +973,16 @@
     box-shadow: 0 2px 6px rgba(112, 10, 24, 0.3) !important;
   }
 
+  /* Scrollable Accordion Content with Isolated Touch Scrolling */
   .sett-scroll-content {
     flex: 1 1 auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     overscroll-behavior: contain !important;
     touch-action: pan-y !important;
-    padding: 16px !important;
+    padding: 14px !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 12px !important;
@@ -970,21 +990,28 @@
 
   .sett-acc-item {
     flex-shrink: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     border: 1.5px solid #E2E8F0 !important;
     border-radius: 14px !important;
     background: #FFFFFF !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.02) !important;
+    overflow: hidden !important;
   }
 
   .sett-acc-header {
+    width: 100% !important;
+    box-sizing: border-box !important;
     min-height: 50px !important;
     padding: 12px 14px !important;
     display: flex !important;
+    flex-direction: row !important;
     justify-content: space-between !important;
     align-items: center !important;
     cursor: pointer !important;
     background: #FFFFFF !important;
     border-radius: 12px !important;
+    text-align: left !important;
   }
 
   .sett-acc-header.expanded {
@@ -996,11 +1023,15 @@
 
   .sett-acc-title-group {
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
     gap: 10px !important;
     font-size: 13.5px !important;
     font-weight: 800 !important;
     color: #0F172A !important;
+    text-align: left !important;
+    flex: 1 !important;
+    min-width: 0 !important;
   }
 
   .sett-acc-chevron {
@@ -1015,6 +1046,7 @@
     color: #64748B !important;
     font-weight: 900 !important;
     flex-shrink: 0 !important;
+    margin-left: 8px !important;
   }
   .sett-acc-header.expanded .sett-acc-chevron {
     background: #EFF6FF !important;
@@ -1023,17 +1055,23 @@
   }
 
   .sett-acc-body {
-    padding: 16px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 14px !important;
     background: #FFFFFF !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 14px !important;
+    gap: 12px !important;
+    text-align: left !important;
   }
 
   .sett-input-group {
+    width: 100% !important;
+    box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 5px !important;
+    text-align: left !important;
   }
 
   .sett-label {
@@ -1041,22 +1079,25 @@
     font-weight: 800 !important;
     color: #334155 !important;
     display: block !important;
+    text-align: left !important;
   }
 
   .sett-input {
     width: 100% !important;
+    box-sizing: border-box !important;
     height: 42px !important;
     border-radius: 10px !important;
     border: 1.5px solid #CBD5E1 !important;
-    padding: 0 14px !important;
+    padding: 0 12px !important;
     font-size: 13.5px !important;
     font-weight: 600 !important;
     color: #0F172A !important;
     background: #FAFAFA !important;
-    box-sizing: border-box !important;
   }
 
   .sett-btn-action {
+    width: 100% !important;
+    box-sizing: border-box !important;
     height: 42px !important;
     border-radius: 10px !important;
     background: #700A18 !important;
@@ -1073,7 +1114,9 @@
   }
 
   .sett-btn-secondary {
-    height: 36px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    height: 38px !important;
     border-radius: 8px !important;
     background: #F1F5F9 !important;
     border: 1px solid #CBD5E1 !important;
@@ -1127,7 +1170,7 @@
 
   <!-- Modern Professional SaaS Settings & Profile Modal (Design 3: Vertical Accordion Drawer) -->
   <div class="modal-overlay" id="settings-modal">
-    <div class="modal-card sett-modal-card">
+    <div class="sett-modal-card">
       <!-- Header -->
       <div class="sett-header">
         <div>
@@ -1159,7 +1202,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
               <label class="sett-label">Stall Business Name *</label>
               <input type="text" id="sett-business-name" class="sett-input" placeholder="e.g. Cloud Edge Kitchen" />
@@ -1191,7 +1234,7 @@
             </div>
             <span class="sett-acc-chevron" style="color: #3B82F6;">▼</span>
           </div>
-          <div class="sett-acc-body" style="display: flex;">
+          <div class="sett-acc-body" style="display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div style="border: 2px dashed #CBD5E1; border-radius: 12px; padding: 12px; display: flex; gap: 14px; align-items: center; background: #F8FAFC;">
               <div class="sett-qr-preview-box" id="sett-qr-preview-box">
                 <span style="font-size: 32px;">📱</span>
@@ -1237,7 +1280,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
               <span style="font-size: 11px; font-weight: 700; color: #64748B;">DISH NAME &bull; CATEGORY</span>
               <span style="font-size: 11px; font-weight: 700; color: #64748B;">PRICE &bull; STOCK</span>
@@ -1265,7 +1308,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
               <label class="sett-label">GST Tax Calculation Mode</label>
               <select id="sett-gst-rate" class="sett-input">
@@ -1309,7 +1352,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
               <label class="sett-label">New Order Audio Alert (KOT Chime)</label>
               <select id="sett-kitchen-chime" class="sett-input">
@@ -1341,7 +1384,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
               <label class="sett-label">Token Number Generation Mode</label>
               <select id="sett-token-mode" class="sett-input">
@@ -1373,7 +1416,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="font-size: 12px; font-weight: 800; color: #0F172A;">Phone Storage (IndexedDB)</div>
@@ -1402,7 +1445,7 @@
       </div>
     </div>
   </div>
-  <script src="/js/settings-component.js"></script>
+  <script src="/js/settings-component.js?v=8.0.0"></script>
 
 
   <!-- Part 2: Remote Subscription Lockout Modal (Kill-Switch) -->

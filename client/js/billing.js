@@ -28,7 +28,7 @@
   }
 
         // Clean Slate Legacy Dummy Items Purge & Filter
-  const PURGE_KEY = 'frose_clean_slate_2026_v12';
+  const PURGE_KEY = 'frose_clean_slate_2026_v99_permanent_empty';
   if (!localStorage.getItem(PURGE_KEY)) {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
@@ -821,7 +821,7 @@
     }
 
     // Check if routed with ?setup=1 or first-time login
-    const urlParams = new URLSearchParams(window.location.search);
+// setup check uses existing urlParams
     if (urlParams.get('setup') === '1') {
       const banner = document.getElementById('management-toolbar');
       if (banner) {

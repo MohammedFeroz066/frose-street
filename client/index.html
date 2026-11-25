@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=7.0.0">
+  <link rel="stylesheet" href="/css/style.css?v=8.0.0">
   <style>
     /* FROSE Street Luxury Burgundy Palette */
     :root {
@@ -1060,7 +1060,7 @@
 
   <!-- Modern Professional SaaS Settings & Profile Modal (Design 3: Vertical Accordion Drawer) -->
   <div class="modal-overlay" id="settings-modal">
-    <div class="modal-card sett-modal-card">
+    <div class="sett-modal-card">
       <!-- Header -->
       <div class="sett-header">
         <div>
@@ -1092,7 +1092,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
               <label class="sett-label">Stall Business Name *</label>
               <input type="text" id="sett-business-name" class="sett-input" placeholder="e.g. Cloud Edge Kitchen" />
@@ -1124,7 +1124,7 @@
             </div>
             <span class="sett-acc-chevron" style="color: #3B82F6;">▼</span>
           </div>
-          <div class="sett-acc-body" style="display: flex;">
+          <div class="sett-acc-body" style="display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div style="border: 2px dashed #CBD5E1; border-radius: 12px; padding: 12px; display: flex; gap: 14px; align-items: center; background: #F8FAFC;">
               <div class="sett-qr-preview-box" id="sett-qr-preview-box">
                 <span style="font-size: 32px;">📱</span>
@@ -1170,7 +1170,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
               <span style="font-size: 11px; font-weight: 700; color: #64748B;">DISH NAME &bull; CATEGORY</span>
               <span style="font-size: 11px; font-weight: 700; color: #64748B;">PRICE &bull; STOCK</span>
@@ -1198,7 +1198,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
               <label class="sett-label">GST Tax Calculation Mode</label>
               <select id="sett-gst-rate" class="sett-input">
@@ -1242,7 +1242,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
               <label class="sett-label">New Order Audio Alert (KOT Chime)</label>
               <select id="sett-kitchen-chime" class="sett-input">
@@ -1274,7 +1274,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
               <label class="sett-label">Token Number Generation Mode</label>
               <select id="sett-token-mode" class="sett-input">
@@ -1306,7 +1306,7 @@
             </div>
             <span class="sett-acc-chevron">▶</span>
           </div>
-          <div class="sett-acc-body" style="display: none;">
+          <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="font-size: 12px; font-weight: 800; color: #0F172A;">Phone Storage (IndexedDB)</div>
@@ -1335,7 +1335,7 @@
       </div>
     </div>
   </div>
-  <script src="/js/settings-component.js"></script>
+  <script src="/js/settings-component.js?v=8.0.0"></script>
 
 
   <!-- Notifications Drawer / Modal -->

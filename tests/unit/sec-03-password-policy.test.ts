@@ -65,6 +65,24 @@ describe('SEC-03: Strong Password Policy & PIN Fallback Removal', () => {
     expect(body.detail || body.message).toContain('too common');
   });
 
+  it('accepts strong passphrase of 10+ characters with spaces and lowercase (no forced composition rules)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register-stall',
+      payload: {
+        phone: '9000000005',
+        businessName: 'Passphrase Stall',
+        password: 'correct horse battery staple',
+        quickPin: '4321',
+      },
+    });
+
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+    expect(body.status).toBe('success');
+    expect(body.vendor.phone).toBe('9000000005');
+  });
+
   it('accepts strong, unique password of 10+ characters and hashes it safely', async () => {
     const res = await app.inject({
       method: 'POST',

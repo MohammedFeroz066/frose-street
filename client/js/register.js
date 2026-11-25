@@ -224,18 +224,9 @@
   // Step 3 Validation
   function validateStep3() {
     hideAlert();
-    const password = (passwordInput ? passwordInput.value : '').trim();
+    const password = (passwordInput ? passwordInput.value : '');
     if (password.length < 10) {
-      showAlert('Please enter a master password of at least 10 characters.');
-      if (passwordInput) passwordInput.focus();
-      return false;
-    }
-    const hasUpper = /[A-Z]/.test(password);
-    const hasLower = /[a-z]/.test(password);
-    const hasDigit = /[0-9]/.test(password);
-    const hasSpecial = /[^A-Za-z0-9]/.test(password);
-    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
-      showAlert('Password must include uppercase, lowercase, number, and special character.');
+      showAlert('Please enter a master password or passphrase of at least 10 characters.');
       if (passwordInput) passwordInput.focus();
       return false;
     }

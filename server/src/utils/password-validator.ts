@@ -23,32 +23,22 @@ const COMMON_PASSWORDS = new Set([
  * Validates that a password satisfies strong security requirements:
  * - Minimum 10 characters
  * - Not in common-password blacklist
- * - Contains uppercase, lowercase, number, and special character
+ * - Supports passphrases and spaces without forced composition rules
  */
 export function validateStrongPassword(password: string | undefined | null): string {
-  if (!password || typeof password !== 'string' || password.trim().length === 0) {
+  if (!password || typeof password !== 'string' || password.length === 0) {
     throw AppError.badRequest('Password is required for registration', 'MISSING_PASSWORD');
   }
 
-  const trimmed = password.trim();
-
-  if (trimmed.length < 10) {
+  // Minimum 10 characters (preserve spaces in passphrases)
+  if (password.length < 10) {
     throw AppError.badRequest('Password must be at least 10 characters long', 'WEAK_PASSWORD');
   }
 
-  const normalized = trimmed.toLowerCase();
+  const normalized = password.trim().toLowerCase();
   if (COMMON_PASSWORDS.has(normalized)) {
     throw AppError.badRequest('This password is too common or easily guessable. Please choose a stronger password', 'COMMON_PASSWORD');
   }
 
-  const hasUpper = /[A-Z]/.test(trimmed);
-  const hasLower = /[a-z]/.test(trimmed);
-  const hasDigit = /[0-9]/.test(trimmed);
-  const hasSpecial = /[^A-Za-z0-9]/.test(trimmed);
-
-  if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
-    throw AppError.badRequest('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character', 'WEAK_PASSWORD');
-  }
-
-  return trimmed;
+  return password;
 }

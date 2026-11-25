@@ -151,11 +151,11 @@ export class AuthService {
    * - Validates password match ("Password incorrect. Please check and try again")
    * - Locks account for 60s upon 3 failed attempts (scaling to 300s/900s)
    */
-  static async loginWithPassword(db: Kysely<Database>, phone: string, password: string) {
+  static async loginWithPassword(db: Kysely<Database>, phone: string, password: string, ip?: string) {
     const cleanedPhone = phone.replace(/\D/g, '');
 
-    // 1. Check if account is in progressive lockout
-    const lock = LoginSecurityService.checkLock(cleanedPhone);
+    // 1. Check if account or IP is in progressive lockout
+    const lock = await LoginSecurityService.checkLockAsync(cleanedPhone, ip, db);
     if (lock.isLocked) {
       throw AppError.rateLimited(
         `Too many failed attempts. Account locked for ${lock.remainingSeconds} seconds.`,
@@ -178,7 +178,7 @@ export class AuthService {
     // 3. Verify password
     const isMatch = await verifyPassword(password, vendor.password_hash);
     if (!isMatch) {
-      const attempt = LoginSecurityService.recordFailedAttempt(cleanedPhone);
+      const attempt = await LoginSecurityService.recordFailedAttemptAsync(cleanedPhone, ip, db);
       if (attempt.isLocked) {
         throw AppError.rateLimited(
           `Too many failed attempts. Account locked for ${attempt.lockDurationSeconds} seconds.`,
@@ -196,7 +196,7 @@ export class AuthService {
     }
 
     // 4. Reset security counter on success
-    LoginSecurityService.recordSuccess(cleanedPhone);
+    await LoginSecurityService.recordSuccessAsync(cleanedPhone, ip, db);
     return vendor;
   }
 

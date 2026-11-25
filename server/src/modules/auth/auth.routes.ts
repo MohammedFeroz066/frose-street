@@ -7,7 +7,8 @@ import { getDatabase } from '../../db/database.js';
 import { loadConfig } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
 import { PaymentService } from '../payments/payment.service.js';
-import { RegisterSchema, RegisterStallSchema, validateSchema } from './auth.schemas.js';
+import { RegisterSchema, RegisterStallSchema, LoginSchema, validateSchema } from './auth.schemas.js';
+import { LoginSecurityService } from './login-security.service.js';
 
 export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   const config = loadConfig();
@@ -145,13 +146,17 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.post('/login', async (request, reply) => {
     const db = getDatabase();
-    const body = request.body as any;
+    const rawBody = (request.body || {}) as any;
 
-    if (!body || !body.phone || !body.password) {
-      throw AppError.badRequest('Phone and password are required', 'MISSING_CREDENTIALS');
+    if (rawBody.pin && !rawBody.password) {
+      throw AppError.badRequest(
+        'PIN-only login is deprecated. Please log in with your master password. PIN is reserved for local device unlock only.',
+        'PIN_LOGIN_NOT_ALLOWED'
+      );
     }
 
-    const vendor = await AuthService.loginWithPassword(db, body.phone, body.password);
+    const body = validateSchema(LoginSchema, request.body);
+    const vendor = await AuthService.loginWithPassword(db, body.phone, body.password, request.ip);
 
     const isSuperadmin = (vendor as any).is_superadmin === true || (vendor as any).role === 'superadmin';
     const role: StaffRole = isSuperadmin ? 'superadmin' : 'owner';
@@ -254,52 +259,13 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
   /**
    * POST /api/v1/auth/pin-login
-   * Fast 4-digit quick PIN unlock for KDS, Packaging, and Billing stations
+   * Restricted: 4-digit quick PIN authentication is strictly for local offline terminal unlock.
    */
-  app.post('/pin-login', async (request, reply) => {
-    const db = getDatabase();
-    const body = request.body as any;
-
-    if (!body || !body.pin) {
-      throw AppError.badRequest('4-digit PIN is required', 'MISSING_PIN');
-    }
-
-    const { vendor, staff } = await AuthService.loginWithQuickPin(db, body.pin, body.vendorId);
-
-    const token = signJwt(
-      {
-        sub: vendor.id,
-        phone: vendor.phone,
-        businessName: vendor.business_name,
-        role: (staff?.role as any) || 'owner',
-        edition: vendor.edition as any,
-        staffId: staff?.id,
-      },
-      config.JWT_SECRET,
+  app.post('/pin-login', async () => {
+    throw AppError.forbidden(
+      'Remote PIN login is disabled. 4-digit PIN authentication is restricted to local offline device unlock only.',
+      'PIN_LOGIN_DISABLED'
     );
-
-    setAuthCookie(reply, token);
-
-    return reply.status(200).send({
-      status: 'success',
-      message: 'Station unlocked successfully',
-      vendor: {
-        id: vendor.id,
-        phone: vendor.phone,
-        businessName: vendor.business_name,
-        ownerName: (vendor as any).owner_name || 'Vendor Owner',
-        edition: vendor.edition,
-        upiId: PaymentService.getVendorVpa(vendor.id),
-      },
-      staff: staff
-        ? {
-            id: staff.id,
-            name: staff.name,
-            role: staff.role,
-          }
-        : null,
-      token,
-    });
   });
 
   /**

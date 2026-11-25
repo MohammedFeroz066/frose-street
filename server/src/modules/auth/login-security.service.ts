@@ -1,6 +1,11 @@
+import type { Kysely } from 'kysely';
+import type { Database } from '../../db/types.js';
+import { memoryLockouts } from '../../db/memory-db.js';
+
 export interface LockStatus {
   isLocked: boolean;
   remainingSeconds: number;
+  reason?: 'account' | 'ip';
 }
 
 export interface FailedAttemptResult {
@@ -10,7 +15,7 @@ export interface FailedAttemptResult {
   consecutiveFailures: number;
 }
 
-interface PhoneSecurityRecord {
+interface SecurityRecord {
   consecutiveFailures: number;
   lockedUntil: number;
   lockLevel: number;
@@ -18,28 +23,100 @@ interface PhoneSecurityRecord {
 
 /**
  * LoginSecurityService
- * Progressive rate limiting and stepped lockout protection for mobile credentials.
+ * Progressive rate limiting and stepped lockout protection for mobile credentials & IP addresses.
+ * Backed persistently by Postgres / Kysely `login_lockouts` table with fast in-memory sync.
  * 3 consecutive failed password attempts triggers 60s lockout.
  * Subsequent failures scale to 300s (5m) and 900s (15m).
  */
 export class LoginSecurityService {
-  private static store = new Map<string, PhoneSecurityRecord>();
+  private static store = new Map<string, SecurityRecord>();
 
   /**
-   * Check if a phone number is currently in an active lockout window
+   * Check if a phone number or IP is currently in an active lockout window
    */
-  static checkLock(phone: string): LockStatus {
-    const cleaned = phone.replace(/\D/g, '');
-    const record = this.store.get(cleaned);
+  static async checkLockAsync(
+    phone: string,
+    ip?: string,
+    db?: Kysely<Database>
+  ): Promise<LockStatus> {
+    const now = Date.now();
+    const cleanedPhone = phone ? phone.replace(/\D/g, '') : '';
 
-    if (!record) {
-      return { isLocked: false, remainingSeconds: 0 };
+    // Check account lockout in DB if db provided
+    if (db && cleanedPhone) {
+      try {
+        const lockoutRow = await db
+          .selectFrom('login_lockouts')
+          .select(['consecutive_failures', 'locked_until'])
+          .where('id', '=', `acc:${cleanedPhone}`)
+          .executeTakeFirst();
+
+        if (lockoutRow && lockoutRow.locked_until) {
+          const lockTime = new Date(lockoutRow.locked_until).getTime();
+          if (now < lockTime) {
+            const remainingSeconds = Math.ceil((lockTime - now) / 1000);
+            return { isLocked: true, remainingSeconds, reason: 'account' };
+          }
+        }
+      } catch {}
     }
 
+    // Check IP lockout in DB if db provided
+    if (db && ip) {
+      try {
+        const ipRow = await db
+          .selectFrom('login_lockouts')
+          .select(['consecutive_failures', 'locked_until'])
+          .where('id', '=', `ip:${ip}`)
+          .executeTakeFirst();
+
+        if (ipRow && ipRow.locked_until) {
+          const lockTime = new Date(ipRow.locked_until).getTime();
+          if (now < lockTime) {
+            const remainingSeconds = Math.ceil((lockTime - now) / 1000);
+            return { isLocked: true, remainingSeconds, reason: 'ip' };
+          }
+        }
+      } catch {}
+    }
+
+    // Fast in-memory check
+    const accRecord = this.store.get(`acc:${cleanedPhone}`) || this.store.get(cleanedPhone);
+    if (accRecord && now < accRecord.lockedUntil) {
+      const remainingSeconds = Math.ceil((accRecord.lockedUntil - now) / 1000);
+      return { isLocked: true, remainingSeconds, reason: 'account' };
+    }
+
+    if (ip) {
+      const ipRecord = this.store.get(`ip:${ip}`);
+      if (ipRecord && now < ipRecord.lockedUntil) {
+        const remainingSeconds = Math.ceil((ipRecord.lockedUntil - now) / 1000);
+        return { isLocked: true, remainingSeconds, reason: 'ip' };
+      }
+    }
+
+    return { isLocked: false, remainingSeconds: 0 };
+  }
+
+  /**
+   * Synchronous check for backwards compatibility
+   */
+  static checkLock(phone: string, ip?: string): LockStatus {
+    const cleaned = phone ? phone.replace(/\D/g, '') : '';
     const now = Date.now();
-    if (now < record.lockedUntil) {
+    const record = this.store.get(`acc:${cleaned}`) || this.store.get(cleaned);
+
+    if (record && now < record.lockedUntil) {
       const remainingSeconds = Math.ceil((record.lockedUntil - now) / 1000);
-      return { isLocked: true, remainingSeconds };
+      return { isLocked: true, remainingSeconds, reason: 'account' };
+    }
+
+    if (ip) {
+      const ipRecord = this.store.get(`ip:${ip}`);
+      if (ipRecord && now < ipRecord.lockedUntil) {
+        const remainingSeconds = Math.ceil((ipRecord.lockedUntil - now) / 1000);
+        return { isLocked: true, remainingSeconds, reason: 'ip' };
+      }
     }
 
     return { isLocked: false, remainingSeconds: 0 };
@@ -48,54 +125,133 @@ export class LoginSecurityService {
   /**
    * Record a failed password attempt and compute stepped backoff
    */
-  static recordFailedAttempt(phone: string): FailedAttemptResult {
-    const cleaned = phone.replace(/\D/g, '');
+  static async recordFailedAttemptAsync(
+    phone: string,
+    ip?: string,
+    db?: Kysely<Database>
+  ): Promise<FailedAttemptResult> {
+    const res = this.recordFailedAttempt(phone, ip);
+    const cleanedPhone = phone ? phone.replace(/\D/g, '') : '';
+
+    if (db && cleanedPhone) {
+      try {
+        const lockDate = res.lockDurationSeconds > 0 ? new Date(Date.now() + res.lockDurationSeconds * 1000) : null;
+        const existing = await db
+          .selectFrom('login_lockouts')
+          .select('id')
+          .where('id', '=', `acc:${cleanedPhone}`)
+          .executeTakeFirst();
+
+        if (existing) {
+          await db
+            .updateTable('login_lockouts')
+            .set({
+              consecutive_failures: res.consecutiveFailures,
+              locked_until: lockDate,
+              updated_at: new Date(),
+            })
+            .where('id', '=', `acc:${cleanedPhone}`)
+            .execute();
+        } else {
+          await db
+            .insertInto('login_lockouts')
+            .values({
+              id: `acc:${cleanedPhone}`,
+              key_type: 'account',
+              key_value: cleanedPhone,
+              consecutive_failures: res.consecutiveFailures,
+              locked_until: lockDate,
+              updated_at: new Date(),
+            })
+            .execute();
+        }
+
+        if (ip) {
+          const ipExisting = await db
+            .selectFrom('login_lockouts')
+            .select('id')
+            .where('id', '=', `ip:${ip}`)
+            .executeTakeFirst();
+
+          if (ipExisting) {
+            await db
+              .updateTable('login_lockouts')
+              .set({
+                consecutive_failures: res.consecutiveFailures,
+                locked_until: lockDate,
+                updated_at: new Date(),
+              })
+              .where('id', '=', `ip:${ip}`)
+              .execute();
+          } else {
+            await db
+              .insertInto('login_lockouts')
+              .values({
+                id: `ip:${ip}`,
+                key_type: 'ip',
+                key_value: ip,
+                consecutive_failures: res.consecutiveFailures,
+                locked_until: lockDate,
+                updated_at: new Date(),
+              })
+              .execute();
+          }
+        }
+      } catch {}
+    }
+
+    return res;
+  }
+
+  /**
+   * Synchronous record for existing callers
+   */
+  static recordFailedAttempt(phone: string, ip?: string): FailedAttemptResult {
+    const cleaned = phone ? phone.replace(/\D/g, '') : '';
     const now = Date.now();
-    let record = this.store.get(cleaned);
+    let record = this.store.get(`acc:${cleaned}`) || this.store.get(cleaned);
 
     if (!record) {
       record = { consecutiveFailures: 0, lockedUntil: 0, lockLevel: 0 };
-      this.store.set(cleaned, record);
+      this.store.set(`acc:${cleaned}`, record);
     }
 
     record.consecutiveFailures += 1;
 
-    // Check thresholds: 3 fails = 60s, 4 fails = 300s, 5+ fails = 900s
+    let lockDurationSeconds = 0;
+    // Account thresholds: 3 fails = 60s, 4 fails = 300s, 5+ fails = 900s
     if (record.consecutiveFailures === 3) {
-      const lockDurationSeconds = 60; // 1 minute
+      lockDurationSeconds = 60; // 1 minute
       record.lockedUntil = now + lockDurationSeconds * 1000;
       record.lockLevel = 1;
-      return {
-        isLocked: true,
-        lockDurationSeconds,
-        attemptsRemaining: 0,
-        consecutiveFailures: record.consecutiveFailures,
-      };
     } else if (record.consecutiveFailures === 4) {
-      const lockDurationSeconds = 300; // 5 minutes
+      lockDurationSeconds = 300; // 5 minutes
       record.lockedUntil = now + lockDurationSeconds * 1000;
       record.lockLevel = 2;
-      return {
-        isLocked: true,
-        lockDurationSeconds,
-        attemptsRemaining: 0,
-        consecutiveFailures: record.consecutiveFailures,
-      };
     } else if (record.consecutiveFailures >= 5) {
-      const lockDurationSeconds = 900; // 15 minutes
+      lockDurationSeconds = 900; // 15 minutes
       record.lockedUntil = now + lockDurationSeconds * 1000;
       record.lockLevel = 3;
-      return {
-        isLocked: true,
-        lockDurationSeconds,
-        attemptsRemaining: 0,
-        consecutiveFailures: record.consecutiveFailures,
-      };
+    }
+
+    // IP thresholds: 10 fails = 300s, 20+ fails = 900s (protects against credential stuffing while tolerating NAT/proxies)
+    if (ip) {
+      let ipRecord = this.store.get(`ip:${ip}`);
+      if (!ipRecord) {
+        ipRecord = { consecutiveFailures: 0, lockedUntil: 0, lockLevel: 0 };
+        this.store.set(`ip:${ip}`, ipRecord);
+      }
+      ipRecord.consecutiveFailures += 1;
+      if (ipRecord.consecutiveFailures >= 20) {
+        ipRecord.lockedUntil = now + 900 * 1000;
+      } else if (ipRecord.consecutiveFailures >= 10) {
+        ipRecord.lockedUntil = now + 300 * 1000;
+      }
     }
 
     return {
-      isLocked: false,
-      lockDurationSeconds: 0,
+      isLocked: lockDurationSeconds > 0,
+      lockDurationSeconds,
       attemptsRemaining: Math.max(0, 3 - record.consecutiveFailures),
       consecutiveFailures: record.consecutiveFailures,
     };
@@ -104,15 +260,42 @@ export class LoginSecurityService {
   /**
    * Reset security state upon successful authentication
    */
-  static recordSuccess(phone: string): void {
-    const cleaned = phone.replace(/\D/g, '');
+  static async recordSuccessAsync(
+    phone: string,
+    ip?: string,
+    db?: Kysely<Database>
+  ): Promise<void> {
+    this.recordSuccess(phone, ip);
+    const cleaned = phone ? phone.replace(/\D/g, '') : '';
+
+    if (db && cleaned) {
+      try {
+        await db
+          .deleteFrom('login_lockouts')
+          .where('id', 'in', [`acc:${cleaned}`, `ip:${ip || ''}`])
+          .execute();
+      } catch {}
+    }
+  }
+
+  static recordSuccess(phone: string, ip?: string): void {
+    const cleaned = phone ? phone.replace(/\D/g, '') : '';
+    this.store.delete(`acc:${cleaned}`);
     this.store.delete(cleaned);
+    if (ip) {
+      this.store.delete(`ip:${ip}`);
+    }
   }
 
   /**
-   * Helper for unit tests to reset memory store
+   * Helper for unit tests to reset memory store and DB test map
    */
   static resetForTesting(): void {
     this.store.clear();
+    try {
+      if (memoryLockouts) {
+        memoryLockouts.clear();
+      }
+    } catch {}
   }
 }

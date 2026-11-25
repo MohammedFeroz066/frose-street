@@ -11,6 +11,8 @@ export const memoryExpenses = new Map<string, any>();
 export const memoryDailySummaries = new Map<string, any>();
 export const memoryBiometrics = new Map<string, any>();
 export const memoryPairingTokens = new Map<string, any>();
+export const memoryLockouts = new Map<string, any>();
+export const memoryRefreshTokens = new Map<string, any>();
 
 export const DEFAULT_DEMO_VENDOR_ID = 'v-stall-demo-01';
 
@@ -98,6 +100,10 @@ export function createMemoryDb(): Kysely<Database> {
         return memoryBiometrics;
       case 'device_pairing_tokens':
         return memoryPairingTokens;
+      case 'login_lockouts':
+        return memoryLockouts;
+      case 'refresh_tokens':
+        return memoryRefreshTokens;
       default:
         return memoryOrders;
     }

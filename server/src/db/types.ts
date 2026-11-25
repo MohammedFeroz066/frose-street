@@ -137,6 +137,25 @@ export interface SubscriptionsTable {
   created_at: Generated<Timestamp>;
 }
 
+export interface LoginLockoutsTable {
+  id: string;
+  key_type: 'account' | 'ip';
+  key_value: string;
+  consecutive_failures: number;
+  locked_until: Timestamp | null;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface RefreshTokensTable {
+  id: string;
+  vendor_id: string;
+  token_hash: string;
+  family_id: string;
+  is_revoked: boolean;
+  expires_at: Timestamp;
+  created_at: Generated<Timestamp>;
+}
+
 export interface Database {
   vendors: VendorsTable;
   staff: StaffTable;
@@ -148,4 +167,6 @@ export interface Database {
   daily_summaries: DailySummariesTable;
   expenses: ExpensesTable;
   subscriptions: SubscriptionsTable;
+  login_lockouts: LoginLockoutsTable;
+  refresh_tokens: RefreshTokensTable;
 }

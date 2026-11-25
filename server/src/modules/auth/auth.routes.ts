@@ -9,19 +9,52 @@ import { AppError } from '../../errors/app-error.js';
 import { PaymentService } from '../payments/payment.service.js';
 import { RegisterSchema, RegisterStallSchema, LoginSchema, validateSchema } from './auth.schemas.js';
 import { LoginSecurityService } from './login-security.service.js';
+import { signJoseAccessToken, getJwtKeyRotationConfig } from './jwt-jose.js';
+import { RefreshTokenService } from './refresh-token.service.js';
 
 export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   const config = loadConfig();
 
-  // Helper to set HttpOnly auth cookie
-  const setAuthCookie = (reply: any, token: string) => {
-    reply.setCookie('frose_street_token', token, {
+  let jwtConfig: any;
+  try {
+    jwtConfig = getJwtKeyRotationConfig(config);
+  } catch {
+    jwtConfig = {
+      currentSecret: config.JWT_SECRET || 'dev-fallback-secret-at-least-32-chars-long-2026',
+      currentKid: 'k1',
+    };
+  }
+
+  // Helper to set HttpOnly session cookies (access token + rotating refresh token)
+  const setSessionCookies = (reply: any, accessToken: string, refreshToken: string) => {
+    const isProd = config.NODE_ENV === 'production';
+    reply.setCookie('frose_access_token', accessToken, {
       path: '/',
       httpOnly: true,
-      secure: config.NODE_ENV === 'production',
+      secure: isProd,
+      sameSite: 'strict',
+      maxAge: 900, // 15 minutes
+    });
+    reply.setCookie('frose_refresh_token', refreshToken, {
+      path: '/',
+      httpOnly: true,
+      secure: isProd,
       sameSite: 'strict',
       maxAge: 30 * 86400, // 30 days
     });
+    reply.setCookie('frose_street_token', accessToken, {
+      path: '/',
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'strict',
+      maxAge: 900,
+    });
+  };
+
+  const clearSessionCookies = (reply: any) => {
+    reply.clearCookie('frose_access_token', { path: '/' });
+    reply.clearCookie('frose_refresh_token', { path: '/' });
+    reply.clearCookie('frose_street_token', { path: '/' });
   };
 
   /**
@@ -42,7 +75,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       edition: body.edition,
     });
 
-    const token = signJwt(
+    const token = await signJoseAccessToken(
       {
         sub: vendor.id,
         phone: vendor.phone,
@@ -51,10 +84,12 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         edition: vendor.edition,
         staffId: staff.id,
       },
-      config.JWT_SECRET,
+      jwtConfig,
+      900
     );
 
-    setAuthCookie(reply, token);
+    const refreshResult = await RefreshTokenService.createRefreshToken(db, vendor.id);
+    setSessionCookies(reply, token, refreshResult.refreshToken);
 
     return reply.status(201).send({
       status: 'success',
@@ -103,7 +138,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         }
       }
 
-      const token = signJwt(
+      const token = await signJoseAccessToken(
         {
           sub: vendor.id,
           phone: vendor.phone,
@@ -112,10 +147,12 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
           edition: vendor.edition,
           staffId: staff.id,
         },
-        config.JWT_SECRET,
+        jwtConfig,
+        900
       );
 
-      setAuthCookie(reply, token);
+      const refreshResult = await RefreshTokenService.createRefreshToken(db, vendor.id);
+      setSessionCookies(reply, token, refreshResult.refreshToken);
 
       return reply.status(201).send({
         status: 'success',
@@ -161,7 +198,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     const isSuperadmin = (vendor as any).is_superadmin === true || (vendor as any).role === 'superadmin';
     const role: StaffRole = isSuperadmin ? 'superadmin' : 'owner';
 
-    const token = signJwt(
+    const token = await signJoseAccessToken(
       {
         sub: vendor.id,
         phone: vendor.phone,
@@ -169,10 +206,12 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         role,
         edition: vendor.edition,
       },
-      config.JWT_SECRET,
+      jwtConfig,
+      900
     );
 
-    setAuthCookie(reply, token);
+    const refreshResult = await RefreshTokenService.createRefreshToken(db, vendor.id);
+    setSessionCookies(reply, token, refreshResult.refreshToken);
 
     return reply.status(200).send({
       status: 'success',
@@ -194,6 +233,74 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       token,
       isSuperadmin,
       role,
+    });
+  });
+
+  /**
+   * POST /api/v1/auth/refresh
+   * Rotates refresh token and issues fresh short-lived access token
+   */
+  app.post('/refresh', async (request, reply) => {
+    const db = getDatabase();
+    const rawRefreshToken = request.cookies?.frose_refresh_token;
+
+    if (!rawRefreshToken) {
+      throw AppError.unauthorized('Refresh token cookie missing', 'MISSING_REFRESH_TOKEN');
+    }
+
+    const rotated = await RefreshTokenService.rotateRefreshToken(db, rawRefreshToken);
+
+    const vendor = await db
+      .selectFrom('vendors')
+      .selectAll()
+      .where('id', '=', rotated.vendorId)
+      .executeTakeFirst();
+
+    if (!vendor) {
+      throw AppError.unauthorized('Vendor account not found for session', 'VENDOR_NOT_FOUND');
+    }
+
+    const isSuperadmin = (vendor as any).is_superadmin === true || (vendor as any).role === 'superadmin';
+    const role: StaffRole = isSuperadmin ? 'superadmin' : 'owner';
+
+    const accessToken = await signJoseAccessToken(
+      {
+        sub: vendor.id,
+        phone: vendor.phone,
+        businessName: vendor.business_name,
+        role,
+        edition: vendor.edition,
+      },
+      jwtConfig,
+      900
+    );
+
+    setSessionCookies(reply, accessToken, rotated.refreshToken);
+
+    return reply.status(200).send({
+      status: 'success',
+      message: 'Session refreshed successfully',
+      token: accessToken,
+    });
+  });
+
+  /**
+   * POST /api/v1/auth/logout
+   * Revokes refresh token family and clears httpOnly session cookies
+   */
+  app.post('/logout', async (request, reply) => {
+    const db = getDatabase();
+    const rawRefreshToken = request.cookies?.frose_refresh_token;
+
+    if (rawRefreshToken) {
+      await RefreshTokenService.revokeFamily(db, rawRefreshToken);
+    }
+
+    clearSessionCookies(reply);
+
+    return reply.status(200).send({
+      status: 'success',
+      message: 'Logged out successfully',
     });
   });
 
@@ -232,7 +339,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
     const vendor = await AuthService.verifyQuickPin(db, vendorId, body.pin);
 
-    const token = signJwt(
+    const accessToken = await signJoseAccessToken(
       {
         sub: vendor.id,
         phone: vendor.phone,
@@ -240,10 +347,11 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         role: 'owner',
         edition: vendor.edition as any,
       },
-      config.JWT_SECRET,
+      jwtConfig,
     );
 
-    setAuthCookie(reply, token);
+    const refreshToken = await RefreshTokenService.createRefreshToken(db, vendor.id);
+    setSessionCookies(reply, accessToken, refreshToken.refreshToken);
 
     return reply.status(200).send({
       status: 'success',
@@ -253,7 +361,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         phone: vendor.phone,
         businessName: vendor.business_name,
       },
-      token,
+      token: accessToken,
     });
   });
 
@@ -307,7 +415,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
     const cred = await AuthService.verifyBiometric(db, body.credentialId);
 
-    const token = signJwt(
+    const accessToken = await signJoseAccessToken(
       {
         sub: cred.id,
         phone: cred.phone,
@@ -315,10 +423,11 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         role: 'owner',
         edition: cred.edition as any,
       },
-      config.JWT_SECRET,
+      jwtConfig,
     );
 
-    setAuthCookie(reply, token);
+    const refreshToken = await RefreshTokenService.createRefreshToken(db, cred.id);
+    setSessionCookies(reply, accessToken, refreshToken.refreshToken);
 
     return reply.status(200).send({
       status: 'success',
@@ -328,7 +437,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         phone: cred.phone,
         businessName: cred.business_name,
       },
-      token,
+      token: accessToken,
     });
   });
 
@@ -360,18 +469,6 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       subscriptionExpiresAt: vendor.subscription_expires_at,
       hasQuickPin: !!vendor.quick_pin_hash,
       role: request.user!.role,
-    });
-  });
-
-  /**
-   * POST /api/v1/auth/logout
-   * Clears the authentication session cookie
-   */
-  app.post('/logout', async (_request, reply) => {
-    reply.clearCookie('frose_street_token', { path: '/' });
-    return reply.status(200).send({
-      status: 'success',
-      message: 'Logged out successfully',
     });
   });
 };

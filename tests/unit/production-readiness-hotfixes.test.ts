@@ -44,7 +44,7 @@ describe('Production Readiness Hotfixes Verification', () => {
     const regData = JSON.parse(regRes.body);
     expect(regData.vendor.upiId).toBe('hotfixstall@okaxis');
 
-    // 2. Unlock station using 4-digit PIN
+    // 2. Remote PIN login is disabled per SEC-06 (restricted to local offline terminal unlock)
     const pinRes = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/pin-login',
@@ -53,30 +53,19 @@ describe('Production Readiness Hotfixes Verification', () => {
       },
     });
 
-    expect(pinRes.statusCode).toBe(200);
+    expect(pinRes.statusCode).toBe(403);
     const pinData = JSON.parse(pinRes.body);
-    expect(pinData.status).toBe('success');
-    expect(pinData.token).toBeDefined();
-    expect(pinData.vendor.businessName).toBe('Hotfix Test Stall');
-    expect(pinData.vendor.upiId).toBe('hotfixstall@okaxis');
+    expect(pinData.code).toBe('PIN_LOGIN_DISABLED');
   });
 
-  it('TEST 2: Quick PIN Login rejects wrong or malformed PINs', async () => {
-    // Wrong PIN
+  it('TEST 2: Quick PIN Login rejects remote attempts per SEC-06', async () => {
     const wrongRes = await app.inject({
       method: 'POST',
       url: '/api/v1/auth/pin-login',
       payload: { pin: '9999' },
     });
-    expect(wrongRes.statusCode).toBe(401);
-
-    // Malformed PIN (not 4 digits)
-    const malformedRes = await app.inject({
-      method: 'POST',
-      url: '/api/v1/auth/pin-login',
-      payload: { pin: '12' },
-    });
-    expect(malformedRes.statusCode).toBe(400);
+    expect(wrongRes.statusCode).toBe(403);
+    expect(JSON.parse(wrongRes.body).code).toBe('PIN_LOGIN_DISABLED');
   });
 
   it('TEST 3: Authentic Scannable Dynamic UPI QR generation with vendor VPA', async () => {

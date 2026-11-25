@@ -4,7 +4,7 @@ import { AppError } from '../../errors/app-error.js';
 export const RegisterSchema = z
   .object({
     phone: z.string().min(10).max(15),
-    password: z.string().min(10),
+    password: z.string().min(10, 'Password must be at least 10 characters long'),
     businessName: z.string().min(1).max(100),
     ownerName: z.string().max(100).optional(),
     businessType: z.string().max(50).optional(),
@@ -16,7 +16,7 @@ export const RegisterSchema = z
 export const RegisterStallSchema = z
   .object({
     phone: z.string().min(10).max(15),
-    password: z.string().min(10),
+    password: z.string().min(10, 'Password must be at least 10 characters long'),
     businessName: z.string().min(1).max(100),
     ownerName: z.string().max(100).optional(),
     businessType: z.string().max(50).optional(),
@@ -41,7 +41,21 @@ export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown): T {
     const issues = result.error.issues
       .map((i) => `${i.path.join('.') || 'root'}: ${i.message}`)
       .join('; ');
-    throw AppError.badRequest(`Validation failed: ${issues}`, 'VALIDATION_ERROR');
+
+    let errorCode = 'VALIDATION_ERROR';
+    const firstIssue = result.error.issues[0];
+    const firstField = firstIssue?.path[0];
+    const dataObj = data as Record<string, any> | undefined;
+
+    if (firstField === 'phone') {
+      errorCode = 'INVALID_PHONE';
+    } else if (firstField === 'businessName') {
+      errorCode = 'MISSING_BUSINESS_NAME';
+    } else if (firstField === 'password') {
+      errorCode = !dataObj?.password ? 'MISSING_PASSWORD' : 'WEAK_PASSWORD';
+    }
+
+    throw AppError.badRequest(`Validation failed: ${issues}`, errorCode);
   }
   return result.data;
 }

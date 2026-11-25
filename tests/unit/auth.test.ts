@@ -77,21 +77,23 @@ vi.mock('../../server/src/db/database.js', () => {
       insertInto: (table: string) => {
         return {
           values: (vals: any) => {
-            return {
-              returningAll: () => ({
-                executeTakeFirstOrThrow: async () => {
-                  const id = vals.id || `mock-uuid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-                  const record = { ...vals, id, created_at: new Date() };
+            const execute = async () => {
+              const id = vals.id || `mock-uuid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+              const record = { ...vals, id, created_at: new Date() };
 
-                  if (table === 'vendors') {
-                    memoryVendors.set(id, record);
-                  } else if (table === 'staff') {
-                    memoryStaff.set(id, record);
-                  } else if (table === 'biometric_credentials') {
-                    memoryBiometrics.set(id, record);
-                  }
-                  return record;
-                },
+              if (table === 'vendors') {
+                memoryVendors.set(id, record);
+              } else if (table === 'staff') {
+                memoryStaff.set(id, record);
+              } else if (table === 'biometric_credentials') {
+                memoryBiometrics.set(id, record);
+              }
+              return record;
+            };
+            return {
+              execute,
+              returningAll: () => ({
+                executeTakeFirstOrThrow: execute,
               }),
             };
           },

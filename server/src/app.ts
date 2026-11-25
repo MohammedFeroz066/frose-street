@@ -8,6 +8,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { loadConfig, EnvironmentConfig } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
+import { csrfProtection } from './middleware/csrf.js';
 import { AppError } from './errors/app-error.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { deviceRoutes } from './modules/devices/device.routes.js';
@@ -53,15 +54,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
       if (
-        origin.includes('street.frostech.com') ||
-        origin.includes('localhost') ||
-        origin.includes('127.0.0.1') ||
+        origin === 'https://street.frostech.com' ||
+        origin.startsWith('http://localhost:') ||
+        origin === 'http://localhost' ||
+        origin.startsWith('http://127.0.0.1:') ||
+        origin === 'http://127.0.0.1' ||
         origin.startsWith('http://192.168.') ||
         origin.startsWith('http://10.')
       ) {
         return cb(null, true);
       }
-      return cb(new Error('CORS origin denied'), false);
+      return cb(null, false);
     },
     credentials: true,
   });
@@ -87,6 +90,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // Global Error Handlers (RFC 7807)
   app.setErrorHandler(errorHandler);
   app.setNotFoundHandler(notFoundHandler);
+
+  // Anti-CSRF Origin and Custom Header Verification Hook
+  app.addHook('preHandler', csrfProtection);
 
   // Serve PWA Client Static Files
   const clientDir = path.resolve(process.cwd(), 'client');

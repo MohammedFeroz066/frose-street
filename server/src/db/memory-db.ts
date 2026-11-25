@@ -17,26 +17,6 @@ export const DEFAULT_DEMO_VENDOR_ID = 'v-stall-demo-01';
 const DEMO_PASSWORD_HASH = 'scrypt:16384:8:1:635ca671f1f7766331705bb4bcf4d5c2:b1cadfa3794f120da851368cef695a3be2a4ee300aeecb7e3ec8f61a23e4fc070d5586d8035fa9eaf55eb99ede86d0acdff4ce5509d926d81b4e5f3f62ffcfeb'; // Feroz@123
 const DEMO_PIN_HASH = 'scrypt:16384:8:1:b887fb74010b32ff906ea4149678a425:e848180c9637ae06f03424d52ae97ad2ee20ebd1eab56f198dceee63489aff49'; // 1234
 
-// Seed Super Admin master account (Phone: 9999999999 / Password: Feroz@123)
-if (!memoryVendors.has('v-admin-master')) {
-  memoryVendors.set('v-admin-master', {
-    id: 'v-admin-master',
-    phone: '9999999999',
-    business_name: 'FROSE Platform HQ',
-    owner_name: 'Super Admin',
-    business_type: 'Platform Management',
-    city: 'Hyderabad',
-    edition: 'cloud',
-    subscription_status: 'active',
-    subscription_expires_at: new Date(Date.now() + 3650 * 24 * 3600 * 1000).toISOString(),
-    password_hash: DEMO_PASSWORD_HASH,
-    quick_pin_hash: DEMO_PIN_HASH,
-    is_superadmin: true,
-    role: 'superadmin',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  });
-}
 
 // In automated test suite, seed isolated test fixture stall for unit assertions
 if (process.env.NODE_ENV === 'test' && !memoryVendors.has(DEFAULT_DEMO_VENDOR_ID)) {

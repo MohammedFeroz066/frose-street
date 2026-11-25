@@ -164,7 +164,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
     const vendor = await AuthService.loginWithPassword(db, body.phone, body.password);
 
-    const isSuperadmin = (vendor as any).is_superadmin === true || (vendor as any).role === 'superadmin' || vendor.phone === '9999999999';
+    const isSuperadmin = (vendor as any).is_superadmin === true || (vendor as any).role === 'superadmin';
     const role: StaffRole = isSuperadmin ? 'superadmin' : 'owner';
 
     const token = signJwt(

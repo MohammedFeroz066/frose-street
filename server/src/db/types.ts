@@ -17,6 +17,7 @@ export interface VendorsTable {
   token_reset_date: string;
   password_hash: string | null;
   quick_pin_hash: string | null;
+  is_superadmin?: boolean;
   created_at: Generated<Timestamp>;
   updated_at: Generated<Timestamp>;
 }
@@ -30,6 +31,7 @@ export interface StaffTable {
   is_active: boolean;
   password_hash: string | null;
   quick_pin_hash: string | null;
+  is_superadmin?: boolean;
   created_at: Generated<Timestamp>;
 }
 

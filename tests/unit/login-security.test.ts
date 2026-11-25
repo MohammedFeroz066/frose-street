@@ -96,12 +96,12 @@ describe('Login Security & Lockout System Tests', () => {
     });
 
     it('returns 401 UNAUTHORIZED with attempts remaining when password is wrong', async () => {
-      // 9999999999 is seeded in memory-db
+      // 9177177475 is seeded in memory-db
       const res1 = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/login',
         payload: {
-          phone: '9999999999',
+          phone: '9177177475',
           password: 'WrongPassword1',
         },
       });
@@ -114,7 +114,7 @@ describe('Login Security & Lockout System Tests', () => {
         method: 'POST',
         url: '/api/v1/auth/login',
         payload: {
-          phone: '9999999999',
+          phone: '9177177475',
           password: 'WrongPassword2',
         },
       });
@@ -129,19 +129,19 @@ describe('Login Security & Lockout System Tests', () => {
       await app.inject({
         method: 'POST',
         url: '/api/v1/auth/login',
-        payload: { phone: '9999999999', password: 'WrongPassword1' },
+        payload: { phone: '9177177475', password: 'WrongPassword1' },
       });
       // Fail 2
       await app.inject({
         method: 'POST',
         url: '/api/v1/auth/login',
-        payload: { phone: '9999999999', password: 'WrongPassword2' },
+        payload: { phone: '9177177475', password: 'WrongPassword2' },
       });
       // Fail 3 -> Must trigger 429
       const res3 = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/login',
-        payload: { phone: '9999999999', password: 'WrongPassword3' },
+        payload: { phone: '9177177475', password: 'WrongPassword3' },
       });
 
       expect(res3.statusCode).toBe(429);
@@ -155,7 +155,7 @@ describe('Login Security & Lockout System Tests', () => {
       const res4 = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/login',
-        payload: { phone: '9999999999', password: 'EvenCorrectPassword@123' },
+        payload: { phone: '9177177475', password: 'EvenCorrectPassword@123' },
       });
       expect(res4.statusCode).toBe(429);
       const body4 = JSON.parse(res4.body);
@@ -168,24 +168,24 @@ describe('Login Security & Lockout System Tests', () => {
       await app.inject({
         method: 'POST',
         url: '/api/v1/auth/login',
-        payload: { phone: '9999999999', password: 'WrongPassword1' },
+        payload: { phone: '9177177475', password: 'WrongPassword1' },
       });
 
       // Valid credentials
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/login',
-        payload: { phone: '9999999999', password: 'Feroz@123' },
+        payload: { phone: '9177177475', password: 'Feroz@123' },
       });
 
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body);
       expect(body.token).toBeDefined();
       expect(body.vendor).toBeDefined();
-      expect(body.vendor.phone).toBe('9999999999');
+      expect(body.vendor.phone).toBe('9177177475');
 
       // Lock status is cleared
-      const check = LoginSecurityService.checkLock('9999999999');
+      const check = LoginSecurityService.checkLock('9177177475');
       expect(check.isLocked).toBe(false);
     });
   });

@@ -45,7 +45,9 @@ export function getDatabase(customConnectionString?: string): Kysely<Database> {
 
 export async function closeDatabase(): Promise<void> {
   if (dbInstance) {
-    await dbInstance.destroy();
+    if (typeof (dbInstance as any).destroy === 'function') {
+      await dbInstance.destroy();
+    }
     dbInstance = null;
   }
 }

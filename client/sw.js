@@ -5,7 +5,7 @@
  * Cache-first for immutable static icons, stale-while-revalidate for CSS/JS
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v12-ios-fast';
+const CACHE_NAME = 'frose-street-v9-production-v30-clean-slate';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -67,26 +67,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Instant Stale-While-Revalidate for HTML pages & navigation (Zero-lag 120fps iOS navigation)
+  // Network-first for navigation & HTML documents (ensures mobile always runs the newest version)
   if (event.request.mode === 'navigate' || event.request.destination === 'document') {
     event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        const fetchPromise = fetch(event.request)
-          .then((networkResponse) => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseClone = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-            }
-            return networkResponse;
-          })
-          .catch(() => null);
-
-        // If page is cached, serve immediately in 0ms, revalidate in background
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        return fetchPromise.then((res) => res || caches.match('/index.html') || Response.error());
-      })
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match('/index.html') || Response.error()))
     );
     return;
   }

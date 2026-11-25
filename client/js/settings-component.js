@@ -138,7 +138,7 @@
       ]);
 
       if (Array.isArray(dishes)) {
-        dishes = dishes.filter(d => !legacyDummyIds.has(d.id) && !legacyDummyNames.has(d.name));
+        dishes = dishes.filter(d => d.isUserCreated === true);
       } else {
         dishes = [];
       }
@@ -180,7 +180,13 @@
           <div class="toggle-thumb"></div>
         </div>
       </div>
-    `).join('');
+    `).join('') + `
+      <div style="margin-top: 14px; text-align: center;">
+        <button type="button" onclick="if(confirm('Reset menu to 0 items?')){if(window.clearMenuCatalogToCleanSlate){window.clearMenuCatalogToCleanSlate();} activeDishes=[]; renderDishesList();}" style="background: #FEF2F2; border: 1px dashed #EF4444; color: #B91C1C; font-size: 11px; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer;">
+          🧹 Wipe Menu to Clean Slate (0 Items)
+        </button>
+      </div>
+    `;
   }
 
   // Load Subsystem Preferences (Billing, KDS, Packaging)

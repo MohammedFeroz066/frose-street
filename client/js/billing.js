@@ -27,7 +27,18 @@
     return `₹${rupees}${remainder === 0 ? '.0' : '.' + remainder.toString().padStart(2, '0')}`;
   }
 
-    // Clean Slate Legacy Dummy Items Purge & Filter
+        // Clean Slate Legacy Dummy Items Purge & Filter
+  const PURGE_KEY = 'frose_clean_slate_2026_v12';
+  if (!localStorage.getItem(PURGE_KEY)) {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('frose_dishes') || k.startsWith('frose_cats') || k === 'frose_custom_menu_catalog')) {
+        localStorage.removeItem(k);
+      }
+    }
+    localStorage.setItem(PURGE_KEY, 'true');
+  }
+
   const LEGACY_DUMMY_IDS = new Set([
     'dish-naan-01', 'dish-chole-02', 'dish-dalfry-03', 'dish-paneertikka-04',
     'dish-mixveg-05', 'dish-punjabipaneer-06', 'dish-chickenbiryani-07',
@@ -37,17 +48,33 @@
   ]);
 
   const LEGACY_DUMMY_NAMES = new Set([
-    'Butter Naan', 'Chole Bhature', 'Dal Fry', 'Paneer Tikka', 'Mix Veg',
-    'Punjabi Paneer', 'Chicken Biryani Full', 'Mutton Biryani Full',
-    'Chicken Shawarma Roll', 'Paneer Butter Biryani', 'French Fries Masala'
+    'butter naan', 'chole bhature', 'dal fry', 'paneer tikka', 'mix veg',
+    'punjabi paneer', 'punjabi kadai', 'chicken biryani full', 'mutton biryani full',
+    'chicken shawarma roll', 'paneer butter biryani', 'french fries masala',
+    'dosa', 'idli', 'idly', 'plain dosa', 'masala dosa', 'kadai paneer'
   ]);
 
   function isUserCustomDish(item) {
     if (!item || !item.name) return false;
-    if (LEGACY_DUMMY_IDS.has(item.id)) return false;
-    if (LEGACY_DUMMY_NAMES.has(item.name)) return false;
-    return true;
+    // Strict requirement: Only dishes explicitly added by vendor in UI are allowed
+    if (item.isUserCreated === true) return true;
+    return false;
   }
+
+  // Explicit helper to wipe menu to clean slate anytime
+  window.clearMenuCatalogToCleanSlate = function() {
+    const vKey = getVendorKey();
+    localStorage.removeItem('frose_dishes_' + vKey);
+    localStorage.removeItem('frose_dishes_active');
+    localStorage.removeItem('frose_custom_menu_catalog');
+    localStorage.removeItem('frose_cats_' + vKey);
+    localStorage.removeItem('frose_cats_active');
+    menuCatalog = [];
+    cart.clear();
+    renderDishesGrid();
+    renderSidebarCategories([]);
+    updateCartUI();
+  };
 
   // Load Menu Catalog with instant live sync
   async function loadCatalog() {
@@ -178,10 +205,14 @@
 
   function saveCatalog() {
     try {
+      const vKey = getVendorKey();
       const serialized = menuCatalog.map(item => ({
         ...item,
+        isUserCreated: true,
         pricePaise: item.pricePaise.toString()
       }));
+      localStorage.setItem('frose_dishes_' + vKey, JSON.stringify(serialized));
+      localStorage.setItem('frose_dishes_active', JSON.stringify(serialized));
       localStorage.setItem('frose_custom_menu_catalog', JSON.stringify(serialized));
     } catch {}
   }

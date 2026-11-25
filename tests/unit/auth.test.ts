@@ -325,7 +325,7 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       await expect(
         AuthService.registerVendor(mockDb, {
           phone: '12345',
-          password: 'password123',
+          password: 'SecurePass2026!',
           businessName: 'Test Stall',
           ownerName: 'Test Owner',
         }),
@@ -335,7 +335,7 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       });
     });
 
-    it('rejects password shorter than 6 characters', async () => {
+    it('rejects password shorter than 10 characters', async () => {
       const mockDb: any = {};
       await expect(
         AuthService.registerVendor(mockDb, {
@@ -355,7 +355,7 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       await expect(
         AuthService.registerVendor(mockDb, {
           phone: '9876543210',
-          password: 'password123',
+          password: 'SecurePass2026!',
           businessName: '   ',
           ownerName: 'Test Owner',
         }),
@@ -427,7 +427,7 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
         url: '/api/v1/auth/register',
         payload: {
           phone: testPhone,
-          password: 'AnotherPassword123',
+          password: 'AnotherPassword@123',
           businessName: 'Duplicate Stall',
           ownerName: 'Duplicate',
         },

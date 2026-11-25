@@ -190,6 +190,7 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     const { vendor } = await AuthService.registerVendor(db, {
       phone: '9988776655',
       businessName: 'Trial Food Cart',
+      password: 'SecurePass2026!',
       quickPin: '1234',
       edition: 'cloud',
     });
@@ -307,6 +308,7 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     const { vendor } = await AuthService.registerVendor(db, {
       phone: '9988776644',
       businessName: 'Grace Period Stall',
+      password: 'SecurePass2026!',
       edition: 'cloud',
     });
 
@@ -331,6 +333,7 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     const { vendor } = await AuthService.registerVendor(db, {
       phone: '9988776633',
       businessName: 'Expired Lock Stall',
+      password: 'SecurePass2026!',
       edition: 'cloud',
     });
 
@@ -362,6 +365,7 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     const { vendor } = await AuthService.registerVendor(db, {
       phone: '9988776622',
       businessName: 'Renewing Stall',
+      password: 'SecurePass2026!',
       edition: 'local',
     });
 
@@ -385,6 +389,7 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     const { vendor } = await AuthService.registerVendor(db, {
       phone: '9988776611',
       businessName: 'Sequential Renew Stall',
+      password: 'SecurePass2026!',
       edition: 'cloud',
     });
 

@@ -32,6 +32,7 @@ describe('Production Readiness Hotfixes Verification', () => {
         phone: '9888877777',
         businessName: 'Hotfix Test Stall',
         ownerName: 'Hotfix Owner',
+        password: 'SecurePass2026!',
         quickPin: '4321',
         edition: 'cloud',
         presetKey: 'chai_nashta',

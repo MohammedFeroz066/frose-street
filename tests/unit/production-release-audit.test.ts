@@ -203,6 +203,7 @@ describe('Phase 20: Final Production Release & Audit', () => {
       phone: '9876543210',
       businessName: 'Royal Momos Hub',
       ownerName: 'Raju Sharma',
+      password: 'SecurePass2026!',
       quickPin: '1234',
       edition: 'cloud',
       presetKey: 'momos_chinese',
@@ -297,6 +298,7 @@ describe('Phase 20: Final Production Release & Audit', () => {
     const { vendor } = await AuthService.registerVendor(db, {
       phone: '9876543211',
       businessName: 'High Speed Food Cart',
+      password: 'SecurePass2026!',
       edition: 'cloud',
     });
 

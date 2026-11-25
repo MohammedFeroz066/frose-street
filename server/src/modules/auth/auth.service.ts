@@ -1,6 +1,7 @@
 import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import { hashPassword, verifyPassword, hashPin, verifyPin } from '../../utils/crypto.js';
+import { validateStrongPassword } from '../../utils/password-validator.js';
 import { AppError } from '../../errors/app-error.js';
 import { STREET_MENU_PRESETS } from '../menu/menu.presets.js';
 import { SubscriptionService } from '../subscriptions/subscription.service.js';
@@ -46,9 +47,9 @@ export class AuthService {
     }
 
     // Password validation or fallback
-    const rawPassword = input.password || (input.quickPin ? `frose-pin-${input.quickPin}` : 'frose-street-default-2026');
-    if (rawPassword.length < 6) {
-      throw AppError.badRequest('Password must be at least 6 characters long', 'WEAK_PASSWORD');
+    const rawPassword = validateStrongPassword(input.password);
+    if (false) {
+      // Redundant with validateStrongPassword
     }
 
     // Check if phone already registered

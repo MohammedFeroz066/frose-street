@@ -104,6 +104,7 @@
   const cityInput = document.getElementById('city-name');
   const upiIdInput = document.getElementById('upi-id');
   const quickPinInput = document.getElementById('quick-pin');
+  const passwordInput = document.getElementById('account-password');
 
   const btnGotoStep2 = document.getElementById('btn-goto-step-2');
   const btnBackToStep1 = document.getElementById('btn-back-to-step-1');
@@ -223,6 +224,22 @@
   // Step 3 Validation
   function validateStep3() {
     hideAlert();
+    const password = (passwordInput ? passwordInput.value : '').trim();
+    if (password.length < 10) {
+      showAlert('Please enter a master password of at least 10 characters.');
+      if (passwordInput) passwordInput.focus();
+      return false;
+    }
+    const hasUpper = /[A-Z]/.test(password);
+    const hasLower = /[a-z]/.test(password);
+    const hasDigit = /[0-9]/.test(password);
+    const hasSpecial = /[^A-Za-z0-9]/.test(password);
+    if (!hasUpper || !hasLower || !hasDigit || !hasSpecial) {
+      showAlert('Password must include uppercase, lowercase, number, and special character.');
+      if (passwordInput) passwordInput.focus();
+      return false;
+    }
+
     const pin = (quickPinInput.value || '').trim();
 
     if (!/^\d{4}$/.test(pin)) {
@@ -337,6 +354,7 @@
           body: JSON.stringify({
             businessName: stallName,
             phone,
+            password: (passwordInput ? passwordInput.value : '').trim(),
             businessType,
             city,
             upiId,

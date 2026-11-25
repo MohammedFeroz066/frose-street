@@ -181,6 +181,7 @@ describe('Phase 12 Acceptance: Vendor Registration, 60-Second Onboarding & Prese
         payload: {
           businessName: 'Test Stall',
           phone: '123', // invalid
+          password: 'SecurePass2026!',
           quickPin: '1234',
         },
       });
@@ -196,6 +197,7 @@ describe('Phase 12 Acceptance: Vendor Registration, 60-Second Onboarding & Prese
         payload: {
           businessName: '',
           phone: '9876543210',
+          password: 'SecurePass2026!',
           quickPin: '1234',
         },
       });
@@ -213,6 +215,7 @@ describe('Phase 12 Acceptance: Vendor Registration, 60-Second Onboarding & Prese
           businessName: 'Royal Momos & Chai',
           phone: testPhone,
           upiId: 'royalmomos@upi',
+          password: 'SecurePass2026!',
           quickPin: '4321',
           presetKey: 'momos_chinese',
           edition: 'cloud',

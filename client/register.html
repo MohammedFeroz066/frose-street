@@ -317,6 +317,17 @@
             <p class="step-desc">Set up a 4-digit staff PIN for 1-tap counter unlock without typing slow passwords on greasy fingers.</p>
           </div>
 
+          <!-- Master Password Input -->
+          <div class="pin-setup-container" style="margin-bottom: 24px;">
+            <label for="account-password" class="field-label" style="text-align: center; display: block; font-size: 15px;">
+              Create Master Password <span class="required-star">*</span>
+            </label>
+            <div class="pin-input-box" style="max-width: 320px; margin: 0 auto;">
+              <input type="password" id="account-password" name="password" class="field-input" minlength="10" placeholder="Min 10 chars (e.g. Pass@12345)" required autocomplete="new-password" style="text-align: center; font-size: 16px; width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; padding: 10px;">
+            </div>
+            <p class="pin-explainer">Used for owner login, cloud backup, and security settings.</p>
+          </div>
+
           <!-- 4-Digit Quick PIN Input -->
           <div class="pin-setup-container">
             <label for="quick-pin" class="field-label" style="text-align: center; display: block; font-size: 15px;">

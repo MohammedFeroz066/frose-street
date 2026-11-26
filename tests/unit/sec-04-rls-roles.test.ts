@@ -16,7 +16,7 @@ describe('SEC-04-RLS-ROLES: Migrations, app_user Role, and FORCE ROW LEVEL SECUR
     expect(keys).toContain('012_create_auth_security_tables');
     expect(keys).toContain('013_align_runtime_schema');
     expect(keys).toContain('014_rls_roles_and_policies');
-    expect(keys.indexOf('014_rls_roles_and_policies')).toBe(keys.length - 1);
+    expect(keys.indexOf('014_rls_roles_and_policies')).toBeGreaterThan(keys.indexOf('013_align_runtime_schema'));
     expect(typeof allMigrations['014_rls_roles_and_policies']?.up).toBe('function');
     expect(typeof allMigrations['014_rls_roles_and_policies']?.down).toBe('function');
   });

@@ -26,7 +26,7 @@ function buildTestDbUrl(baseUrl: string, dbName: string, user?: string, password
   return parsed.toString();
 }
 
-const TEST_DB_NAME = 'frose_street_test';
+const TEST_DB_NAME = 'frose_street_test_off02';
 const TEST_OWNER_URL = buildTestDbUrl(OWNER_ADMIN_URL, TEST_DB_NAME);
 const TEST_APP_USER_URL = buildTestDbUrl(OWNER_ADMIN_URL, TEST_DB_NAME, 'app_user', APP_USER_PASSWORD);
 

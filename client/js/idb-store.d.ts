@@ -58,6 +58,14 @@ export interface FroseIdbStoreInstance {
   toSafeIntegerPaise(value: number | bigint | string, fieldName?: string): number;
   getIstDateString(dateInput?: Date | string): string;
   openDb(): Promise<IDBDatabase | null>;
+  requestPersistentStorage(): Promise<boolean>;
+  recordLastSeenAt(epochMs?: number): Promise<number>;
+  checkClockRollback(epochMs?: number, toleranceMs?: number): Promise<{
+    ok: boolean;
+    code: string;
+    lastSeenAt: number | null;
+    currentNow: number;
+  }>;
   clearAllStores(): Promise<boolean>;
   getMeta(key: string): Promise<any>;
   setMeta(key: string, valueObj: any): Promise<any>;

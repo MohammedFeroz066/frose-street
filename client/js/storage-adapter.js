@@ -598,9 +598,9 @@
 
     /**
      * Cryptographically verifies an Ed25519 (EdDSA) offline license JWT via WebCrypto.
-     * Fails closed on invalid signature, tampered payload, alg !== 'EdDSA', expiry, or missing crypto.subtle.
+     * Fails closed on invalid signature, tampered payload, alg !== 'EdDSA', expiry, clock rollback, or missing crypto.subtle.
      */
-    static async verifyLicense(token, publicKeyPem) {
+    static async verifyLicense(token, publicKeyPem, options = {}) {
       const cryptoObj = globalThis.crypto;
       if (!cryptoObj || !cryptoObj.subtle) {
         return {
@@ -609,6 +609,24 @@
           canCreateOrders: false,
           reason: 'WebCrypto crypto.subtle unavailable; Ed25519 license verification requires a secure context (HTTPS or localhost)'
         };
+      }
+
+      const nowMs = typeof options?.nowMs === 'number' && Number.isFinite(options.nowMs) ? options.nowMs : Date.now();
+      const idb = options?.store || globalThis.FroseIdbStore;
+      if (idb && typeof idb.checkClockRollback === 'function') {
+        try {
+          const clockCheck = await idb.checkClockRollback(nowMs, 60000);
+          if (clockCheck && !clockCheck.ok) {
+            return {
+              valid: false,
+              code: 'CLOCK_ROLLBACK_DETECTED',
+              status: 'clock_rollback',
+              isReadOnly: true,
+              canCreateOrders: false,
+              reason: 'CLOCK_ROLLBACK_DETECTED: Device clock moved backward. Connect online to sync time before offline billing.'
+            };
+          }
+        } catch (_) {}
       }
 
       if (!token || typeof token !== 'string') {
@@ -669,7 +687,7 @@
           return { valid: false, isReadOnly: true, canCreateOrders: false, reason: 'Missing license periodEnd claim' };
         }
 
-        const now = new Date();
+        const now = new Date(nowMs);
         if (typeof payload.exp === 'number' && now.getTime() > payload.exp * 1000) {
           return {
             valid: false,
@@ -803,6 +821,10 @@
             vendorId: vendorId || statusData.vendorId,
             publicKeyPem
           });
+          const idb = globalThis.FroseIdbStore;
+          if (idb && typeof idb.recordLastSeenAt === 'function') {
+            await idb.recordLastSeenAt(Date.now());
+          }
         }
         return { ...verification, token, publicKeyPem };
       } catch (_) {
@@ -841,6 +863,7 @@
       this.onOrderSynced = typeof options.onOrderSynced === 'function' ? options.onOrderSynced : () => {};
       this.baseRetryDelayMs = Number(options.baseRetryDelayMs || 1500);
       this.maxRetryDelayMs = Number(options.maxRetryDelayMs || 60000);
+      this.nowImpl = typeof options.nowImpl === 'function' ? options.nowImpl : () => Date.now();
       this._flushingPromise = null;
       this._retryTimer = null;
       this._listenersBound = false;
@@ -851,6 +874,20 @@
     }
 
     async verifyOfflineLicense() {
+      const nowMs = this.nowImpl();
+      if (this.store && typeof this.store.checkClockRollback === 'function') {
+        const clockCheck = await this.store.checkClockRollback(nowMs, 60000);
+        if (clockCheck && !clockCheck.ok) {
+          return {
+            valid: false,
+            code: 'CLOCK_ROLLBACK_DETECTED',
+            status: 'clock_rollback',
+            isReadOnly: true,
+            canCreateOrders: false,
+            reason: 'CLOCK_ROLLBACK_DETECTED: Device clock moved backward. Connect online to sync time.'
+          };
+        }
+      }
       const bundle = await LicenseManager.getCachedLicenseBundle();
       if (!bundle || !bundle.token) {
         return {
@@ -860,7 +897,7 @@
           reason: 'Offline license not cached; connect online once to verify subscription'
         };
       }
-      return LicenseManager.verifyLicense(bundle.token, bundle.publicKeyPem);
+      return LicenseManager.verifyLicense(bundle.token, bundle.publicKeyPem, { nowMs, store: this.store });
     }
 
     async getStatusSnapshot() {

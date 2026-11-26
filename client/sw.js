@@ -7,7 +7,7 @@
  * - Automatic obsolete cache purge on activate
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v52-offline-safety';
+const CACHE_NAME = 'frose-street-v9-production-v53-phase3-billing';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const PRECACHE_ASSETS = [
@@ -79,7 +79,12 @@ self.addEventListener('install', (event) => {
       return cache.addAll(PRECACHE_ASSETS);
     })
   );
-  self.skipWaiting();
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {

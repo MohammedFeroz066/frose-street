@@ -114,7 +114,11 @@ export interface LicenseValidationResult {
 export declare class LicenseManager {
   static decodeToken(token: string): LicenseValidationResult;
   static getPublicKeyPem(baseUrl?: string): Promise<string | null>;
-  static verifyLicense(token: string, publicKeyPem?: string): Promise<LicenseValidationResult>;
+  static verifyLicense(
+    token: string,
+    publicKeyPem?: string,
+    options?: { nowMs?: number; store?: any }
+  ): Promise<LicenseValidationResult>;
   static saveLicense(token: string, extra?: { vendorId?: string; publicKeyPem?: string }): Promise<void>;
   static getCachedLicense(): Promise<string | null>;
   static getCachedLicenseBundle(): Promise<{ token: string | null; publicKeyPem: string | null; vendorId: string | null }>;

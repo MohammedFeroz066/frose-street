@@ -129,6 +129,22 @@
       meta: new Map(),
     };
     var usingMemory = false;
+    var persistRequested = false;
+
+    async function requestPersistentStorage() {
+      try {
+        if (typeof navigator !== 'undefined' && navigator.storage && typeof navigator.storage.persist === 'function') {
+          var granted = await navigator.storage.persist();
+          return Boolean(granted);
+        }
+        var nav = global.navigator || (global.window && global.window.navigator);
+        if (nav && nav.storage && typeof nav.storage.persist === 'function') {
+          var grantedAlt = await nav.storage.persist();
+          return Boolean(grantedAlt);
+        }
+      } catch (_) {}
+      return false;
+    }
 
     function resolveIdb() {
       if (customIdb) return customIdb;
@@ -138,6 +154,10 @@
     }
 
     function openDb() {
+      if (!persistRequested) {
+        persistRequested = true;
+        requestPersistentStorage().catch(function () {});
+      }
       if (dbPromise) return dbPromise;
       var idb = resolveIdb();
       if (!idb) {
@@ -281,6 +301,40 @@
     async function getActiveVendorId() {
       var rec = await getMeta('active_vendor_id');
       return rec && rec.value ? String(rec.value) : null;
+    }
+
+    async function recordLastSeenAt(epochMs) {
+      var now = typeof epochMs === 'number' && Number.isFinite(epochMs) ? Math.floor(epochMs) : Date.now();
+      var existing = await getMeta('last_seen_at');
+      var prev = existing && typeof existing.value === 'number' && Number.isFinite(existing.value) ? existing.value : 0;
+      var nextVal = Math.max(prev, now);
+      await setMeta('last_seen_at', { value: nextVal });
+      return nextVal;
+    }
+
+    async function checkClockRollback(epochMs, toleranceMs) {
+      var now = typeof epochMs === 'number' && Number.isFinite(epochMs) ? Math.floor(epochMs) : Date.now();
+      var tol = typeof toleranceMs === 'number' && toleranceMs >= 0 ? toleranceMs : 60000;
+      var existing = await getMeta('last_seen_at');
+      var lastSeenAt = existing && typeof existing.value === 'number' && Number.isFinite(existing.value) ? existing.value : null;
+      if (lastSeenAt !== null && now < lastSeenAt - tol) {
+        return {
+          ok: false,
+          code: 'CLOCK_ROLLBACK_DETECTED',
+          lastSeenAt: lastSeenAt,
+          currentNow: now,
+        };
+      }
+      if (lastSeenAt === null || now > lastSeenAt) {
+        await setMeta('last_seen_at', { value: now });
+        lastSeenAt = now;
+      }
+      return {
+        ok: true,
+        code: 'OK',
+        lastSeenAt: lastSeenAt,
+        currentNow: now,
+      };
     }
 
     async function ensureVendorScope(vendorId) {
@@ -549,6 +603,9 @@
       toSafeIntegerPaise: toSafeIntegerPaise,
       getIstDateString: getIstDateString,
       openDb: openDb,
+      requestPersistentStorage: requestPersistentStorage,
+      recordLastSeenAt: recordLastSeenAt,
+      checkClockRollback: checkClockRollback,
       clearAllStores: clearAllStores,
       clearSessionStorageKeys: clearSessionStorageKeys,
       getUnsyncedOutboxCount: getUnsyncedOutboxCount,

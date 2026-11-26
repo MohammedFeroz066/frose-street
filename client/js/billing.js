@@ -41,9 +41,59 @@
     badge.appendChild(el('span', {}, label));
   }
 
+  function showSwUpdateBanner(waitingWorker) {
+    if (!waitingWorker || !window.FroseSafeDom || typeof document === 'undefined') return;
+    if (document.getElementById('pos-sw-update-banner')) return;
+    const { el } = window.FroseSafeDom;
+    const banner = el('button', {
+      type: 'button',
+      id: 'pos-sw-update-banner',
+      style: 'position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 1200; background: #0F172A; color: #FBBF24; border: 1.5px solid #FBBF24; border-radius: 999px; padding: 10px 18px; font-size: 13px; font-weight: 800; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35); cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 44px;',
+      on: {
+        click: () => {
+          banner.disabled = true;
+          banner.textContent = 'Updating...';
+          waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      }
+    }, ['🔄 New update ready — Tap to reload']);
+    document.body.appendChild(banner);
+  }
+
+  function wireServiceWorkerUpdates() {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        showSwUpdateBanner(reg.waiting);
+      }
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            showSwUpdateBanner(newWorker);
+          }
+        });
+      });
+    }).catch(() => {});
+  }
+
   async function initOfflineRuntime() {
-    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    wireServiceWorkerUpdates();
+
+    if (window.FroseIdbStore) {
+      if (typeof window.FroseIdbStore.requestPersistentStorage === 'function') {
+        window.FroseIdbStore.requestPersistentStorage().catch(() => {});
+      }
+      if ((typeof navigator === 'undefined' || navigator.onLine !== false) && typeof window.FroseIdbStore.recordLastSeenAt === 'function') {
+        window.FroseIdbStore.recordLastSeenAt(Date.now()).catch(() => {});
+      }
     }
 
     const storageMod = window.__FROSE_STORAGE__ || {};

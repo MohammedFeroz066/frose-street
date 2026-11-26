@@ -15,6 +15,37 @@
   let currentOrderType = 'counter'; // 'counter' | 'dinein'
   let activeVendorId = '';
   let syncEngine = null;
+  let lastCompletedOrder = null;
+  let flashAutoCloseTimer = null;
+
+  function getActiveVendorProfile() {
+    try {
+      return JSON.parse(localStorage.getItem('frose_current_vendor') || '{}') || {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function computeCartTaxBreakdown(subtotalPaiseBig) {
+    const sub = typeof subtotalPaiseBig === 'bigint' ? Number(subtotalPaiseBig) : Number(subtotalPaiseBig || 0);
+    const v = getActiveVendorProfile();
+    const taxMode = v.taxMode || v.tax_mode || 'unregistered';
+    const bps = taxMode === 'regular' ? Number(v.gstRateBps ?? v.gst_rate_bps ?? 500) : 0;
+    if (taxMode !== 'regular' || !Number.isSafeInteger(bps) || bps <= 0) {
+      return { subtotalPaise: sub, cgstPaise: 0, sgstPaise: 0, totalPaise: sub, taxMode, gstRateBps: 0 };
+    }
+    const totalTax = Number((BigInt(sub) * BigInt(bps) + 5000n) / 10000n);
+    const cgstPaise = Math.floor(totalTax / 2);
+    const sgstPaise = totalTax - cgstPaise;
+    return {
+      subtotalPaise: sub,
+      cgstPaise,
+      sgstPaise,
+      totalPaise: sub + cgstPaise + sgstPaise,
+      taxMode,
+      gstRateBps: bps,
+    };
+  }
 
   function renderSyncStatusBadge(snapshot) {
     const badge = document.getElementById('pos-sync-status-badge');
@@ -474,14 +505,15 @@
   // Update Floating Cart Pill & Totals
   function updateCartUI() {
     let totalItems = 0;
-    let totalPaise = 0n;
+    let subtotalPaise = 0n;
 
     cart.forEach(({ item, quantity }) => {
       totalItems += quantity;
-      totalPaise += item.pricePaise * BigInt(quantity);
+      subtotalPaise += item.pricePaise * BigInt(quantity);
     });
 
-    const totalFormatted = formatRupees(totalPaise);
+    const taxInfo = computeCartTaxBreakdown(subtotalPaise);
+    const totalFormatted = formatRupees(BigInt(taxInfo.totalPaise));
 
     // Floating Cart Pill
     const cartPill = document.getElementById('pos-floating-cart-pill');
@@ -493,6 +525,35 @@
       } else {
         cartPill.style.display = 'flex';
         pillStats.textContent = `0 • ₹0.0`;
+      }
+    }
+
+    const taxBreakdownEl = document.getElementById('checkout-tax-breakdown');
+    if (taxBreakdownEl && window.FroseSafeDom) {
+      const { el, clear } = window.FroseSafeDom;
+      clear(taxBreakdownEl);
+      if (taxInfo.taxMode === 'regular' && taxInfo.gstRateBps > 0 && totalItems > 0) {
+        taxBreakdownEl.style.display = 'block';
+        taxBreakdownEl.appendChild(
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [
+            el('span', {}, 'Subtotal'),
+            el('span', {}, formatRupees(BigInt(taxInfo.subtotalPaise))),
+          ])
+        );
+        taxBreakdownEl.appendChild(
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [
+            el('span', {}, 'CGST'),
+            el('span', {}, formatRupees(BigInt(taxInfo.cgstPaise))),
+          ])
+        );
+        taxBreakdownEl.appendChild(
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [
+            el('span', {}, 'SGST'),
+            el('span', {}, formatRupees(BigInt(taxInfo.sgstPaise))),
+          ])
+        );
+      } else {
+        taxBreakdownEl.style.display = 'none';
       }
     }
 
@@ -571,6 +632,46 @@
 
     const { el, clear } = window.FroseSafeDom;
     clear(list);
+
+    let subtotalPaise = 0n;
+    cart.forEach(({ item, quantity }) => {
+      subtotalPaise += item.pricePaise * BigInt(quantity);
+    });
+    const taxInfo = computeCartTaxBreakdown(subtotalPaise);
+    const totalFormatted = formatRupees(BigInt(taxInfo.totalPaise));
+    const grandTotalEl = document.getElementById('checkout-grand-total');
+    if (grandTotalEl) grandTotalEl.textContent = totalFormatted;
+    const btnCashAmount = document.getElementById('btn-cash-amount');
+    if (btnCashAmount) btnCashAmount.textContent = totalFormatted;
+    const btnUpiAmount = document.getElementById('btn-upi-amount');
+    if (btnUpiAmount) btnUpiAmount.textContent = totalFormatted;
+    const taxBreakdownEl = document.getElementById('checkout-tax-breakdown');
+    if (taxBreakdownEl) {
+      clear(taxBreakdownEl);
+      if (taxInfo.taxMode === 'regular' && taxInfo.gstRateBps > 0 && cart.size > 0) {
+        taxBreakdownEl.style.display = 'block';
+        taxBreakdownEl.appendChild(
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [
+            el('span', {}, 'Subtotal'),
+            el('span', {}, formatRupees(BigInt(taxInfo.subtotalPaise))),
+          ])
+        );
+        taxBreakdownEl.appendChild(
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [
+            el('span', {}, 'CGST'),
+            el('span', {}, formatRupees(BigInt(taxInfo.cgstPaise))),
+          ])
+        );
+        taxBreakdownEl.appendChild(
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [
+            el('span', {}, 'SGST'),
+            el('span', {}, formatRupees(BigInt(taxInfo.sgstPaise))),
+          ])
+        );
+      } else {
+        taxBreakdownEl.style.display = 'none';
+      }
+    }
 
     if (cart.size === 0) {
       list.appendChild(
@@ -651,12 +752,16 @@
     }
     window.closeModal('checkout-drawer-modal');
 
-    // Calculate total
-    let totalPaise = 0n;
+    // Calculate total including GST if Regular mode
+    let subtotalPaise = 0n;
     cart.forEach(({ item, quantity }) => {
-      totalPaise += item.pricePaise * BigInt(quantity);
+      subtotalPaise += item.pricePaise * BigInt(quantity);
     });
-    const formatted = formatRupees(totalPaise);
+    const taxInfo = computeCartTaxBreakdown(subtotalPaise);
+    const formatted = formatRupees(BigInt(taxInfo.totalPaise));
+
+    const confirmCheck = document.getElementById('upi-manual-confirm-check');
+    if (confirmCheck) confirmCheck.checked = false;
 
     const upiAmountEl = document.getElementById('upi-qr-amount');
     if (upiAmountEl) upiAmountEl.textContent = formatted;
@@ -728,6 +833,11 @@
   };
 
   window.confirmUpiReceived = function() {
+    const confirmCheck = document.getElementById('upi-manual-confirm-check');
+    if (confirmCheck && !confirmCheck.checked) {
+      alert('Please confirm on your UPI Soundbox or Bank App and tick the confirmation box first.');
+      return;
+    }
     window.closeModal('upi-qr-modal');
     executeOrderSuccess('UPI');
   };
@@ -819,8 +929,8 @@
         ...serverOrder,
         client_order_id: serverOrder.clientOrderId || clientOrderId,
         orderType: currentOrderType,
-        items: itemsList,
-        totalPaise: Number(totalPaise),
+        items: serverOrder.items && serverOrder.items.length > 0 ? serverOrder.items : itemsList,
+        totalPaise: Number(serverOrder.totalPaise ?? totalPaise),
         syncStatus: 'synced'
       };
       if (window.FroseIdbStore) {
@@ -830,23 +940,32 @@
       }
     } else if (shouldQueueOffline && syncEngine) {
       try {
+        const offlineTax = computeCartTaxBreakdown(totalPaise);
         const offlineRes = await syncEngine.queueOfflineOrder({
           vendorId: getVendorKey(),
           clientOrderId,
           createdAtClient,
           items: itemsList,
-          totalPaise: Number(totalPaise),
+          totalPaise: Number(offlineTax.totalPaise),
           paymentMethod: paymentMethodNormalized,
           paymentStatus: 'paid',
           orderType: currentOrderType
         });
-        orderData = offlineRes.order;
+        orderData = {
+          ...offlineRes.order,
+          subtotalPaise: offlineTax.subtotalPaise,
+          cgstPaise: offlineTax.cgstPaise,
+          sgstPaise: offlineTax.sgstPaise,
+          taxModeSnapshot: offlineTax.taxMode,
+          receiptNumber: 'OFFLINE-PENDING',
+        };
         tokenStr = `TOKEN ${orderData.localTokenDisplay || ('OFF-' + String(orderData.tokenNo).padStart(2, '0'))}`;
       } catch (licErr) {
         alert(`🔒 ${licErr?.message || 'Offline billing blocked: valid offline license required.'}`);
         return;
       }
     } else {
+      const localTax = computeCartTaxBreakdown(totalPaise);
       currentTokenNumber = currentTokenNumber + 1;
       tokenStr = `TOKEN #${currentTokenNumber}`;
       orderData = {
@@ -855,7 +974,11 @@
         tokenNo: currentTokenNumber,
         orderType: currentOrderType,
         items: itemsList,
-        totalPaise: Number(totalPaise),
+        subtotalPaise: localTax.subtotalPaise,
+        cgstPaise: localTax.cgstPaise,
+        sgstPaise: localTax.sgstPaise,
+        taxModeSnapshot: localTax.taxMode,
+        totalPaise: Number(localTax.totalPaise),
         paymentMethod: paymentMethodNormalized,
         status: 'pending',
         syncStatus: 'pending',
@@ -863,12 +986,16 @@
       };
     }
 
+    lastCompletedOrder = orderData;
+
     // Flash Token Modal
     const fToken = document.getElementById('flash-token-number');
     if (fToken) fToken.textContent = tokenStr;
 
+    const finalPaise = BigInt(orderData?.totalPaise ?? totalPaise);
+    const paymentText = paymentMethodNormalized === 'upi' ? 'Marked paid (UPI)' : 'Paid (Cash)';
     const fAmount = document.getElementById('flash-token-amount');
-    if (fAmount) fAmount.textContent = `${formatRupees(totalPaise)} Paid (${method})`;
+    if (fAmount) fAmount.textContent = `${formatRupees(finalPaise)} • ${paymentText}`;
 
     try {
       if (typeof BroadcastChannel !== 'undefined' && orderData) {
@@ -881,11 +1008,221 @@
     cart.clear();
     updateCartUI();
 
-    // Auto-close after 3 seconds
-    setTimeout(() => {
+    if (flashAutoCloseTimer) clearTimeout(flashAutoCloseTimer);
+    flashAutoCloseTimer = setTimeout(() => {
       window.closeModal('token-flash-modal');
-    }, 3200);
+    }, 5000);
   }
+
+  let activeReceiptOrder = null;
+
+  window.setReceiptPaperWidth = function(width) {
+    const area = document.getElementById('receipt-print-area');
+    const b58 = document.getElementById('btn-width-58mm');
+    const b80 = document.getElementById('btn-width-80mm');
+    const w = String(width) === '80' ? '80' : '58';
+    if (area) {
+      area.classList.remove('thermal-58mm', 'thermal-80mm');
+      area.classList.add(w === '80' ? 'thermal-80mm' : 'thermal-58mm');
+    }
+    if (b58 && b80) {
+      b58.style.background = w === '58' ? '#5B0612' : '#FFF';
+      b58.style.color = w === '58' ? '#FFF' : '#334155';
+      b58.style.borderColor = w === '58' ? '#5B0612' : '#CBD5E1';
+      b80.style.background = w === '80' ? '#5B0612' : '#FFF';
+      b80.style.color = w === '80' ? '#FFF' : '#334155';
+      b80.style.borderColor = w === '80' ? '#5B0612' : '#CBD5E1';
+    }
+  };
+
+  window.openReceiptModal = function(orderObj) {
+    if (!orderObj || !window.FroseReceiptView || !window.FroseSafeDom) return;
+    if (flashAutoCloseTimer) {
+      clearTimeout(flashAutoCloseTimer);
+      flashAutoCloseTimer = null;
+    }
+    window.closeModal('token-flash-modal');
+    window.closeModal('order-history-modal');
+    activeReceiptOrder = orderObj;
+
+    let printerWidth = '58';
+    try {
+      const prefs = JSON.parse(localStorage.getItem('frose_counter_preferences') || '{}');
+      if (prefs.printerWidth === '80') printerWidth = '80';
+    } catch (_) {}
+    window.setReceiptPaperWidth(printerWidth);
+
+    const area = document.getElementById('receipt-print-area');
+    window.FroseReceiptView.renderReceiptDom(area, orderObj, getActiveVendorProfile(), window.FroseSafeDom);
+    window.openModal('receipt-modal');
+  };
+
+  window.openLastReceiptModal = function() {
+    if (!lastCompletedOrder) return;
+    window.openReceiptModal(lastCompletedOrder);
+  };
+
+  window.printThermalReceipt = function() {
+    window.print();
+  };
+
+  window.copyBillTextWhatsApp = async function() {
+    if (!activeReceiptOrder || !window.FroseReceiptView) return;
+    const text = window.FroseReceiptView.buildPlainTextReceipt(activeReceiptOrder, getActiveVendorProfile());
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      try {
+        await navigator.clipboard.writeText(text);
+        const btn = document.getElementById('btn-copy-bill-text');
+        if (btn) {
+          const orig = btn.textContent;
+          btn.textContent = '✅ Bill Text Copied!';
+          setTimeout(() => { btn.textContent = orig; }, 2000);
+        }
+        return;
+      } catch (_) {}
+    }
+    alert(text);
+  };
+
+  async function fetchOrderHistoryList() {
+    const listEl = document.getElementById('order-history-list');
+    if (!listEl || !window.FroseSafeDom) return;
+    const { el, clear } = window.FroseSafeDom;
+    clear(listEl);
+    listEl.appendChild(el('div', { style: 'text-align: center; padding: 20px; color: #64748B; font-size: 12.5px;' }, 'Loading orders...'));
+
+    let orders = [];
+    if (localStorage.getItem('frose_session_active') && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+      try {
+        const fn = window.froseApiFetch || fetch;
+        const res = await fn('/api/v1/orders/history?limit=25', { credentials: 'same-origin' });
+        if (res && res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.orders)) orders = data.orders;
+        }
+      } catch (_) {}
+    }
+
+    if (orders.length === 0 && window.FroseIdbStore) {
+      try {
+        orders = await window.FroseIdbStore.getOrders(getVendorKey());
+      } catch (_) {}
+    }
+
+    clear(listEl);
+    if (!orders || orders.length === 0) {
+      listEl.appendChild(el('div', { style: 'text-align: center; padding: 24px; color: #64748B; font-size: 13px;' }, 'No recent orders yet.'));
+      return;
+    }
+
+    const fmt = window.FroseReceiptView ? window.FroseReceiptView.formatPaiseToRupees : (p) => formatRupees(BigInt(p || 0));
+
+    orders.forEach((ord) => {
+      const status = String(ord.orderStatus || ord.status || 'preparing');
+      const isCancelled = status === 'cancelled';
+      const canVoid = !isCancelled && status !== 'served' && Boolean(ord.id) && String(ord.syncStatus || 'synced') === 'synced';
+      const badgeColor = isCancelled ? '#B91C1C' : '#047857';
+      const badgeBg = isCancelled ? '#FEF2F2' : '#ECFDF5';
+
+      const actions = [
+        el('button', {
+          type: 'button',
+          class: 'btn-history-receipt',
+          style: 'min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1.5px solid #5B0612; background: #FFF5F6; color: #5B0612; font-size: 11.5px; font-weight: 800; cursor: pointer;',
+          on: {
+            click: async () => {
+              let fullOrder = ord;
+              if (ord.id && (!Array.isArray(ord.items) || ord.items.length === 0) && localStorage.getItem('frose_session_active')) {
+                try {
+                  const fn = window.froseApiFetch || fetch;
+                  const r = await fn(`/api/v1/orders/${ord.id}`, { credentials: 'same-origin' });
+                  if (r && r.ok) {
+                    const j = await r.json();
+                    if (j && j.order) fullOrder = j.order;
+                  }
+                } catch (_) {}
+              }
+              window.openReceiptModal(fullOrder);
+            }
+          }
+        }, '🧾 Receipt')
+      ];
+
+      if (canVoid) {
+        actions.push(
+          el('button', {
+            type: 'button',
+            class: 'btn-history-void',
+            style: 'min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1.5px solid #DC2626; background: #FEF2F2; color: #DC2626; font-size: 11.5px; font-weight: 800; cursor: pointer;',
+            on: { click: () => window.openVoidOrderModal(ord.id, ord.tokenDisplay || `#${ord.tokenNo}`) }
+          }, '❌ Void')
+        );
+      }
+
+      listEl.appendChild(
+        el('div', { style: 'border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #FFF;' }, [
+          el('div', { style: 'min-width: 0; flex: 1;' }, [
+            el('div', { style: 'font-size: 13px; font-weight: 900; color: #0F172A;' },
+              `${ord.tokenDisplay || '#' + (ord.tokenNo || '')} • ${fmt(ord.totalPaise)}`
+            ),
+            el('div', { style: 'font-size: 11px; color: #475569; margin-top: 2px;' },
+              `${ord.receiptNumber || 'Offline'} • ${String(ord.paymentMethod || '').toUpperCase()}`
+            ),
+            el('span', { style: `display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: ${badgeBg}; color: ${badgeColor};` },
+              status.toUpperCase() + (ord.cancelReason ? ': ' + ord.cancelReason : '')
+            ),
+          ]),
+          el('div', { style: 'display: flex; gap: 6px; flex-shrink: 0;' }, actions),
+        ])
+      );
+    });
+  }
+
+  window.openOrderHistoryModal = async function() {
+    window.openModal('order-history-modal');
+    await fetchOrderHistoryList();
+  };
+
+  window.openVoidOrderModal = function(orderId, tokenLabel) {
+    const idEl = document.getElementById('void-order-id');
+    const lblEl = document.getElementById('void-order-label');
+    const reasonEl = document.getElementById('void-order-reason');
+    if (idEl) idEl.value = orderId;
+    if (lblEl) lblEl.textContent = `Order ${tokenLabel || ''} — enter reason to void:`;
+    if (reasonEl) reasonEl.value = '';
+    window.openModal('void-order-modal');
+  };
+
+  window.submitVoidOrder = async function(e) {
+    e.preventDefault();
+    const orderId = document.getElementById('void-order-id')?.value;
+    const reason = document.getElementById('void-order-reason')?.value.trim() || '';
+    if (!orderId || reason.length < 3) {
+      alert('Please enter a void reason (at least 3 characters).');
+      return;
+    }
+    try {
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn(`/api/v1/orders/${orderId}/status`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-FROSE-CSRF': '1',
+        },
+        body: JSON.stringify({ status: 'cancelled', reason }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(`❌ ${data?.error?.message || data?.message || 'Could not void order'}`);
+        return;
+      }
+      window.closeModal('void-order-modal');
+      await fetchOrderHistoryList();
+    } catch (err) {
+      alert(`❌ Network error voiding order`);
+    }
+  };
 
   // Section Management
   window.openAddSectionModal = function() {

@@ -132,7 +132,8 @@
       // 6. Meta: Payment Method & Timestamp
       append(COMMANDS.ALIGN_CENTER);
       const pm = (slipData.paymentMethod || 'CASH').toUpperCase();
-      appendLine(`Payment: ${pm} (Settled)`);
+      const pmLabel = pm === 'UPI' ? 'Marked paid (UPI)' : 'Paid (' + pm + ')';
+      appendLine('Payment: ' + pmLabel);
       const timeStr = slipData.timestamp || new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
       appendLine(timeStr);
       appendLine('*** Thank You! Visit Again ***');

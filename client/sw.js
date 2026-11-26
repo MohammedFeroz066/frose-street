@@ -35,6 +35,7 @@ const PRECACHE_ASSETS = [
   '/js/bluetooth-printer.js',
   '/js/whatsapp-service.js',
   '/js/settings-component.js',
+  '/js/receipt-view.js',
   '/js/ios-fast-nav.js',
   '/js/app.js',
   '/js/register.js',

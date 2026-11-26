@@ -9,6 +9,7 @@
   <script src="/js/safe-dom.js?v=1.0.0"></script>
   <script src="/js/dom-events.js?v=1.0.0"></script>
   <script src="/js/idb-store.js?v=1.0.0"></script>
+  <script src="/js/receipt-view.js?v=1.0.0"></script>
   <script src="/js/session-guard.js?v=1.0.0"></script>
   <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -466,6 +467,46 @@
       font-size: 14px;
       box-sizing: border-box;
     }
+
+    /* Thermal 58mm / 80mm Receipt Print Layout */
+    #receipt-print-area.thermal-58mm {
+      max-width: 240px;
+      margin: 0 auto;
+    }
+    #receipt-print-area.thermal-80mm {
+      max-width: 320px;
+      margin: 0 auto;
+    }
+    @media print {
+      body > *:not(#receipt-modal) {
+        display: none !important;
+      }
+      #receipt-modal {
+        position: static !important;
+        display: block !important;
+        background: #FFFFFF !important;
+        padding: 0 !important;
+        inset: auto !important;
+      }
+      #receipt-modal .pos-modal-card {
+        box-shadow: none !important;
+        border: none !important;
+        max-height: none !important;
+        padding: 4px !important;
+        max-width: 100% !important;
+      }
+      .receipt-no-print {
+        display: none !important;
+      }
+      #receipt-print-area.thermal-58mm {
+        width: 58mm !important;
+        max-width: 58mm !important;
+      }
+      #receipt-print-area.thermal-80mm {
+        width: 80mm !important;
+        max-width: 80mm !important;
+      }
+    }
   </style>
 </head>
 <body class="billing-page billing-pos-body">
@@ -487,6 +528,9 @@
     </div>
 
     <div class="pos-header-right">
+      <button type="button" id="btn-open-order-history" data-click="openOrderHistoryModal" style="min-height: 44px; padding: 0 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.28); background: rgba(255,255,255,0.14); color: #FFFFFF; font-size: 11.5px; font-weight: 800; cursor: pointer; white-space: nowrap;">
+        🧾 Orders
+      </button>
       <div id="pos-sync-status-badge" style="display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; background: rgba(16, 185, 129, 0.2); color: #ECFDF5; border: 1px solid rgba(16, 185, 129, 0.45); white-space: nowrap;">
         <span>Online</span>
       </div>
@@ -554,9 +598,12 @@
       </div>
 
       <!-- Total Summary -->
-      <div style="background: #FFF5F6; border: 1px solid #FECDD3; border-radius: 12px; padding: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 13px; font-weight: 800; color: #5B0612;">Grand Total</span>
-        <span style="font-size: 20px; font-weight: 900; color: #5B0612;" id="checkout-grand-total">&#8377;0</span>
+      <div style="background: #FFF5F6; border: 1px solid #FECDD3; border-radius: 12px; padding: 12px; margin-bottom: 16px;">
+        <div id="checkout-tax-breakdown" style="display: none; font-size: 11.5px; color: #475569; margin-bottom: 6px; border-bottom: 1px dashed #FDA4AF; padding-bottom: 6px;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 13px; font-weight: 800; color: #5B0612;">Grand Total</span>
+          <span style="font-size: 20px; font-weight: 900; color: #5B0612;" id="checkout-grand-total">&#8377;0</span>
+        </div>
       </div>
 
       <!-- Order Type -->
@@ -704,18 +751,23 @@
       <div style="font-size: 13px; font-weight: 800; color: #059669; letter-spacing: 0.5px;">ORDER DISPATCHED</div>
       <div style="font-size: 32px; font-weight: 900; color: #5B0612; margin: 6px 0;" id="flash-token-number">TOKEN #1</div>
       <div style="font-size: 14px; font-weight: 700; color: #4B5563;" id="flash-token-amount">&#8377;0 Paid (Cash)</div>
-      <p style="font-size: 11px; color: #9CA3AF; margin-top: 10px;">Synced to Kitchen Display &bull; Auto-closing</p>
-      <button data-click="closeModal" data-arg="token-flash-modal" style="width: 100%; height: 40px; margin-top: 12px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">
-        Next Order
-      </button>
+      <p style="font-size: 11px; color: #9CA3AF; margin-top: 10px;">Synced to Kitchen Display</p>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+        <button type="button" id="btn-flash-view-receipt" data-click="openLastReceiptModal" style="width: 100%; min-height: 44px; border-radius: 10px; border: 1.5px solid #5B0612; background: #FFF5F6; color: #5B0612; font-weight: 800; font-size: 13px; cursor: pointer;">
+          🧾 View / Print Receipt
+        </button>
+        <button data-click="closeModal" data-arg="token-flash-modal" style="width: 100%; min-height: 44px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">
+          Next Order
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Dynamic UPI QR Scanner Modal (Preserved for Vitest Tests) -->
+  <!-- Static Counter UPI QR Modal (Honest Manual Confirmation) -->
   <div class="modal-overlay" id="upi-qr-modal">
     <div class="pos-modal-card" style="text-align: center;">
       <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #5B0612;">📱 Customer UPI QR</h3>
-      <p style="font-size: 11.5px; color: #6B7280; margin: 4px 0 14px 0;">Scan with GPay, PhonePe, Paytm, or BHIM</p>
+      <p style="font-size: 11.5px; color: #6B7280; margin: 4px 0 12px 0;">Customer scans QR with any UPI app. Confirm on your Soundbox or Bank App before finalizing.</p>
       
       <div style="background: #F9FAFB; border: 2px solid #E5E7EB; border-radius: 16px; padding: 14px; display: inline-block;">
         <div id="upi-qr-code-canvas" style="min-width: 160px; min-height: 160px; display: flex; align-items: center; justify-content: center;"></div>
@@ -723,10 +775,73 @@
         <div style="font-size: 11px; color: #6B7280;" id="upi-qr-vpa">frosestall@upi</div>
       </div>
 
-      <div style="display: flex; gap: 8px; margin-top: 16px;">
-        <button id="btn-cancel-upi" data-click="closeModal" data-arg="upi-qr-modal" style="flex: 1; height: 42px; border-radius: 10px; border: 1.5px solid #E5E7EB; background: #fff; font-weight: 700; cursor: pointer;">Cancel</button>
-        <button id="btn-confirm-upi" data-click="confirmUpiReceived" style="flex: 2; height: 42px; border-radius: 10px; border: none; background: #059669; color: #fff; font-weight: 800; cursor: pointer;">Payment Received</button>
+      <label style="display: flex; align-items: center; gap: 10px; text-align: left; background: #FFFBEB; border: 1.5px solid #FDE68A; border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 12px; font-weight: 800; color: #78350F; cursor: pointer;">
+        <input type="checkbox" id="upi-manual-confirm-check" style="width: 20px; height: 20px; flex-shrink: 0;" />
+        <span>Customer Paid via UPI (Confirm on Soundbox/App)</span>
+      </label>
+
+      <div style="display: flex; gap: 8px; margin-top: 14px;">
+        <button id="btn-cancel-upi" data-click="closeModal" data-arg="upi-qr-modal" style="flex: 1; min-height: 44px; border-radius: 10px; border: 1.5px solid #E5E7EB; background: #fff; font-weight: 700; cursor: pointer;">Cancel</button>
+        <button id="btn-confirm-upi" data-click="confirmUpiReceived" style="flex: 2; min-height: 44px; border-radius: 10px; border: none; background: #059669; color: #fff; font-weight: 800; cursor: pointer;">Mark Paid (UPI)</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Statutory 58mm / 80mm Receipt Modal -->
+  <div class="modal-overlay" id="receipt-modal">
+    <div class="pos-modal-card">
+      <div class="receipt-no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #5B0612;">🧾 Customer Receipt</h3>
+        <button type="button" data-click="closeModal" data-arg="receipt-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280; min-width: 44px; min-height: 44px;">✕</button>
+      </div>
+
+      <div class="receipt-no-print" style="display: flex; gap: 6px; margin-bottom: 10px;">
+        <button type="button" id="btn-width-58mm" data-click="setReceiptPaperWidth" data-arg="58" style="flex: 1; min-height: 36px; border-radius: 8px; border: 1.5px solid #5B0612; background: #5B0612; color: #FFF; font-size: 12px; font-weight: 800; cursor: pointer;">58mm Thermal</button>
+        <button type="button" id="btn-width-80mm" data-click="setReceiptPaperWidth" data-arg="80" style="flex: 1; min-height: 36px; border-radius: 8px; border: 1.5px solid #CBD5E1; background: #FFF; color: #334155; font-size: 12px; font-weight: 800; cursor: pointer;">80mm Thermal</button>
+      </div>
+
+      <div id="receipt-print-area" class="thermal-58mm" style="background: #FDFBF7; border: 1.5px dashed #CBD5E1; border-radius: 10px; padding: 12px;"></div>
+
+      <div class="receipt-no-print" style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+        <button type="button" id="btn-print-receipt" data-click="printThermalReceipt" style="width: 100%; min-height: 44px; border-radius: 10px; border: none; background: #0F172A; color: #FFF; font-weight: 800; font-size: 13px; cursor: pointer;">
+          🖨️ Print Receipt
+        </button>
+        <button type="button" id="btn-copy-bill-text" data-click="copyBillTextWhatsApp" style="width: 100%; min-height: 44px; border-radius: 10px; border: 1.5px solid #16A34A; background: #F0FDF4; color: #166534; font-weight: 800; font-size: 13px; cursor: pointer;">
+          📋 Copy Bill Text (WhatsApp)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order History & Void Modal -->
+  <div class="modal-overlay" id="order-history-modal">
+    <div class="pos-modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #E5E7EB; padding-bottom: 8px;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #5B0612;">🧾 Recent Orders &amp; Receipts</h3>
+        <button type="button" data-click="closeModal" data-arg="order-history-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280; min-width: 44px; min-height: 44px;">✕</button>
+      </div>
+      <div id="order-history-list" style="max-height: 60vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;"></div>
+    </div>
+  </div>
+
+  <!-- Void / Cancel Order Reason Modal -->
+  <div class="modal-overlay" id="void-order-modal">
+    <div class="pos-modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #B91C1C;">❌ Void / Cancel Order</h3>
+        <button type="button" data-click="closeModal" data-arg="void-order-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280; min-width: 44px; min-height: 44px;">✕</button>
+      </div>
+      <form data-submit="submitVoidOrder">
+        <input type="hidden" id="void-order-id" />
+        <p id="void-order-label" style="font-size: 12.5px; color: #334155; font-weight: 700; margin: 0 0 10px 0;"></p>
+        <div class="form-group-pos">
+          <label class="form-label-pos" for="void-order-reason">Cancellation / Void Reason (min 3 chars) *</label>
+          <input type="text" id="void-order-reason" class="form-input-pos" minlength="3" maxlength="200" placeholder="e.g. Customer changed order / duplicate punch" required />
+        </div>
+        <button type="submit" id="btn-submit-void-order" style="width: 100%; min-height: 44px; margin-top: 8px; border-radius: 10px; border: none; background: #DC2626; color: #FFF; font-weight: 800; cursor: pointer;">
+          Confirm Void Order
+        </button>
+      </form>
     </div>
   </div>
 
@@ -1236,8 +1351,8 @@
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
               <div>
-                <div style="font-size: 12px; font-weight: 800; color: #0F172A;">Soundbox Voice Chime</div>
-                <div style="font-size: 10.5px; color: #64748B;">Audio confirmation when customer pays via UPI</div>
+                <div style="font-size: 12px; font-weight: 800; color: #0F172A;">Soundbox Reminder</div>
+                <div style="font-size: 10.5px; color: #64748B;">Manual confirmation via your UPI Soundbox / Bank App</div>
               </div>
               <div style="width: 36px; height: 20px; border-radius: 20px; background: #22C55E; position: relative;">
                 <div style="width: 16px; height: 16px; border-radius: 50%; background: #FFF; position: absolute; top: 2px; right: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>

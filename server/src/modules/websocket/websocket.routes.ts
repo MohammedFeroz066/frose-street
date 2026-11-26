@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import type { WebSocket } from '@fastify/websocket';
 import { z } from 'zod';
 import { WebSocketHub, ConnectedClient } from './websocket.hub.js';
 import { requireAuth } from '../../middleware/auth.js';
@@ -58,9 +59,8 @@ export const verifyWsUpgrade = async (request: FastifyRequest, _reply: FastifyRe
   validateOriginAndQuery(request, config);
 };
 
-export const handleWsConnection = (connection: any, req: FastifyRequest) => {
+export const handleWsConnection = (socket: WebSocket, req: FastifyRequest) => {
   const config = req.server?.froseConfig || loadConfig();
-  const socket = connection.socket;
 
   // Enforce <= 5s handshake authentication ceiling
   const handshakeTimer = setTimeout(() => {

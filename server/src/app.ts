@@ -44,7 +44,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   const app = fastify({
     logger: options.logger ?? false,
-    disableRequestLogging: config.NODE_ENV === 'test',
   });
 
   app.decorate('froseConfig', config);
@@ -144,9 +143,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       decorateReply: false,
       setHeaders: (res, filePath) => {
         if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
-          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
         } else {
-          res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+          res.header('Cache-Control', 'public, max-age=0, must-revalidate');
         }
       },
     });

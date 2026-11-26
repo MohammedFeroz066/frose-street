@@ -11,6 +11,10 @@ import * as m007 from './migrations/007_create_subscriptions.js';
 import * as m008 from './migrations/008_add_auth_credentials.js';
 import * as m009 from './migrations/009_create_devices.js';
 import * as m010 from './migrations/010_update_expenses_table.js';
+import * as m011 from './migrations/011_add_is_superadmin_to_vendors.js';
+import * as m012 from './migrations/012_create_auth_security_tables.js';
+import * as m013 from './migrations/013_align_runtime_schema.js';
+import * as m014 from './migrations/014_rls_roles_and_policies.js';
 
 export const allMigrations: Record<string, Migration> = {
   '001_create_vendors': m001,
@@ -23,6 +27,10 @@ export const allMigrations: Record<string, Migration> = {
   '008_add_auth_credentials': m008,
   '009_create_devices': m009,
   '010_update_expenses_table': m010,
+  '011_add_is_superadmin_to_vendors': m011,
+  '012_create_auth_security_tables': m012,
+  '013_align_runtime_schema': m013,
+  '014_rls_roles_and_policies': m014,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

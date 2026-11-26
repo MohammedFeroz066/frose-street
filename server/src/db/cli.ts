@@ -1,9 +1,11 @@
+import 'dotenv/config';
 import { getDatabase, closeDatabase } from './database.js';
 import { migrateToLatest, migrateDown } from './migrator.js';
 
 async function main() {
   const command = process.argv[2] || 'latest';
-  const db = getDatabase();
+  const migrationConn = process.env.DATABASE_MIGRATION_URL || process.env.DATABASE_URL;
+  const db = getDatabase(migrationConn);
 
   try {
     if (command === 'down') {

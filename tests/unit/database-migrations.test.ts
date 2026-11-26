@@ -100,6 +100,10 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
         '008_add_auth_credentials',
         '009_create_devices',
         '010_update_expenses_table',
+        '011_add_is_superadmin_to_vendors',
+        '012_create_auth_security_tables',
+        '013_align_runtime_schema',
+        '014_rls_roles_and_policies',
       ]);
     });
   });

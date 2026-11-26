@@ -63,14 +63,15 @@
     return '₹' + rupees.toLocaleString('en-IN');
   }
 
-  // Format ISO Date to readable short string (e.g. 15-Nov)
-  function formatDate(isoStr) {
-    if (!isoStr) return 'N/A';
+  // Format ISO / Postgres DATE / TIMESTAMPTZ string to readable short string (e.g. 15 Nov 2026)
+  function formatDate(isoStr, fallbackText = 'No active expiry') {
+    if (!isoStr) return fallbackText;
     try {
-      const d = new Date(isoStr);
-      return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      const raw = isoStr instanceof Date ? isoStr : new Date(String(isoStr).trim());
+      if (Number.isNaN(raw.getTime())) return fallbackText;
+      return raw.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
     } catch (e) {
-      return 'N/A';
+      return fallbackText;
     }
   }
 
@@ -312,9 +313,10 @@
       const oName = v.ownerName || v.owner_name || 'Owner';
       const phone = v.phone || 'N/A';
       const edition = v.edition || 'cloud';
-      const monthlyFee = formatRupees(v.monthlyFeePaise || '49900');
-      const lastPaid = formatDate(v.lastPaymentDate);
-      const nextDue = formatDate(v.nextDueDate || v.subscriptionExpiresAt);
+      const monthlyFeePaiseVal = BigInt(v.monthlyFeePaise || '0') > 0n ? v.monthlyFeePaise : '49900';
+      const monthlyFee = formatRupees(monthlyFeePaiseVal);
+      const lastPaid = formatDate(v.lastPaymentDate, 'N/A');
+      const nextDue = formatDate(v.nextDueDate || v.subscriptionExpiresAt || v.expiresAt || v.licenseExpiresAt || v.trialEndsAt, 'No active expiry');
 
       const status = v.subscriptionStatus || v.subscription_status || 'active';
       const expiresAt = v.subscriptionExpiresAt || v.subscription_expires_at ? new Date(v.subscriptionExpiresAt || v.subscription_expires_at).getTime() : 0;
@@ -332,7 +334,15 @@
         ? el('span', { class: 'badge-hosting local', title: "Runs directly on stall owner's Android phone/tablet with zero internet needed" }, ['📱 Mobile P2P'])
         : el('span', { class: 'badge-hosting cloud', title: 'FROSE Edge Cloud with live multi-device synchronization' }, ['🌐 Cloud Edge']);
 
-      tbody.appendChild(el('tr', {}, [
+      tbody.appendChild(el('tr', {
+        style: 'cursor: pointer;',
+        on: {
+          click: (e) => {
+            if (e.target && e.target.closest('button, a, input, select')) return;
+            openVendorInspector(v.id);
+          }
+        }
+      }, [
         el('td', {}, [
           el('div', { style: 'font-weight: 800; font-size: 13.5px; color: var(--saas-burgundy-primary);' }, [bName]),
           el('div', { style: 'font-size: 11.5px; color: var(--saas-text-muted);' }, [`${oName} • ${v.city || 'Hyderabad'}`])
@@ -458,10 +468,11 @@
     const oName = stall.ownerName || stall.owner_name || 'Owner';
     const phone = stall.phone || 'N/A';
     const status = stall.subscriptionStatus || stall.subscription_status || 'active';
-    const expRaw = stall.subscriptionExpiresAt || stall.subscription_expires_at || stall.nextDueDate;
-    const expFormatted = formatDate(expRaw);
+    const expRaw = stall.subscriptionExpiresAt || stall.subscription_expires_at || stall.expiresAt || stall.licenseExpiresAt || stall.trialEndsAt || stall.nextDueDate;
+    const expFormatted = formatDate(expRaw, 'No active expiry');
     const edition = stall.edition || 'cloud';
-    const fee = formatRupees(stall.monthlyFeePaise || '49900');
+    const feePaiseVal = BigInt(stall.monthlyFeePaise || '0') > 0n ? stall.monthlyFeePaise : '49900';
+    const fee = formatRupees(feePaiseVal);
     const lifetime = formatRupees(stall.lifetimeSalesPaise || '0');
 
     if (titleEl) titleEl.textContent = bName;

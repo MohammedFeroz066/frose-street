@@ -117,6 +117,7 @@ html.saas-modal-open {
 .saas-icon-btn {
   min-width: var(--tap-min);
   min-height: var(--tap-min);
+  flex-shrink: 0;
   padding: 0 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
@@ -893,16 +894,33 @@ html.saas-modal-open {
   z-index: var(--z-drawer);
 }
 
-.saas-drawer {
+.saas-drawer,
+.saas-drawer-panel {
   width: 100%;
   max-width: 440px;
   height: 100%;
-  background: var(--bg-surface);
+  background: var(--bg-elevated);
   color: var(--text-primary);
   padding: 18px;
   box-shadow: var(--shadow-lg);
   overflow-y: auto;
   animation: saasDrawerIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.saas-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.saas-sheet-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-primary);
 }
 
 @keyframes saasDrawerIn {

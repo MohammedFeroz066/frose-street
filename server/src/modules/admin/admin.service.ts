@@ -91,7 +91,11 @@ export class AdminService {
         const paise = BigInt(o.total_paise || 0);
         grossPaise += paise;
         if (o.payment_method === 'cash') cashPaise += paise;
-        if (o.payment_method === 'upi') upiPaise += paise;
+        else if (o.payment_method === 'upi') upiPaise += paise;
+        else if (o.payment_method === 'split') {
+          cashPaise += BigInt((o as any).cash_paise || 0);
+          upiPaise += BigInt((o as any).upi_paise || 0);
+        }
 
         const dateStr = typeof o.created_at === 'string' ? o.created_at : (o.created_at as Date)?.toISOString?.() || '';
         if (dateStr.startsWith(todayStr)) {
@@ -158,7 +162,8 @@ export class AdminService {
       const vendorDevs = devices.filter((d) => d.vendor_id === v.id);
 
       const latestSub = vendorSubs[vendorSubs.length - 1];
-      const monthlyFeePaise = latestSub?.amount_paise ? BigInt(latestSub.amount_paise).toString() : '49900';
+      const latestSubAmount = latestSub?.amount_paise != null ? BigInt(latestSub.amount_paise) : 0n;
+      const monthlyFeePaise = latestSubAmount > 0n ? latestSubAmount.toString() : '49900';
 
       const expiresAt = v.subscription_expires_at ? new Date(v.subscription_expires_at).getTime() : 0;
       let paymentStatus: 'paid' | 'due_soon' | 'overdue' | 'trial' = 'paid';

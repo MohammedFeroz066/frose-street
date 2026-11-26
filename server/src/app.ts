@@ -75,10 +75,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     secret: config.JWT_SECRET,
   });
 
-  // Security Headers & Report-Only CSP (@fastify/helmet)
+  // Security Headers & Enforced Strict CSP (@fastify/helmet)
   await app.register(helmet, {
     contentSecurityPolicy: {
-      reportOnly: true,
+      reportOnly: false,
       useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],

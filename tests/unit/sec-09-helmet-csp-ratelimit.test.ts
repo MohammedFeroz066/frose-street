@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../../server/src/app.js';
 
-describe('SEC-09: @fastify/helmet, CSP Report-Only, & Rate-Limit Hygiene', () => {
+describe('SEC-09: @fastify/helmet, Enforced Strict CSP, & Rate-Limit Hygiene', () => {
   let app: FastifyInstance;
 
   beforeAll(async () => {
@@ -15,7 +15,7 @@ describe('SEC-09: @fastify/helmet, CSP Report-Only, & Rate-Limit Hygiene', () =>
     await app.close();
   });
 
-  it('sets Helmet security headers (nosniff, X-Frame-Options, Referrer-Policy) and Report-Only strict CSP without unsafe-inline script-src', async () => {
+  it('sets Helmet security headers (nosniff, X-Frame-Options, Referrer-Policy) and ENFORCED strict CSP without unsafe-inline script-src', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/login.html',
@@ -26,13 +26,15 @@ describe('SEC-09: @fastify/helmet, CSP Report-Only, & Rate-Limit Hygiene', () =>
     expect(res.headers['x-frame-options']).toMatch(/^(DENY|SAMEORIGIN)$/i);
     expect(res.headers['referrer-policy']).toBeDefined();
 
-    // Must use Report-Only CSP, NOT enforcing Content-Security-Policy yet
-    expect(res.headers['content-security-policy']).toBeUndefined();
-    const cspReportOnly = String(res.headers['content-security-policy-report-only'] || '');
-    expect(cspReportOnly).toContain("script-src 'self'");
-    expect(cspReportOnly).not.toMatch(/script-src[^;]*'unsafe-inline'/i);
-    expect(cspReportOnly).toContain("object-src 'none'");
-    expect(cspReportOnly).toContain("frame-ancestors 'none'");
+    // Must enforce Content-Security-Policy (NOT Report-Only)
+    expect(res.headers['content-security-policy-report-only']).toBeUndefined();
+    const csp = String(res.headers['content-security-policy'] || '');
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("script-src-attr 'none'");
+    expect(csp).not.toMatch(/script-src[^;]*'unsafe-inline'/i);
+    expect(csp).not.toMatch(/script-src[^;]*'unsafe-eval'/i);
+    expect(csp).toContain("object-src 'none'");
+    expect(csp).toContain("frame-ancestors 'none'");
   });
 
   it('enables Strict-Transport-Security (HSTS) in production mode', async () => {

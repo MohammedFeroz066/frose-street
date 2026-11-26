@@ -1,28 +1,72 @@
 /**
- * FROSE Street — Billing & Menu POS Controller (Image 2 Parity)
- * 2-Column Responsive Food Grid, Left Category Sidebar, Steppers,
- * Floating Bottom Cart Pill, Dynamic UPI QR, and Menu Customization.
+ * FROSE Street — Unified Vendor Workspace & Billing POS Controller (Phase 4: UX-03)
+ * - 5-Tab Workspace Shell (Bill, Orders, Menu, Payments, Settings)
+ * - Live search, category chips, Veg/Non-Veg dots, variant picker sheet
+ * - Dynamic Island Cart Pill + Desktop Split-Pane Cart
+ * - Cash quick-tender + Change Due, Honest UPI QR, Split (Cash + UPI)
+ * - Full Phase 2 Offline Billing + Ed25519 License + Clock-Rollback Guard + SW Update Banner
  */
 
 (function () {
   'use strict';
 
-  // In-Memory & IndexedDB State (Clean Slate: strictly vendor-defined categories and items)
   let menuCatalog = [];
-  const cart = new Map(); // dishId -> { item, quantity }
-  let activeCategory = '';
+  let customCategories = [];
+  // cartKey -> { key, item, variantName, unitPricePaise: BigInt, quantity }
+  const cart = new Map();
+  let activeCategory = 'all';
+  let billSearchQuery = '';
   let currentTokenNumber = 1;
-  let currentOrderType = 'counter'; // 'counter' | 'dinein'
+  let currentOrderType = 'dinein'; // 'dinein' | 'counter' (Parcel)
+  let checkoutPaymentMode = 'cash'; // 'cash' | 'upi' | 'split'
   let activeVendorId = '';
   let syncEngine = null;
   let lastCompletedOrder = null;
+  let activeReceiptOrder = null;
   let flashAutoCloseTimer = null;
+  let activeTab = 'bill';
+  let formDishIsVeg = true;
 
   function getActiveVendorProfile() {
     try {
       return JSON.parse(localStorage.getItem('frose_current_vendor') || '{}') || {};
     } catch (_) {
       return {};
+    }
+  }
+
+  function getVendorKey() {
+    if (activeVendorId) return activeVendorId;
+    try {
+      const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+      return v.id || v.phone || localStorage.getItem('frose_stall_phone') || 'primary_vendor';
+    } catch (_) {
+      return localStorage.getItem('frose_stall_phone') || 'primary_vendor';
+    }
+  }
+
+  function toSafeIntPaise(val) {
+    if (window.FroseIdbStore && typeof window.FroseIdbStore.toSafeIntegerPaise === 'function') {
+      return window.FroseIdbStore.toSafeIntegerPaise(val, 'pricePaise');
+    }
+    const n = typeof val === 'bigint' ? Number(val) : Number(val || 0);
+    if (!Number.isSafeInteger(n)) throw new Error('Invalid integer paise value');
+    return n;
+  }
+
+  function formatINR(paise) {
+    if (window.FroseUI && typeof window.FroseUI.formatINR === 'function') {
+      return window.FroseUI.formatINR(paise);
+    }
+    const p = typeof paise === 'bigint' ? paise : BigInt(Math.round(Number(paise || 0)));
+    const rupees = Number(p / 100n);
+    const rem = Number(p % 100n);
+    return rem === 0 ? `₹${rupees.toLocaleString('en-IN')}` : `₹${rupees.toLocaleString('en-IN')}.${String(rem).padStart(2, '0')}`;
+  }
+
+  function notify(msg, variant) {
+    if (window.FroseUI && typeof window.FroseUI.showToast === 'function') {
+      window.FroseUI.showToast(msg, variant || 'success');
     }
   }
 
@@ -47,6 +91,17 @@
     };
   }
 
+  function getCartTotals() {
+    let totalItems = 0;
+    let subtotalPaise = 0n;
+    cart.forEach((entry) => {
+      totalItems += entry.quantity;
+      subtotalPaise += entry.unitPricePaise * BigInt(entry.quantity);
+    });
+    const taxInfo = computeCartTaxBreakdown(subtotalPaise);
+    return { totalItems, taxInfo };
+  }
+
   function renderSyncStatusBadge(snapshot) {
     const badge = document.getElementById('pos-sync-status-badge');
     if (!badge || !window.FroseSafeDom) return;
@@ -54,20 +109,12 @@
     const state = snapshot?.state || (navigator.onLine ? 'online' : 'offline');
     const label = snapshot?.label || (navigator.onLine ? 'Online' : 'Offline — 0 pending');
 
+    badge.classList.remove('is-offline', 'is-syncing');
     if (state === 'syncing') {
-      badge.style.background = 'rgba(59, 130, 246, 0.25)';
-      badge.style.borderColor = 'rgba(147, 197, 253, 0.6)';
-      badge.style.color = '#EFF6FF';
+      badge.classList.add('is-syncing');
     } else if (state === 'offline' || (snapshot && snapshot.pendingCount > 0)) {
-      badge.style.background = 'rgba(245, 158, 11, 0.25)';
-      badge.style.borderColor = 'rgba(252, 211, 77, 0.65)';
-      badge.style.color = '#FEF3C7';
-    } else {
-      badge.style.background = 'rgba(16, 185, 129, 0.2)';
-      badge.style.borderColor = 'rgba(16, 185, 129, 0.45)';
-      badge.style.color = '#ECFDF5';
+      badge.classList.add('is-offline');
     }
-
     clear(badge);
     badge.appendChild(el('span', {}, label));
   }
@@ -79,14 +126,14 @@
     const banner = el('button', {
       type: 'button',
       id: 'pos-sw-update-banner',
-      style: 'position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 1200; background: #0F172A; color: #FBBF24; border: 1.5px solid #FBBF24; border-radius: 999px; padding: 10px 18px; font-size: 13px; font-weight: 800; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35); cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 44px;',
+      class: 'pos-sw-banner',
       on: {
         click: () => {
           banner.disabled = true;
           banner.textContent = 'Updating...';
           waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-        }
-      }
+        },
+      },
     }, ['🔄 New update ready — Tap to reload']);
     document.body.appendChild(banner);
   }
@@ -139,7 +186,7 @@
             if (srvOrder && typeof srvOrder.tokenNo === 'number') {
               currentTokenNumber = srvOrder.tokenNo;
             }
-          }
+          },
         });
         window.__FROSE_SYNC_ENGINE__ = syncEngine;
         syncEngine.startListeners();
@@ -153,67 +200,68 @@
     }
   }
 
-  function getVendorKey() {
-    if (activeVendorId) return activeVendorId;
-    try {
-      const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-      return v.id || v.phone || localStorage.getItem('frose_stall_phone') || 'primary_vendor';
-    } catch (_) {
-      return localStorage.getItem('frose_stall_phone') || 'primary_vendor';
-    }
+  function updateThemeCycleIcon() {
+    const iconEl = document.getElementById('theme-cycle-icon');
+    if (!iconEl || !window.FroseTheme) return;
+    const t = window.FroseTheme.getTheme();
+    iconEl.textContent = t === 'dark' ? '🌙' : (t === 'sunlight' ? '🔆' : '☀️');
   }
 
-  function toSafeIntPaise(val) {
-    if (window.FroseIdbStore && typeof window.FroseIdbStore.toSafeIntegerPaise === 'function') {
-      return window.FroseIdbStore.toSafeIntegerPaise(val, 'pricePaise');
-    }
-    const n = typeof val === 'bigint' ? Number(val) : Number(val || 0);
-    if (!Number.isSafeInteger(n)) throw new Error('Invalid integer paise value');
-    return n;
-  }
+  window.cycleWorkspaceTheme = function () {
+    if (!window.FroseTheme) return;
+    const next = window.FroseTheme.cycleTheme();
+    updateThemeCycleIcon();
+    const labelMap = { light: 'Crisp Light', dark: 'Obsidian Dark', sunlight: 'Sunlight High-Contrast' };
+    notify(`Theme: ${labelMap[next] || next}`, 'success');
+    if (window.__FROSE_SETTINGS_REFRESH__) window.__FROSE_SETTINGS_REFRESH__();
+  };
 
-  // Format integer paise into exact Rupee string (e.g. ₹190.0)
-  function formatRupees(paise) {
-    const p = typeof paise === 'bigint' ? paise : BigInt(paise || 0);
-    const rupees = Number(p / 100n);
-    const remainder = Number(p % 100n);
-    return `₹${rupees}${remainder === 0 ? '.0' : '.' + remainder.toString().padStart(2, '0')}`;
-  }
+  window.switchWorkspaceTab = function (tabName) {
+    const valid = ['bill', 'orders', 'menu', 'payments', 'settings'];
+    const target = valid.includes(tabName) ? tabName : 'bill';
+    activeTab = target;
 
-  // Purge legacy localStorage catalog/order keys (one-time cleanup, never re-write to localStorage)
-  const PURGE_KEY = 'frose_clean_slate_2026_v99_permanent_empty';
-  try {
-    for (let i = localStorage.length - 1; i >= 0; i--) {
-      const k = localStorage.key(i);
-      if (k && (k.startsWith('frose_dishes') || k.startsWith('frose_cats') || k === 'frose_custom_menu_catalog' || k === 'frose_live_orders_queue' || k === 'frose_current_token')) {
-        localStorage.removeItem(k);
-      }
+    document.querySelectorAll('.saas-view-panel').forEach((p) => {
+      p.classList.toggle('active', p.getAttribute('data-tab-panel') === target);
+    });
+    document.querySelectorAll('.saas-nav-tab, .saas-rail-btn[data-tab]').forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-tab') === target);
+    });
+
+    const pill = document.getElementById('pos-floating-cart-pill');
+    if (pill) {
+      pill.style.display = target === 'bill' ? 'flex' : 'none';
     }
-    if (!localStorage.getItem(PURGE_KEY)) {
-      localStorage.setItem(PURGE_KEY, 'true');
+
+    if (target === 'orders' && window.FroseOrdersPanel && typeof window.FroseOrdersPanel.mount === 'function') {
+      window.FroseOrdersPanel.mount();
+    } else if (target === 'menu' && window.FroseMenuPanel && typeof window.FroseMenuPanel.mount === 'function') {
+      window.FroseMenuPanel.mount();
+    } else if (target === 'payments' && window.FrosePaymentsPanel && typeof window.FrosePaymentsPanel.mount === 'function') {
+      window.FrosePaymentsPanel.mount();
+    } else if (target === 'settings' && typeof window.initSettingsModal === 'function') {
+      window.initSettingsModal();
     }
-  } catch (_) {}
+  };
 
   function isUserCustomDish(item) {
-    if (!item || !item.name) return false;
-    return item.isUserCreated !== false;
+    return Boolean(item && item.name && item.isUserCreated !== false);
   }
 
-  // Explicit helper to wipe menu to clean slate anytime
-  window.clearMenuCatalogToCleanSlate = async function() {
+  window.clearMenuCatalogToCleanSlate = async function () {
     const vKey = getVendorKey();
     if (window.FroseIdbStore) {
       await window.FroseIdbStore.putMenuItems(vKey, []);
       await window.FroseIdbStore.deleteMeta('categories');
     }
     menuCatalog = [];
+    customCategories = [];
     cart.clear();
+    renderCategoryChips();
     renderDishesGrid();
-    renderSidebarCategories([]);
     updateCartUI();
   };
 
-  // Load Menu Catalog with instant live sync + IndexedDB durability
   async function loadCatalog() {
     const store = window.FroseIdbStore;
     let vKey = getVendorKey();
@@ -228,8 +276,6 @@
     }
 
     const sessionActive = localStorage.getItem('frose_session_active');
-
-    // 1. Load custom categories from IndexedDB meta
     let cats = [];
     if (store) {
       try {
@@ -240,525 +286,572 @@
       } catch (_) {}
     }
 
-    // 2. Fetch live catalog from authenticated backend API first (PostgreSQL RLS-scoped)
     if (sessionActive && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
       try {
         const fn = window.froseApiFetch || fetch;
         const res = await fn('/api/v1/menu', {
-          headers: { 'X-FROSE-CSRF': '1' }, credentials: 'same-origin'
+          headers: { 'X-FROSE-CSRF': '1' },
+          credentials: 'same-origin',
         });
         if (res && res.ok) {
           const data = await res.json();
           if (Array.isArray(data.items)) {
-            menuCatalog = data.items.map(item => {
+            menuCatalog = data.items.map((item) => {
               const intPaise = toSafeIntPaise(item.pricePaise !== undefined ? item.pricePaise : 5000);
               return {
                 ...item,
                 vendor_id: vKey,
                 isUserCreated: true,
+                isVeg: item.isVeg !== false,
+                variants: Array.isArray(item.variants) ? item.variants : null,
                 image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
-                pricePaise: BigInt(intPaise)
+                pricePaise: BigInt(intPaise),
               };
             });
             if (store) {
-              await store.putMenuItems(vKey, menuCatalog.map(d => ({
+              await store.putMenuItems(vKey, menuCatalog.map((d) => ({
                 ...d,
-                pricePaise: Number(d.pricePaise)
+                pricePaise: Number(d.pricePaise),
               })));
             }
-            if (cats.length === 0) {
-              cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
-              if (store && cats.length > 0) {
+            const dishCats = Array.from(new Set(menuCatalog.map((d) => d.category).filter(Boolean)));
+            if (cats.length === 0 && dishCats.length > 0) {
+              cats = dishCats;
+              if (store) {
                 await store.setMeta('categories', { vendor_id: vKey, value: cats });
               }
             }
-            renderSidebarCategories(cats);
+            customCategories = cats;
+            renderCategoryChips();
             return;
           }
         }
-      } catch (e) {}
+      } catch (_) {}
     }
 
-    // 3. Offline fallback: vendor-scoped dishes in durable IndexedDB
     if (store) {
       try {
         const cachedItems = await store.getMenuItems(vKey);
         if (Array.isArray(cachedItems) && cachedItems.length > 0) {
-          menuCatalog = cachedItems.filter(isUserCustomDish).map(item => ({
+          menuCatalog = cachedItems.filter(isUserCustomDish).map((item) => ({
             ...item,
+            isVeg: item.isVeg !== false,
+            variants: Array.isArray(item.variants) ? item.variants : null,
             image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
-            pricePaise: BigInt(toSafeIntPaise(item.pricePaise))
+            pricePaise: BigInt(toSafeIntPaise(item.pricePaise)),
           }));
-          if (menuCatalog.length > 0) {
-            if (cats.length === 0) {
-              cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
-            }
-            renderSidebarCategories(cats);
-            return;
+          if (cats.length === 0) {
+            cats = Array.from(new Set(menuCatalog.map((d) => d.category).filter(Boolean)));
           }
+          customCategories = cats;
+          renderCategoryChips();
+          return;
         }
-      } catch (e) {}
+      } catch (_) {}
     }
 
-    // Clean slate: strictly 0 dishes so counter starts empty with + Add Dish
     menuCatalog = [];
-    renderSidebarCategories(cats);
+    customCategories = cats;
+    renderCategoryChips();
   }
 
-  function renderSidebarCategories(customCats) {
-    const sidebar = document.getElementById('pos-category-sidebar');
-    if (!sidebar) return;
+  function getMergedCategories() {
+    const set = new Set();
+    customCategories.forEach((c) => { if (c) set.add(c); });
+    menuCatalog.forEach((d) => { if (d.category) set.add(d.category); });
+    return Array.from(set);
+  }
 
-    let categories = [];
-    if (Array.isArray(customCats) && customCats.length > 0) {
-      categories = [...customCats];
-    } else {
-      const dishCats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
-      if (dishCats.length > 0) {
-        categories = dishCats;
-      }
-    }
-
+  function renderCategoryChips() {
+    const bar = document.getElementById('pos-category-sidebar');
+    if (!bar || !window.FroseSafeDom) return;
     const { el, clear } = window.FroseSafeDom;
-    clear(sidebar);
+    clear(bar);
 
-    if (categories.length === 0) {
-      sidebar.appendChild(
-        el('div', { style: 'padding: 14px 4px; text-align: center; color: #8C1D2F; font-size: 11px; font-weight: 800; line-height: 1.3;' }, 'No Categories')
-      );
-      sidebar.appendChild(
-        el('button', {
-          type: 'button',
-          class: 'btn-add-section',
-          title: 'Add Custom Menu Section',
-          on: { click: () => { window.location.href = '/menu-setup'; } },
-        }, [el('span', {}, '+ Add'), el('span', {}, 'Category')])
-      );
-      return;
-    }
+    const cats = getMergedCategories();
+    const allChip = el('button', {
+      type: 'button',
+      class: 'saas-chip' + (activeCategory === 'all' ? ' active' : ''),
+      'data-category': 'all',
+      on: { click: () => window.selectCategory('all') },
+    }, `All (${menuCatalog.length})`);
+    bar.appendChild(allChip);
 
-    // Synchronize activeCategory
-    const validSlugs = categories.map(c => c.toLowerCase().replace(/\s+/g, '-'));
-    if (!activeCategory || (!validSlugs.includes(activeCategory) && !categories.some(c => c.toLowerCase() === activeCategory))) {
-      activeCategory = validSlugs[0];
-    }
-
-    categories.forEach((cat) => {
+    cats.forEach((cat) => {
       const slug = cat.toLowerCase().replace(/\s+/g, '-');
       const isActive = activeCategory === slug || activeCategory === cat.toLowerCase();
-      const words = String(cat).split(' ');
-      const children = [];
-      words.forEach((w, idx) => {
-        if (idx > 0) children.push(el('br'));
-        children.push(w);
-      });
-      sidebar.appendChild(
-        el('button', {
-          type: 'button',
-          class: `category-sidebar-pill ${isActive ? 'active' : ''}`,
-          'data-category': slug,
-          on: { click: () => window.selectCategory(slug) },
-        }, children)
-      );
+      bar.appendChild(el('button', {
+        type: 'button',
+        class: 'saas-chip' + (isActive ? ' active' : ''),
+        'data-category': slug,
+        on: { click: () => window.selectCategory(slug) },
+      }, cat));
     });
 
-    sidebar.appendChild(
-      el('button', {
-        type: 'button',
-        class: 'btn-add-section',
-        title: 'Add Custom Menu Section',
-        on: { click: () => { window.location.href = '/menu-setup'; } },
-      }, [el('span', {}, '+ Add'), el('span', {}, 'Category')])
-    );
+    bar.appendChild(el('button', {
+      type: 'button',
+      class: 'saas-chip',
+      on: { click: () => window.openAddSectionModal() },
+    }, '+ Category'));
   }
 
-  async function saveCatalog() {
-    try {
-      const store = window.FroseIdbStore;
-      if (!store) return;
-      const vKey = getVendorKey();
-      const serialized = menuCatalog.map(item => ({
-        ...item,
-        vendor_id: vKey,
-        isUserCreated: true,
-        pricePaise: Number(item.pricePaise)
-      }));
-      await store.putMenuItems(vKey, serialized);
-    } catch {}
+  window.selectCategory = function (catSlug) {
+    activeCategory = catSlug || 'all';
+    renderCategoryChips();
+    renderDishesGrid();
+  };
+
+  function getQtyForDish(dishId) {
+    let total = 0;
+    cart.forEach((entry) => {
+      if (entry.item.id === dishId) total += entry.quantity;
+    });
+    return total;
   }
 
-  // Render Dishes in 2-Column Grid
   function renderDishesGrid() {
     const grid = document.getElementById('pos-dishes-grid');
-    if (!grid) return;
-
-    let filtered = menuCatalog.filter(i => {
-      const catSlug = (i.category || '').toLowerCase().replace(/\s+/g, '-');
-      return catSlug === activeCategory || (i.category || '').toLowerCase() === activeCategory;
-    });
-
-    if (filtered.length === 0 && menuCatalog.length > 0 && !activeCategory) {
-      filtered = menuCatalog;
-    }
-
+    if (!grid || !window.FroseSafeDom) return;
     const { el, clear, safeImageUrl } = window.FroseSafeDom;
     clear(grid);
 
     if (menuCatalog.length === 0) {
       grid.appendChild(
-        el('div', {
-          class: 'pos-first-time-onboarding',
-          id: 'onboarding-menu-banner',
-          style: 'grid-column: 1 / -1; background: #FFFFFF; border: 2px dashed #700A18; border-radius: 20px; padding: 36px 18px; text-align: center; margin: 12px 6px; box-shadow: 0 4px 18px rgba(112, 10, 24, 0.06);',
-        }, [
-          el('div', { style: 'font-size: 46px; margin-bottom: 8px;' }, '🍽️'),
-          el('h3', { style: 'margin: 0 0 6px 0; font-size: 17px; font-weight: 900; color: #5B0612;' }, 'Menu is Clean & Empty'),
-          el('p', { style: 'margin: 0 0 18px 0; font-size: 12.5px; color: #64748B; line-height: 1.5; max-width: 320px; margin-left: auto; margin-right: auto;' },
-            'Zero dummy dishes. Tap below to create your dishes, set prices in ₹, and start instant billing.'
-          ),
-          el('div', { style: 'display: flex; flex-direction: column; gap: 10px; max-width: 260px; margin: 0 auto;' }, [
-            el('button', {
-              type: 'button',
-              id: 'btn-onboarding-add-dish',
-              style: 'background: linear-gradient(135deg, #700A18 0%, #5B0612 100%); color: #FFF; border: none; padding: 13px 18px; border-radius: 12px; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(112, 10, 24, 0.28); cursor: pointer;',
-              on: { click: () => window.openAddDishModal() },
-            }, '➕ Add Dish'),
-            el('a', {
-              href: '/menu-setup',
-              id: 'btn-onboarding-create-menu',
-              style: 'background: #F8FAFC; color: #334155; text-decoration: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 12px; border: 1.5px solid #CBD5E1; display: flex; align-items: center; justify-content: center; gap: 6px;',
-            }, '📋 Open Menu Studio →'),
-          ]),
+        el('div', { class: 'saas-empty-state', style: 'grid-column: 1 / -1;' }, [
+          el('div', { style: 'font-size: 40px; margin-bottom: 8px;' }, '🍽️'),
+          el('h3', { style: 'margin: 0 0 6px 0; font-size: 17px; font-weight: 800;' }, 'Your menu is empty'),
+          el('p', { style: 'margin: 0 0 16px 0; font-size: 13.5px; color: var(--text-muted);' }, 'Add your stall dishes with prices in ₹ to start billing in seconds.'),
+          el('button', {
+            type: 'button',
+            id: 'btn-onboarding-add-dish',
+            class: 'saas-btn saas-btn-primary',
+            on: { click: () => window.openAddDishModal() },
+          }, '+ Add First Dish'),
         ])
       );
       return;
     }
+
+    const q = billSearchQuery.trim().toLowerCase();
+    const filtered = menuCatalog.filter((item) => {
+      const catSlug = (item.category || '').toLowerCase().replace(/\s+/g, '-');
+      const catMatch = activeCategory === 'all' || catSlug === activeCategory || (item.category || '').toLowerCase() === activeCategory;
+      const searchMatch = !q || item.name.toLowerCase().includes(q) || (item.category || '').toLowerCase().includes(q);
+      return catMatch && searchMatch;
+    });
 
     if (filtered.length === 0) {
       grid.appendChild(
-        el('div', { style: 'grid-column: 1 / -1; padding: 40px 16px; text-align: center; color: #6B7280; font-size: 13px;' }, [
-          el('div', { style: 'font-size: 28px; margin-bottom: 8px;' }, '🍽️'),
-          el('div', {}, 'No dishes in this category yet.'),
-          el('a', {
-            href: '/menu-setup',
-            style: 'display: inline-block; margin-top: 10px; background: #5B0612; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 800;',
-          }, '+ Add Dish to This Section'),
+        el('div', { class: 'saas-empty-state', style: 'grid-column: 1 / -1;' }, [
+          el('div', { style: 'font-size: 28px; margin-bottom: 6px;' }, '🔍'),
+          el('div', { style: 'font-weight: 700;' }, 'No matching dishes found'),
         ])
       );
       return;
     }
 
-    filtered.forEach(item => {
-      const inCart = cart.get(item.id);
-      const qty = inCart ? inCart.quantity : 0;
-      const priceText = formatRupees(item.pricePaise);
-      const imgSrc = safeImageUrl(item.image) || '/images/dishes/chicken-biryani-full.webp';
+    filtered.forEach((item) => {
+      const isSoldOut = item.isAvailable === false;
+      const hasVariants = Array.isArray(item.variants) && item.variants.length > 0;
+      const qty = getQtyForDish(item.id);
+      const imgSrc = safeImageUrl(item.image || item.imageUrl);
+      const minPricePaise = hasVariants
+        ? Math.min.apply(null, item.variants.map((v) => Number(v.pricePaise)))
+        : Number(item.pricePaise);
 
-      const actionNode = qty === 0
-        ? el('button', {
+      const mediaNode = imgSrc
+        ? el('img', {
+            src: imgSrc,
+            alt: item.name,
+            loading: 'lazy',
+            on: { error: (e) => { e.target.style.display = 'none'; } },
+          })
+        : el('div', { class: 'saas-dish-monogram' }, (item.name || 'D').slice(0, 2).toUpperCase());
+
+      let actionNode;
+      if (isSoldOut) {
+        actionNode = el('span', { class: 'saas-pill saas-pill-rose' }, 'Sold Out');
+      } else if (hasVariants) {
+        actionNode = el('button', {
+          type: 'button',
+          class: 'saas-add-btn',
+          on: {
+            click: (e) => {
+              e.stopPropagation();
+              window.openVariantPicker(item.id);
+            },
+          },
+        }, qty > 0 ? `+ (${qty})` : '+ Add');
+      } else if (qty === 0) {
+        actionNode = el('button', {
+          type: 'button',
+          class: 'saas-add-btn',
+          on: {
+            click: (e) => {
+              e.stopPropagation();
+              window.addItemToCart(item.id, e);
+            },
+          },
+        }, '+ Add');
+      } else {
+        actionNode = el('div', { class: 'saas-stepper' }, [
+          el('button', {
             type: 'button',
-            class: 'btn-dish-add-circle',
-            title: 'Add to Order',
-            on: { click: (e) => window.addItemToCart(item.id, e) },
-          }, '+')
-        : el('div', { class: 'dish-stepper-pill' }, [
-            el('button', {
-              type: 'button',
-              class: 'btn-stepper-action',
-              on: { click: (e) => window.decrementCartItem(item.id, e) },
-            }, '-'),
-            el('span', { class: 'stepper-quantity-num' }, String(qty)),
-            el('button', {
-              type: 'button',
-              class: 'btn-stepper-action',
-              on: { click: (e) => window.addItemToCart(item.id, e) },
-            }, '+'),
-          ]);
+            class: 'saas-stepper-btn',
+            on: {
+              click: (e) => {
+                e.stopPropagation();
+                window.decrementCartItem(item.id, e);
+              },
+            },
+          }, '−'),
+          el('span', { class: 'saas-stepper-qty' }, String(qty)),
+          el('button', {
+            type: 'button',
+            class: 'saas-stepper-btn',
+            on: {
+              click: (e) => {
+                e.stopPropagation();
+                window.addItemToCart(item.id, e);
+              },
+            },
+          }, '+'),
+        ]);
+      }
 
-      grid.appendChild(
-        el('div', { class: 'pos-dish-card', 'data-id': item.id }, [
-          el('div', { class: 'dish-photo-container' }, [
-            el('img', {
-              class: 'dish-photo-img',
-              src: imgSrc,
-              alt: item.name,
-              loading: 'lazy',
-              on: { error: (e) => { e.target.src = '/images/dishes/chicken-biryani-full.webp'; } },
-            }),
-            el('div', { class: 'dish-floating-price' }, priceText),
-            el('div', { class: 'dish-floating-action' }, actionNode),
+      const card = el('div', {
+        class: 'saas-dish-card' + (isSoldOut ? ' sold-out' : ''),
+        'data-id': item.id,
+        on: {
+          click: () => {
+            if (isSoldOut) {
+              notify(`${item.name} is marked Sold Out`, 'warning');
+              return;
+            }
+            if (hasVariants) window.openVariantPicker(item.id);
+            else window.addItemToCart(item.id);
+          },
+        },
+      }, [
+        el('div', { class: 'saas-dish-media' }, [
+          mediaNode,
+          el('div', { style: 'position: absolute; top: 8px; left: 8px;' }, [
+            window.FroseUI ? window.FroseUI.createVegBadge(item.isVeg !== false) : null,
           ]),
-          el('div', { class: 'dish-info-row' }, [
-            el('div', { class: 'dish-title', title: item.name }, item.name),
-            el('button', {
-              type: 'button',
-              class: 'dish-edit-icon',
-              title: 'Edit Price / Details',
-              on: { click: (e) => window.openEditDishModal(item.id, e) },
-            }, '✏️'),
+          hasVariants ? el('span', {
+            class: 'pos-variant-tag',
+            style: 'position: absolute; bottom: 8px; left: 8px; background: var(--bg-glass);',
+          }, `${item.variants.length} sizes`) : null,
+        ]),
+        el('div', { class: 'saas-dish-body' }, [
+          el('div', { class: 'saas-dish-head' }, [
+            el('div', { class: 'saas-dish-name', title: item.name }, item.name),
           ]),
-        ])
-      );
+          el('div', { class: 'saas-dish-foot' }, [
+            el('div', { class: 'saas-dish-price' }, (hasVariants ? 'From ' : '') + formatINR(minPricePaise)),
+            actionNode,
+          ]),
+        ]),
+      ]);
+
+      grid.appendChild(card);
     });
   }
 
-  // Update Floating Cart Pill & Totals
-  function updateCartUI() {
-    let totalItems = 0;
-    let subtotalPaise = 0n;
-
-    cart.forEach(({ item, quantity }) => {
-      totalItems += quantity;
-      subtotalPaise += item.pricePaise * BigInt(quantity);
-    });
-
-    const taxInfo = computeCartTaxBreakdown(subtotalPaise);
-    const totalFormatted = formatRupees(BigInt(taxInfo.totalPaise));
-
-    // Floating Cart Pill
-    const cartPill = document.getElementById('pos-floating-cart-pill');
-    const pillStats = document.getElementById('cart-pill-stats');
-    if (cartPill && pillStats) {
-      if (totalItems > 0) {
-        cartPill.style.display = 'flex';
-        pillStats.textContent = `${totalItems} • ${totalFormatted}`;
-      } else {
-        cartPill.style.display = 'flex';
-        pillStats.textContent = `0 • ₹0.0`;
-      }
-    }
-
-    const taxBreakdownEl = document.getElementById('checkout-tax-breakdown');
-    if (taxBreakdownEl && window.FroseSafeDom) {
+  window.openVariantPicker = function (dishId) {
+    const item = menuCatalog.find((d) => d.id === dishId);
+    if (!item || !Array.isArray(item.variants) || item.variants.length === 0) return;
+    const titleEl = document.getElementById('variant-picker-title');
+    const listEl = document.getElementById('variant-picker-list');
+    if (titleEl) titleEl.textContent = item.name;
+    if (listEl && window.FroseSafeDom) {
       const { el, clear } = window.FroseSafeDom;
-      clear(taxBreakdownEl);
-      if (taxInfo.taxMode === 'regular' && taxInfo.gstRateBps > 0 && totalItems > 0) {
-        taxBreakdownEl.style.display = 'block';
-        taxBreakdownEl.appendChild(
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [
-            el('span', {}, 'Subtotal'),
-            el('span', {}, formatRupees(BigInt(taxInfo.subtotalPaise))),
-          ])
-        );
-        taxBreakdownEl.appendChild(
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [
-            el('span', {}, 'CGST'),
-            el('span', {}, formatRupees(BigInt(taxInfo.cgstPaise))),
-          ])
-        );
-        taxBreakdownEl.appendChild(
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [
-            el('span', {}, 'SGST'),
-            el('span', {}, formatRupees(BigInt(taxInfo.sgstPaise))),
-          ])
-        );
-      } else {
-        taxBreakdownEl.style.display = 'none';
-      }
-    }
-
-    // Checkout Modal Displays
-    const grandTotalEl = document.getElementById('checkout-grand-total');
-    if (grandTotalEl) grandTotalEl.textContent = totalFormatted;
-
-    const btnCashAmount = document.getElementById('btn-cash-amount');
-    if (btnCashAmount) btnCashAmount.textContent = totalFormatted;
-
-    const btnUpiAmount = document.getElementById('btn-upi-amount');
-    if (btnUpiAmount) btnUpiAmount.textContent = totalFormatted;
-
-    // Vitest Compatibility Element Sync
-    const compatTotal = document.getElementById('cart-total-rupees');
-    if (compatTotal) compatTotal.textContent = totalFormatted;
-
-    renderDishesGrid();
-  }
-
-  // Cart Operations
-  window.addItemToCart = function(dishId, e) {
-    if (e) e.stopPropagation();
-    const item = menuCatalog.find(i => i.id === dishId);
-    if (!item) return;
-
-    const existing = cart.get(dishId);
-    if (existing) {
-      existing.quantity += 1;
-    } else {
-      cart.set(dishId, { item, quantity: 1 });
-    }
-    updateCartUI();
-  };
-
-  window.decrementCartItem = function(dishId, e) {
-    if (e) e.stopPropagation();
-    const existing = cart.get(dishId);
-    if (!existing) return;
-
-    if (existing.quantity > 1) {
-      existing.quantity -= 1;
-    } else {
-      cart.delete(dishId);
-    }
-    updateCartUI();
-  };
-
-  window.clearCurrentCart = function() {
-    cart.clear();
-    updateCartUI();
-    window.closeModal('checkout-drawer-modal');
-  };
-
-  // Category Selector
-  window.selectCategory = function(catKey) {
-    activeCategory = catKey;
-    document.querySelectorAll('.category-sidebar-pill').forEach(btn => {
-      if (btn.getAttribute('data-category') === catKey) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-    renderDishesGrid();
-  };
-
-  // Modal Controllers
-  // Unified Modal Controller with Gold-Standard Mobile Scroll Lock
-  let savedScrollY = 0;
-  // openModal & closeModal defined above
-
-  window.openCheckoutDrawer = function() {
-    const list = document.getElementById('checkout-cart-items');
-    if (!list) return;
-
-    const { el, clear } = window.FroseSafeDom;
-    clear(list);
-
-    let subtotalPaise = 0n;
-    cart.forEach(({ item, quantity }) => {
-      subtotalPaise += item.pricePaise * BigInt(quantity);
-    });
-    const taxInfo = computeCartTaxBreakdown(subtotalPaise);
-    const totalFormatted = formatRupees(BigInt(taxInfo.totalPaise));
-    const grandTotalEl = document.getElementById('checkout-grand-total');
-    if (grandTotalEl) grandTotalEl.textContent = totalFormatted;
-    const btnCashAmount = document.getElementById('btn-cash-amount');
-    if (btnCashAmount) btnCashAmount.textContent = totalFormatted;
-    const btnUpiAmount = document.getElementById('btn-upi-amount');
-    if (btnUpiAmount) btnUpiAmount.textContent = totalFormatted;
-    const taxBreakdownEl = document.getElementById('checkout-tax-breakdown');
-    if (taxBreakdownEl) {
-      clear(taxBreakdownEl);
-      if (taxInfo.taxMode === 'regular' && taxInfo.gstRateBps > 0 && cart.size > 0) {
-        taxBreakdownEl.style.display = 'block';
-        taxBreakdownEl.appendChild(
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [
-            el('span', {}, 'Subtotal'),
-            el('span', {}, formatRupees(BigInt(taxInfo.subtotalPaise))),
-          ])
-        );
-        taxBreakdownEl.appendChild(
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [
-            el('span', {}, 'CGST'),
-            el('span', {}, formatRupees(BigInt(taxInfo.cgstPaise))),
-          ])
-        );
-        taxBreakdownEl.appendChild(
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [
-            el('span', {}, 'SGST'),
-            el('span', {}, formatRupees(BigInt(taxInfo.sgstPaise))),
-          ])
-        );
-      } else {
-        taxBreakdownEl.style.display = 'none';
-      }
-    }
-
-    if (cart.size === 0) {
-      list.appendChild(
-        el('div', { style: 'text-align: center; color: #6B7280; padding: 20px 0; font-size: 13px;' },
-          'Your cart is currently empty. Add dishes to order.'
-        )
-      );
-    } else {
-      cart.forEach(({ item, quantity }, id) => {
-        const lineTotal = formatRupees(item.pricePaise * BigInt(quantity));
-        list.appendChild(
-          el('div', { style: 'display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #F9FAFB; border-radius: 10px; border: 1px solid #E5E7EB;' }, [
+      clear(listEl);
+      item.variants.forEach((variant) => {
+        const key = `${item.id}::${variant.name}`;
+        const existing = cart.get(key);
+        const qty = existing ? existing.quantity : 0;
+        listEl.appendChild(
+          el('button', {
+            type: 'button',
+            class: 'pos-row-card is-clickable',
+            style: 'width: 100%; text-align: left; font-family: inherit;',
+            on: {
+              click: () => {
+                addCartKey(item, variant.name, BigInt(variant.pricePaise));
+                window.closeModal('variant-picker-modal');
+                notify(`Added ${item.name} (${variant.name})`, 'success');
+              },
+            },
+          }, [
             el('div', {}, [
-              el('div', { style: 'font-size: 13px; font-weight: 800; color: #111827;' }, item.name),
-              el('div', { style: 'font-size: 11.5px; color: #6B7280;' }, `${formatRupees(item.pricePaise)} each`),
+              el('div', { style: 'font-size: 15px; font-weight: 800;' }, variant.name),
+              qty > 0 ? el('div', { style: 'font-size: 12px; color: var(--accent-primary); font-weight: 700;' }, `${qty} in cart`) : null,
             ]),
-            el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
-              el('button', {
-                type: 'button',
-                style: 'width: 24px; height: 24px; border-radius: 50%; border: 1px solid #D1D5DB; background: #fff; cursor: pointer; font-weight: 800;',
-                on: { click: () => { window.decrementCartItem(id); window.openCheckoutDrawer(); } },
-              }, '-'),
-              el('span', { style: 'font-size: 13px; font-weight: 900; min-width: 16px; text-align: center;' }, String(quantity)),
-              el('button', {
-                type: 'button',
-                style: 'width: 24px; height: 24px; border-radius: 50%; border: 1px solid #D1D5DB; background: #fff; cursor: pointer; font-weight: 800;',
-                on: { click: () => { window.addItemToCart(id); window.openCheckoutDrawer(); } },
-              }, '+'),
-              el('span', { style: 'font-size: 13px; font-weight: 900; color: #5B0612; margin-left: 6px;' }, lineTotal),
+            el('div', { style: 'display: flex; align-items: center; gap: 10px;' }, [
+              el('span', { class: 'tabular-nums', style: 'font-size: 16px; font-weight: 900;' }, formatINR(variant.pricePaise)),
+              el('span', { class: 'saas-add-btn' }, '+ Add'),
             ]),
           ])
         );
       });
     }
+    window.openModal('variant-picker-modal');
+  };
 
+  function addCartKey(item, variantName, unitPricePaise) {
+    const key = variantName ? `${item.id}::${variantName}` : item.id;
+    const existing = cart.get(key);
+    if (existing) {
+      existing.quantity += 1;
+    } else {
+      cart.set(key, {
+        key,
+        item,
+        variantName: variantName || null,
+        unitPricePaise,
+        quantity: 1,
+      });
+    }
+    updateCartUI();
+  }
+
+  window.addItemToCart = function (cartKeyOrDishId, e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const existingEntry = cart.get(cartKeyOrDishId);
+    if (existingEntry) {
+      existingEntry.quantity += 1;
+      updateCartUI();
+      return;
+    }
+    const item = menuCatalog.find((i) => i.id === cartKeyOrDishId);
+    if (!item || item.isAvailable === false) return;
+    if (Array.isArray(item.variants) && item.variants.length > 0) {
+      window.openVariantPicker(item.id);
+      return;
+    }
+    addCartKey(item, null, BigInt(item.pricePaise));
+  };
+
+  window.decrementCartItem = function (cartKeyOrDishId, e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const existing = cart.get(cartKeyOrDishId);
+    if (!existing) return;
+    if (existing.quantity > 1) {
+      existing.quantity -= 1;
+    } else {
+      cart.delete(cartKeyOrDishId);
+    }
+    updateCartUI();
+  };
+
+  window.clearCurrentCart = function () {
+    cart.clear();
+    const noteEl = document.getElementById('checkout-order-note');
+    if (noteEl) noteEl.value = '';
+    updateCartUI();
+    window.closeModal('checkout-drawer-modal');
+  };
+
+  function renderCartRowsInto(container, refreshCallback) {
+    if (!container || !window.FroseSafeDom) return;
+    const { el, clear } = window.FroseSafeDom;
+    clear(container);
+    if (cart.size === 0) {
+      container.appendChild(
+        el('div', { style: 'text-align: center; color: var(--text-muted); padding: 20px 8px; font-size: 13px;' }, 'Cart is empty. Tap dishes to add.')
+      );
+      return;
+    }
+    cart.forEach((entry, key) => {
+      const displayName = entry.variantName ? `${entry.item.name} (${entry.variantName})` : entry.item.name;
+      const lineTotal = formatINR(entry.unitPricePaise * BigInt(entry.quantity));
+      container.appendChild(
+        el('div', { class: 'pos-cart-row' }, [
+          el('div', { class: 'pos-cart-row-info' }, [
+            el('div', { class: 'pos-cart-row-title' }, displayName),
+            el('div', { class: 'pos-cart-row-sub' }, `${formatINR(entry.unitPricePaise)} each`),
+          ]),
+          el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
+            el('div', { class: 'saas-stepper' }, [
+              el('button', {
+                type: 'button',
+                class: 'saas-stepper-btn',
+                on: { click: () => { window.decrementCartItem(key); if (refreshCallback) refreshCallback(); } },
+              }, '−'),
+              el('span', { class: 'saas-stepper-qty' }, String(entry.quantity)),
+              el('button', {
+                type: 'button',
+                class: 'saas-stepper-btn',
+                on: { click: () => { window.addItemToCart(key); if (refreshCallback) refreshCallback(); } },
+              }, '+'),
+            ]),
+            el('span', { class: 'tabular-nums', style: 'font-weight: 900; min-width: 52px; text-align: right;' }, lineTotal),
+          ]),
+        ])
+      );
+    });
+  }
+
+  function renderTaxBreakdownInto(elTarget, taxInfo) {
+    if (!elTarget || !window.FroseSafeDom) return;
+    const { el, clear } = window.FroseSafeDom;
+    clear(elTarget);
+    if (taxInfo.taxMode === 'regular' && taxInfo.gstRateBps > 0 && taxInfo.subtotalPaise > 0) {
+      elTarget.style.display = 'flex';
+      elTarget.style.flexDirection = 'column';
+      elTarget.style.gap = '4px';
+      elTarget.appendChild(el('div', { class: 'pos-summary-line' }, [el('span', {}, 'Subtotal'), el('span', {}, formatINR(taxInfo.subtotalPaise))]));
+      elTarget.appendChild(el('div', { class: 'pos-summary-line' }, [el('span', {}, 'CGST'), el('span', {}, formatINR(taxInfo.cgstPaise))]));
+      elTarget.appendChild(el('div', { class: 'pos-summary-line' }, [el('span', {}, 'SGST'), el('span', {}, formatINR(taxInfo.sgstPaise))]));
+    } else {
+      elTarget.style.display = 'none';
+    }
+  }
+
+  function updateCashChangeCalculator() {
+    const { taxInfo } = getCartTotals();
+    const totalPaise = taxInfo.totalPaise;
+    const inputEl = document.getElementById('cash-tendered-input');
+    const dueEl = document.getElementById('cash-change-due');
+    if (!dueEl) return;
+    const tenderedRupees = Number(inputEl?.value || 0);
+    const tenderedPaise = Number.isFinite(tenderedRupees) && tenderedRupees > 0 ? Math.round(tenderedRupees * 100) : totalPaise;
+    const diff = tenderedPaise - totalPaise;
+    if (diff >= 0) {
+      dueEl.textContent = formatINR(diff);
+    } else {
+      dueEl.textContent = `Short ${formatINR(-diff)}`;
+    }
+  }
+
+  function updateSplitRemainder() {
+    const { taxInfo } = getCartTotals();
+    const totalPaise = taxInfo.totalPaise;
+    const cashInput = document.getElementById('split-cash-input');
+    const upiRemEl = document.getElementById('split-upi-remainder');
+    if (!upiRemEl) return;
+    const cashRupees = Number(cashInput?.value || 0);
+    let cashPaise = Number.isFinite(cashRupees) && cashRupees >= 0 ? Math.round(cashRupees * 100) : 0;
+    if (cashPaise > totalPaise) cashPaise = totalPaise;
+    const upiPaise = Math.max(0, totalPaise - cashPaise);
+    upiRemEl.textContent = formatINR(upiPaise);
+  }
+
+  function updateCartUI() {
+    const { totalItems, taxInfo } = getCartTotals();
+    const totalFormatted = formatINR(taxInfo.totalPaise);
+
+    const pill = document.getElementById('pos-floating-cart-pill');
+    const pillStats = document.getElementById('cart-pill-stats');
+    if (pill && pillStats) {
+      pill.classList.toggle('is-empty', totalItems === 0);
+      pillStats.textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'items'} · ${totalFormatted}`;
+    }
+
+    const compatTotal = document.getElementById('cart-total-rupees');
+    if (compatTotal) compatTotal.textContent = totalFormatted;
+
+    const desktopItems = document.getElementById('desktop-cart-items');
+    renderCartRowsInto(desktopItems);
+    renderTaxBreakdownInto(document.getElementById('desktop-tax-breakdown'), taxInfo);
+    const desktopTotal = document.getElementById('desktop-grand-total');
+    if (desktopTotal) desktopTotal.textContent = totalFormatted;
+    const desktopCheckoutBtn = document.getElementById('btn-desktop-checkout');
+    if (desktopCheckoutBtn) desktopCheckoutBtn.disabled = totalItems === 0;
+
+    const grandTotalEl = document.getElementById('checkout-grand-total');
+    if (grandTotalEl) grandTotalEl.textContent = totalFormatted;
+    const btnCashAmount = document.getElementById('btn-cash-amount');
+    if (btnCashAmount) btnCashAmount.textContent = totalFormatted;
+    const btnUpiAmount = document.getElementById('btn-upi-amount');
+    if (btnUpiAmount) btnUpiAmount.textContent = totalFormatted;
+    renderTaxBreakdownInto(document.getElementById('checkout-tax-breakdown'), taxInfo);
+
+    updateCashChangeCalculator();
+    updateSplitRemainder();
+    renderDishesGrid();
+  }
+
+  window.openCheckoutDrawer = function () {
+    const list = document.getElementById('checkout-cart-items');
+    if (!list) return;
+    renderCartRowsInto(list, () => window.openCheckoutDrawer());
+    const { taxInfo } = getCartTotals();
+    renderTaxBreakdownInto(document.getElementById('checkout-tax-breakdown'), taxInfo);
+
+    const cashInput = document.getElementById('cash-tendered-input');
+    if (cashInput) cashInput.value = taxInfo.totalPaise > 0 ? String(Math.round(taxInfo.totalPaise / 100)) : '';
+    const splitCashInput = document.getElementById('split-cash-input');
+    if (splitCashInput && !splitCashInput.value && taxInfo.totalPaise > 0) {
+      splitCashInput.value = String(Math.floor(taxInfo.totalPaise / 200));
+    }
+    const splitConfirm = document.getElementById('split-upi-confirm-check');
+    if (splitConfirm) splitConfirm.checked = false;
+
+    window.setCheckoutPaymentMode(checkoutPaymentMode || 'cash');
+    updateCashChangeCalculator();
+    updateSplitRemainder();
     window.openModal('checkout-drawer-modal');
   };
 
-  window.setOrderType = function(type) {
-    currentOrderType = type;
-    const bCounter = document.getElementById('btn-type-counter');
-    const bDine = document.getElementById('btn-type-dinein');
-    if (!bCounter || !bDine) return;
-    if (type === 'counter') {
-      bCounter.classList.add('active');
-      bDine.classList.remove('active');
-      bCounter.style.background = '#5B0612';
-      bCounter.style.color = '#fff';
-      bCounter.style.border = '1.5px solid #5B0612';
-      bDine.style.background = '#fff';
-      bDine.style.color = '#374151';
-      bDine.style.border = '1.5px solid #E5E7EB';
-    } else {
-      bDine.classList.add('active');
-      bCounter.classList.remove('active');
-      bDine.style.background = '#5B0612';
-      bDine.style.color = '#fff';
-      bDine.style.border = '1.5px solid #5B0612';
-      bCounter.style.background = '#fff';
-      bCounter.style.color = '#374151';
-      bCounter.style.border = '1.5px solid #E5E7EB';
-    }
+  window.setOrderType = function (type) {
+    currentOrderType = type === 'counter' ? 'counter' : 'dinein';
+    const pairs = [
+      ['btn-type-dinein', 'btn-type-counter'],
+      ['btn-desktop-type-dinein', 'btn-desktop-type-counter'],
+    ];
+    pairs.forEach(([dineId, parcelId]) => {
+      const d = document.getElementById(dineId);
+      const p = document.getElementById(parcelId);
+      if (d) d.classList.toggle('active', currentOrderType === 'dinein');
+      if (p) p.classList.toggle('active', currentOrderType === 'counter');
+    });
   };
 
-  // Payment Execution (Cash & UPI)
-  window.payCashOrder = function() {
+  window.setCheckoutPaymentMode = function (mode) {
+    checkoutPaymentMode = ['cash', 'upi', 'split'].includes(mode) ? mode : 'cash';
+    document.querySelectorAll('#checkout-payment-tabs .saas-seg-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-pay-mode') === checkoutPaymentMode);
+    });
+    const panels = {
+      cash: document.getElementById('checkout-panel-cash'),
+      upi: document.getElementById('checkout-panel-upi'),
+      split: document.getElementById('checkout-panel-split'),
+    };
+    Object.keys(panels).forEach((k) => {
+      if (panels[k]) panels[k].style.display = k === checkoutPaymentMode ? 'flex' : 'none';
+    });
+  };
+
+  window.selectCashTender = function (val) {
+    document.querySelectorAll('#cash-tender-chips .pos-tender-chip').forEach((c) => {
+      c.classList.toggle('active', c.getAttribute('data-tender') === String(val));
+    });
+    const { taxInfo } = getCartTotals();
+    const inputEl = document.getElementById('cash-tendered-input');
+    if (inputEl) {
+      inputEl.value = val === 'exact' ? String(Math.round(taxInfo.totalPaise / 100)) : String(val);
+    }
+    updateCashChangeCalculator();
+  };
+
+  window.payCashOrder = function () {
     if (cart.size === 0) {
-      alert('Cart is empty. Add dishes first!');
+      notify('Add dishes to cart first', 'warning');
       return;
     }
-    executeOrderSuccess('Cash');
+    executeOrderSuccess('cash');
   };
 
-  window.payUpiOrder = function() {
+  window.payUpiOrder = function () {
     if (cart.size === 0) {
-      alert('Cart is empty. Add dishes first!');
+      notify('Add dishes to cart first', 'warning');
       return;
     }
     window.closeModal('checkout-drawer-modal');
-
-    // Calculate total including GST if Regular mode
-    let subtotalPaise = 0n;
-    cart.forEach(({ item, quantity }) => {
-      subtotalPaise += item.pricePaise * BigInt(quantity);
-    });
-    const taxInfo = computeCartTaxBreakdown(subtotalPaise);
-    const formatted = formatRupees(BigInt(taxInfo.totalPaise));
+    const { taxInfo } = getCartTotals();
+    const formatted = formatINR(taxInfo.totalPaise);
 
     const confirmCheck = document.getElementById('upi-manual-confirm-check');
     if (confirmCheck) confirmCheck.checked = false;
@@ -766,110 +859,151 @@
     const upiAmountEl = document.getElementById('upi-qr-amount');
     if (upiAmountEl) upiAmountEl.textContent = formatted;
 
-    // Link uploaded custom scanner QR, UPI ID, and Payee display name
     const customQr = localStorage.getItem('frose_custom_scanner_qr');
-    const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+    const v = getActiveVendorProfile();
     const upiId = v.upiId || localStorage.getItem('frose_custom_upi_id') || '';
-    const payeeName = v.businessName || v.payeeName || v.name || 'Cloud Edge Kitchen';
+    const payeeName = v.businessName || v.payeeName || v.name || 'Stall Counter';
 
     const upiVpaEl = document.getElementById('upi-qr-vpa');
     if (upiVpaEl) {
-      upiVpaEl.textContent = upiId ? `${payeeName} • ${upiId}` : 'Set up payment QR in settings';
+      upiVpaEl.textContent = upiId ? `${payeeName} · ${upiId}` : 'Set up payment QR in settings';
     }
 
     const qrCanvas = document.getElementById('upi-qr-code-canvas');
-    if (qrCanvas) {
+    if (qrCanvas && window.FroseSafeDom) {
       const { el, svgEl, clear, safeImageUrl } = window.FroseSafeDom;
       clear(qrCanvas);
       const safeQr = safeImageUrl(customQr);
       if (safeQr) {
         qrCanvas.appendChild(
-          el('div', { style: 'background: #FFFFFF; padding: 10px; border-radius: 14px; display: inline-block; box-shadow: 0 4px 14px rgba(0,0,0,0.06); border: 1.5px solid #E2E8F0;' }, [
-            el('img', {
-              src: safeQr,
-              alt: 'Counter UPI Scanner',
-              id: 'cart-upi-scanner-img',
-              style: 'max-width: 220px; max-height: 220px; width: 200px; height: 200px; object-fit: contain; border-radius: 8px; display: block; margin: 0 auto;',
-            }),
-            el('div', { style: 'margin-top: 6px; font-size: 11px; font-weight: 800; color: #059669; display: flex; align-items: center; justify-content: center; gap: 4px;' }, [
-              el('span', {}, '✅ Counter Scanner Active'),
-            ]),
+          el('img', {
+            src: safeQr,
+            alt: 'Counter UPI Scanner',
+            id: 'cart-upi-scanner-img',
+            style: 'width: 190px; height: 190px; object-fit: contain; border-radius: 8px; display: block;',
+          })
+        );
+      } else if (!upiId) {
+        qrCanvas.appendChild(
+          el('div', { style: 'padding: 18px; text-align: center; color: #64748B;' }, [
+            el('div', { style: 'font-size: 28px; margin-bottom: 6px;' }, '📷'),
+            el('div', { style: 'font-size: 13px; font-weight: 800; color: #0F172A;' }, 'Set up payment QR'),
+            el('div', { style: 'font-size: 11.5px;' }, 'Configure UPI VPA in Settings tab.'),
           ])
         );
       } else {
-        if (!upiId) {
-          qrCanvas.appendChild(
-            el('div', { style: 'background:#FFF;padding:24px;border-radius:14px;text-align:center;border:1.5px dashed #CBD5E1;color:#64748B;' }, [
-              el('div', { style: 'font-size:32px;margin-bottom:6px;' }, '📷'),
-              el('div', { style: 'font-size:13px;font-weight:800;color:#0F172A;margin-bottom:4px;' }, 'Set up payment QR'),
-              el('div', { style: 'font-size:11px;' }, 'Configure UPI VPA or scanner in settings.'),
-            ])
-          );
-          window.openModal('upi-qr-modal');
-          return;
-        }
         qrCanvas.appendChild(
           svgEl('svg', { viewBox: '0 0 160 160', width: 160, height: 160 }, [
             svgEl('rect', { width: 160, height: 160, fill: '#fff', rx: 8 }),
-            svgEl('rect', { x: 20, y: 20, width: 40, height: 40, fill: '#111827' }),
-            svgEl('rect', { x: 26, y: 26, width: 28, height: 28, fill: '#fff' }),
-            svgEl('rect', { x: 32, y: 32, width: 16, height: 16, fill: '#111827' }),
-            svgEl('rect', { x: 100, y: 20, width: 40, height: 40, fill: '#111827' }),
-            svgEl('rect', { x: 106, y: 26, width: 28, height: 28, fill: '#fff' }),
-            svgEl('rect', { x: 112, y: 32, width: 16, height: 16, fill: '#111827' }),
-            svgEl('rect', { x: 20, y: 100, width: 40, height: 40, fill: '#111827' }),
-            svgEl('rect', { x: 26, y: 106, width: 28, height: 28, fill: '#fff' }),
-            svgEl('rect', { x: 32, y: 112, width: 16, height: 16, fill: '#111827' }),
-            svgEl('rect', { x: 70, y: 30, width: 15, height: 15, fill: '#111827' }),
-            svgEl('rect', { x: 75, y: 60, width: 20, height: 20, fill: '#111827' }),
-            svgEl('rect', { x: 105, y: 75, width: 25, height: 15, fill: '#111827' }),
-            svgEl('rect', { x: 65, y: 105, width: 30, height: 25, fill: '#111827' }),
+            svgEl('rect', { x: 18, y: 18, width: 38, height: 38, fill: '#0F172A' }),
+            svgEl('rect', { x: 24, y: 24, width: 26, height: 26, fill: '#fff' }),
+            svgEl('rect', { x: 30, y: 30, width: 14, height: 14, fill: '#0F172A' }),
+            svgEl('rect', { x: 104, y: 18, width: 38, height: 38, fill: '#0F172A' }),
+            svgEl('rect', { x: 110, y: 24, width: 26, height: 26, fill: '#fff' }),
+            svgEl('rect', { x: 116, y: 30, width: 14, height: 14, fill: '#0F172A' }),
+            svgEl('rect', { x: 18, y: 104, width: 38, height: 38, fill: '#0F172A' }),
+            svgEl('rect', { x: 24, y: 110, width: 26, height: 26, fill: '#fff' }),
+            svgEl('rect', { x: 30, y: 116, width: 14, height: 14, fill: '#0F172A' }),
+            svgEl('rect', { x: 70, y: 28, width: 18, height: 18, fill: '#0F172A' }),
+            svgEl('rect', { x: 74, y: 66, width: 20, height: 20, fill: '#0F172A' }),
+            svgEl('rect', { x: 108, y: 74, width: 24, height: 18, fill: '#0F172A' }),
+            svgEl('rect', { x: 68, y: 108, width: 28, height: 24, fill: '#0F172A' }),
           ])
         );
       }
     }
-
     window.openModal('upi-qr-modal');
   };
 
-  window.confirmUpiReceived = function() {
+  window.confirmUpiReceived = function () {
     const confirmCheck = document.getElementById('upi-manual-confirm-check');
     if (confirmCheck && !confirmCheck.checked) {
-      alert('Please confirm on your UPI Soundbox or Bank App and tick the confirmation box first.');
+      notify('Confirm UPI receipt on Soundbox/App first', 'warning');
       return;
     }
     window.closeModal('upi-qr-modal');
-    executeOrderSuccess('UPI');
+    executeOrderSuccess('upi');
   };
 
-  async function executeOrderSuccess(method) {
+  window.paySplitOrder = function () {
+    if (cart.size === 0) {
+      notify('Add dishes to cart first', 'warning');
+      return;
+    }
+    const { taxInfo } = getCartTotals();
+    const totalPaise = taxInfo.totalPaise;
+    const cashRupees = Number(document.getElementById('split-cash-input')?.value || 0);
+    if (!Number.isFinite(cashRupees) || cashRupees < 0) {
+      notify('Enter a valid Cash amount', 'danger');
+      return;
+    }
+    const cashPaise = Math.round(cashRupees * 100);
+    if (cashPaise > totalPaise) {
+      notify('Cash amount cannot exceed order total', 'danger');
+      return;
+    }
+    const upiPaise = totalPaise - cashPaise;
+    const confirmCheck = document.getElementById('split-upi-confirm-check');
+    if (upiPaise > 0 && confirmCheck && !confirmCheck.checked) {
+      notify('Confirm UPI remainder on Soundbox/App first', 'warning');
+      return;
+    }
+    executeOrderSuccess('split', { cashPaise, upiPaise });
+  };
+
+  async function executeOrderSuccess(method, splitOpts) {
     window.closeModal('checkout-drawer-modal');
     window.closeModal('upi-qr-modal');
 
-    let totalPaise = 0n;
     const itemsList = [];
     const apiItems = [];
-    cart.forEach(({ item, quantity }) => {
-      totalPaise += item.pricePaise * BigInt(quantity);
+    let subtotalPaise = 0n;
+
+    cart.forEach((entry) => {
+      subtotalPaise += entry.unitPricePaise * BigInt(entry.quantity);
+      const displayName = entry.variantName ? `${entry.item.name} (${entry.variantName})` : entry.item.name;
       itemsList.push({
-        menuItemId: item.id,
-        id: item.id,
-        name: item.name,
-        quantity,
-        pricePaise: Number(item.pricePaise)
+        menuItemId: entry.item.id,
+        id: entry.item.id,
+        name: displayName,
+        variantName: entry.variantName || undefined,
+        quantity: entry.quantity,
+        pricePaise: Number(entry.unitPricePaise),
       });
-      apiItems.push({
-        menuItemId: item.id,
-        quantity
-      });
+      const apiItem = { menuItemId: entry.item.id, quantity: entry.quantity };
+      if (entry.variantName) apiItem.variantName = entry.variantName;
+      apiItems.push(apiItem);
     });
+
+    const taxInfo = computeCartTaxBreakdown(subtotalPaise);
+    const paymentMethodNormalized = ['cash', 'upi', 'split'].includes(String(method).toLowerCase())
+      ? String(method).toLowerCase()
+      : 'cash';
+
+    const noteInput = document.getElementById('checkout-order-note')?.value.trim() || '';
+    const orderNote = currentOrderType === 'counter'
+      ? (noteInput ? `Parcel: ${noteInput}` : 'Parcel')
+      : (noteInput || undefined);
+
+    const payloadBody = {
+      items: apiItems,
+      paymentMethod: paymentMethodNormalized,
+      paymentStatus: 'paid',
+      source: 'pos',
+    };
+    if (orderNote) payloadBody.notes = orderNote;
+    if (paymentMethodNormalized === 'split' && splitOpts) {
+      payloadBody.cashPaise = splitOpts.cashPaise;
+      payloadBody.upiPaise = splitOpts.upiPaise;
+    }
 
     const storageMod = window.__FROSE_STORAGE__ || {};
     const clientOrderId = typeof storageMod.generateUuidV4 === 'function'
       ? storageMod.generateUuidV4()
       : (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function' ? globalThis.crypto.randomUUID() : ('ord-' + Date.now()));
     const createdAtClient = new Date().toISOString();
-    const paymentMethodNormalized = String(method || 'cash').toLowerCase() === 'upi' ? 'upi' : 'cash';
+    payloadBody.clientOrderId = clientOrderId;
+    payloadBody.createdAtClient = createdAtClient;
 
     let serverOrder = null;
     let shouldQueueOffline = (typeof navigator !== 'undefined' && navigator.onLine === false);
@@ -885,16 +1019,9 @@
           signal: controller ? controller.signal : undefined,
           headers: {
             'Content-Type': 'application/json',
-            'X-FROSE-CSRF': '1'
+            'X-FROSE-CSRF': '1',
           },
-          body: JSON.stringify({
-            clientOrderId,
-            createdAtClient,
-            items: apiItems,
-            paymentMethod: paymentMethodNormalized,
-            paymentStatus: 'paid',
-            source: 'pos'
-          })
+          body: JSON.stringify(payloadBody),
         });
         if (res && res.ok) {
           const json = await res.json();
@@ -905,7 +1032,7 @@
             const errJson = await res.json();
             errMsg = errJson?.message || errJson?.error?.message || errMsg;
           } catch (_) {}
-          alert(`❌ ${errMsg}`);
+          notify(errMsg, 'danger');
           return;
         } else {
           shouldQueueOffline = true;
@@ -930,8 +1057,8 @@
         client_order_id: serverOrder.clientOrderId || clientOrderId,
         orderType: currentOrderType,
         items: serverOrder.items && serverOrder.items.length > 0 ? serverOrder.items : itemsList,
-        totalPaise: Number(serverOrder.totalPaise ?? totalPaise),
-        syncStatus: 'synced'
+        totalPaise: Number(serverOrder.totalPaise ?? taxInfo.totalPaise),
+        syncStatus: 'synced',
       };
       if (window.FroseIdbStore) {
         try {
@@ -940,32 +1067,33 @@
       }
     } else if (shouldQueueOffline && syncEngine) {
       try {
-        const offlineTax = computeCartTaxBreakdown(totalPaise);
         const offlineRes = await syncEngine.queueOfflineOrder({
           vendorId: getVendorKey(),
           clientOrderId,
           createdAtClient,
           items: itemsList,
-          totalPaise: Number(offlineTax.totalPaise),
+          totalPaise: Number(taxInfo.totalPaise),
           paymentMethod: paymentMethodNormalized,
+          cashPaise: paymentMethodNormalized === 'split' && splitOpts ? splitOpts.cashPaise : undefined,
+          upiPaise: paymentMethodNormalized === 'split' && splitOpts ? splitOpts.upiPaise : undefined,
+          notes: orderNote,
           paymentStatus: 'paid',
-          orderType: currentOrderType
+          orderType: currentOrderType,
         });
         orderData = {
           ...offlineRes.order,
-          subtotalPaise: offlineTax.subtotalPaise,
-          cgstPaise: offlineTax.cgstPaise,
-          sgstPaise: offlineTax.sgstPaise,
-          taxModeSnapshot: offlineTax.taxMode,
+          subtotalPaise: taxInfo.subtotalPaise,
+          cgstPaise: taxInfo.cgstPaise,
+          sgstPaise: taxInfo.sgstPaise,
+          taxModeSnapshot: taxInfo.taxMode,
           receiptNumber: 'OFFLINE-PENDING',
         };
         tokenStr = `TOKEN ${orderData.localTokenDisplay || ('OFF-' + String(orderData.tokenNo).padStart(2, '0'))}`;
       } catch (licErr) {
-        alert(`🔒 ${licErr?.message || 'Offline billing blocked: valid offline license required.'}`);
+        notify(licErr?.message || 'Offline billing blocked: valid offline license required.', 'danger');
         return;
       }
     } else {
-      const localTax = computeCartTaxBreakdown(totalPaise);
       currentTokenNumber = currentTokenNumber + 1;
       tokenStr = `TOKEN #${currentTokenNumber}`;
       orderData = {
@@ -974,28 +1102,38 @@
         tokenNo: currentTokenNumber,
         orderType: currentOrderType,
         items: itemsList,
-        subtotalPaise: localTax.subtotalPaise,
-        cgstPaise: localTax.cgstPaise,
-        sgstPaise: localTax.sgstPaise,
-        taxModeSnapshot: localTax.taxMode,
-        totalPaise: Number(localTax.totalPaise),
+        subtotalPaise: taxInfo.subtotalPaise,
+        cgstPaise: taxInfo.cgstPaise,
+        sgstPaise: taxInfo.sgstPaise,
+        taxModeSnapshot: taxInfo.taxMode,
+        totalPaise: Number(taxInfo.totalPaise),
         paymentMethod: paymentMethodNormalized,
         status: 'pending',
         syncStatus: 'pending',
-        createdAt: createdAtClient
+        createdAt: createdAtClient,
       };
     }
 
     lastCompletedOrder = orderData;
 
-    // Flash Token Modal
     const fToken = document.getElementById('flash-token-number');
     if (fToken) fToken.textContent = tokenStr;
 
-    const finalPaise = BigInt(orderData?.totalPaise ?? totalPaise);
-    const paymentText = paymentMethodNormalized === 'upi' ? 'Marked paid (UPI)' : 'Paid (Cash)';
+    const finalPaise = Number(orderData?.totalPaise ?? taxInfo.totalPaise);
+    let paymentText = 'Paid (Cash)';
+    if (paymentMethodNormalized === 'upi') paymentText = 'Marked paid (UPI)';
+    else if (paymentMethodNormalized === 'split') {
+      const cP = Number(orderData?.cashPaise ?? splitOpts?.cashPaise ?? 0);
+      const uP = Number(orderData?.upiPaise ?? splitOpts?.upiPaise ?? 0);
+      paymentText = `Split (Cash ${formatINR(cP)} + Marked paid (UPI) ${formatINR(uP)})`;
+    }
     const fAmount = document.getElementById('flash-token-amount');
-    if (fAmount) fAmount.textContent = `${formatRupees(finalPaise)} • ${paymentText}`;
+    if (fAmount) fAmount.textContent = `${formatINR(finalPaise)} · ${paymentText}`;
+
+    const fMeta = document.getElementById('flash-receipt-meta');
+    if (fMeta) {
+      fMeta.textContent = orderData.receiptNumber ? `Receipt: ${orderData.receiptNumber}` : 'Queued for sync';
+    }
 
     try {
       if (typeof BroadcastChannel !== 'undefined' && orderData) {
@@ -1006,17 +1144,17 @@
 
     window.openModal('token-flash-modal');
     cart.clear();
+    const noteInputNode = document.getElementById('checkout-order-note');
+    if (noteInputNode) noteInputNode.value = '';
     updateCartUI();
 
     if (flashAutoCloseTimer) clearTimeout(flashAutoCloseTimer);
     flashAutoCloseTimer = setTimeout(() => {
       window.closeModal('token-flash-modal');
-    }, 5000);
+    }, 6500);
   }
 
-  let activeReceiptOrder = null;
-
-  window.setReceiptPaperWidth = function(width) {
+  window.setReceiptPaperWidth = function (width) {
     const area = document.getElementById('receipt-print-area');
     const b58 = document.getElementById('btn-width-58mm');
     const b80 = document.getElementById('btn-width-80mm');
@@ -1025,17 +1163,11 @@
       area.classList.remove('thermal-58mm', 'thermal-80mm');
       area.classList.add(w === '80' ? 'thermal-80mm' : 'thermal-58mm');
     }
-    if (b58 && b80) {
-      b58.style.background = w === '58' ? '#5B0612' : '#FFF';
-      b58.style.color = w === '58' ? '#FFF' : '#334155';
-      b58.style.borderColor = w === '58' ? '#5B0612' : '#CBD5E1';
-      b80.style.background = w === '80' ? '#5B0612' : '#FFF';
-      b80.style.color = w === '80' ? '#FFF' : '#334155';
-      b80.style.borderColor = w === '80' ? '#5B0612' : '#CBD5E1';
-    }
+    if (b58) b58.classList.toggle('active', w === '58');
+    if (b80) b80.classList.toggle('active', w === '80');
   };
 
-  window.openReceiptModal = function(orderObj) {
+  window.openReceiptModal = function (orderObj) {
     if (!orderObj || !window.FroseReceiptView || !window.FroseSafeDom) return;
     if (flashAutoCloseTimer) {
       clearTimeout(flashAutoCloseTimer);
@@ -1057,133 +1189,36 @@
     window.openModal('receipt-modal');
   };
 
-  window.openLastReceiptModal = function() {
-    if (!lastCompletedOrder) return;
-    window.openReceiptModal(lastCompletedOrder);
+  window.openLastReceiptModal = function () {
+    if (lastCompletedOrder) window.openReceiptModal(lastCompletedOrder);
   };
 
-  window.printThermalReceipt = function() {
+  window.printThermalReceipt = function () {
     window.print();
   };
 
-  window.copyBillTextWhatsApp = async function() {
-    if (!activeReceiptOrder || !window.FroseReceiptView) return;
-    const text = window.FroseReceiptView.buildPlainTextReceipt(activeReceiptOrder, getActiveVendorProfile());
+  async function copyOrderReceiptText(orderObj) {
+    if (!orderObj || !window.FroseReceiptView) return;
+    const text = window.FroseReceiptView.buildPlainTextReceipt(orderObj, getActiveVendorProfile());
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       try {
         await navigator.clipboard.writeText(text);
-        const btn = document.getElementById('btn-copy-bill-text');
-        if (btn) {
-          const orig = btn.textContent;
-          btn.textContent = '✅ Bill Text Copied!';
-          setTimeout(() => { btn.textContent = orig; }, 2000);
-        }
+        notify('Bill text copied for WhatsApp', 'success');
         return;
       } catch (_) {}
     }
-    alert(text);
-  };
-
-  async function fetchOrderHistoryList() {
-    const listEl = document.getElementById('order-history-list');
-    if (!listEl || !window.FroseSafeDom) return;
-    const { el, clear } = window.FroseSafeDom;
-    clear(listEl);
-    listEl.appendChild(el('div', { style: 'text-align: center; padding: 20px; color: #64748B; font-size: 12.5px;' }, 'Loading orders...'));
-
-    let orders = [];
-    if (localStorage.getItem('frose_session_active') && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
-      try {
-        const fn = window.froseApiFetch || fetch;
-        const res = await fn('/api/v1/orders/history?limit=25', { credentials: 'same-origin' });
-        if (res && res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.orders)) orders = data.orders;
-        }
-      } catch (_) {}
-    }
-
-    if (orders.length === 0 && window.FroseIdbStore) {
-      try {
-        orders = await window.FroseIdbStore.getOrders(getVendorKey());
-      } catch (_) {}
-    }
-
-    clear(listEl);
-    if (!orders || orders.length === 0) {
-      listEl.appendChild(el('div', { style: 'text-align: center; padding: 24px; color: #64748B; font-size: 13px;' }, 'No recent orders yet.'));
-      return;
-    }
-
-    const fmt = window.FroseReceiptView ? window.FroseReceiptView.formatPaiseToRupees : (p) => formatRupees(BigInt(p || 0));
-
-    orders.forEach((ord) => {
-      const status = String(ord.orderStatus || ord.status || 'preparing');
-      const isCancelled = status === 'cancelled';
-      const canVoid = !isCancelled && status !== 'served' && Boolean(ord.id) && String(ord.syncStatus || 'synced') === 'synced';
-      const badgeColor = isCancelled ? '#B91C1C' : '#047857';
-      const badgeBg = isCancelled ? '#FEF2F2' : '#ECFDF5';
-
-      const actions = [
-        el('button', {
-          type: 'button',
-          class: 'btn-history-receipt',
-          style: 'min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1.5px solid #5B0612; background: #FFF5F6; color: #5B0612; font-size: 11.5px; font-weight: 800; cursor: pointer;',
-          on: {
-            click: async () => {
-              let fullOrder = ord;
-              if (ord.id && (!Array.isArray(ord.items) || ord.items.length === 0) && localStorage.getItem('frose_session_active')) {
-                try {
-                  const fn = window.froseApiFetch || fetch;
-                  const r = await fn(`/api/v1/orders/${ord.id}`, { credentials: 'same-origin' });
-                  if (r && r.ok) {
-                    const j = await r.json();
-                    if (j && j.order) fullOrder = j.order;
-                  }
-                } catch (_) {}
-              }
-              window.openReceiptModal(fullOrder);
-            }
-          }
-        }, '🧾 Receipt')
-      ];
-
-      if (canVoid) {
-        actions.push(
-          el('button', {
-            type: 'button',
-            class: 'btn-history-void',
-            style: 'min-height: 36px; padding: 0 10px; border-radius: 8px; border: 1.5px solid #DC2626; background: #FEF2F2; color: #DC2626; font-size: 11.5px; font-weight: 800; cursor: pointer;',
-            on: { click: () => window.openVoidOrderModal(ord.id, ord.tokenDisplay || `#${ord.tokenNo}`) }
-          }, '❌ Void')
-        );
-      }
-
-      listEl.appendChild(
-        el('div', { style: 'border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #FFF;' }, [
-          el('div', { style: 'min-width: 0; flex: 1;' }, [
-            el('div', { style: 'font-size: 13px; font-weight: 900; color: #0F172A;' },
-              `${ord.tokenDisplay || '#' + (ord.tokenNo || '')} • ${fmt(ord.totalPaise)}`
-            ),
-            el('div', { style: 'font-size: 11px; color: #475569; margin-top: 2px;' },
-              `${ord.receiptNumber || 'Offline'} • ${String(ord.paymentMethod || '').toUpperCase()}`
-            ),
-            el('span', { style: `display: inline-block; margin-top: 4px; font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; background: ${badgeBg}; color: ${badgeColor};` },
-              status.toUpperCase() + (ord.cancelReason ? ': ' + ord.cancelReason : '')
-            ),
-          ]),
-          el('div', { style: 'display: flex; gap: 6px; flex-shrink: 0;' }, actions),
-        ])
-      );
-    });
+    notify('Receipt text ready', 'success');
   }
 
-  window.openOrderHistoryModal = async function() {
-    window.openModal('order-history-modal');
-    await fetchOrderHistoryList();
+  window.copyBillTextWhatsApp = function () {
+    return copyOrderReceiptText(activeReceiptOrder);
   };
 
-  window.openVoidOrderModal = function(orderId, tokenLabel) {
+  window.copyLastBillTextWhatsApp = function () {
+    return copyOrderReceiptText(lastCompletedOrder);
+  };
+
+  window.openVoidOrderModal = function (orderId, tokenLabel) {
     const idEl = document.getElementById('void-order-id');
     const lblEl = document.getElementById('void-order-label');
     const reasonEl = document.getElementById('void-order-reason');
@@ -1193,12 +1228,12 @@
     window.openModal('void-order-modal');
   };
 
-  window.submitVoidOrder = async function(e) {
+  window.submitVoidOrder = async function (e) {
     e.preventDefault();
     const orderId = document.getElementById('void-order-id')?.value;
     const reason = document.getElementById('void-order-reason')?.value.trim() || '';
     if (!orderId || reason.length < 3) {
-      alert('Please enter a void reason (at least 3 characters).');
+      notify('Enter a void reason (min 3 characters)', 'warning');
       return;
     }
     try {
@@ -1214,207 +1249,345 @@
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(`❌ ${data?.error?.message || data?.message || 'Could not void order'}`);
+        notify(data?.error?.message || data?.message || 'Could not void order', 'danger');
         return;
       }
       window.closeModal('void-order-modal');
-      await fetchOrderHistoryList();
-    } catch (err) {
-      alert(`❌ Network error voiding order`);
+      if (window.closeOrderDetailDrawer) window.closeOrderDetailDrawer();
+      notify('Order voided', 'success');
+      if (window.FroseOrdersPanel && typeof window.FroseOrdersPanel.refresh === 'function') {
+        await window.FroseOrdersPanel.refresh();
+      }
+    } catch (_) {
+      notify('Network error voiding order', 'danger');
     }
   };
 
-  // Section Management
-  window.openAddSectionModal = function() {
-    document.getElementById('input-new-section-name').value = '';
+  // Section & Dish Modal Handlers (shared with Menu Tab)
+  window.openAddSectionModal = function () {
+    const inp = document.getElementById('input-new-section-name');
+    if (inp) inp.value = '';
     window.openModal('modal-add-section');
   };
 
-  window.submitAddSection = function(e) {
+  window.submitAddSection = async function (e) {
     e.preventDefault();
-    const name = document.getElementById('input-new-section-name').value.trim();
+    const name = document.getElementById('input-new-section-name')?.value.trim();
     if (!name) return;
-
-    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const sidebar = document.getElementById('pos-category-sidebar');
-    const addBtn = sidebar.querySelector('.btn-add-section');
-
-    const newBtn = document.createElement('button');
-    newBtn.type = 'button';
-    newBtn.className = 'category-sidebar-pill';
-    newBtn.setAttribute('data-category', slug);
-    newBtn.textContent = name;
-    newBtn.onclick = () => window.selectCategory(slug);
-
-    sidebar.insertBefore(newBtn, addBtn);
-
-    // Also add to category dropdowns in Add/Edit modals
-    const optAdd = document.createElement('option');
-    optAdd.value = slug;
-    optAdd.textContent = name;
-    document.getElementById('input-dish-category')?.appendChild(optAdd);
-
-    const optEdit = document.createElement('option');
-    optEdit.value = slug;
-    optEdit.textContent = name;
-    document.getElementById('edit-dish-category')?.appendChild(optEdit);
-
+    if (!customCategories.some((c) => c.toLowerCase() === name.toLowerCase())) {
+      customCategories.push(name);
+      if (window.FroseIdbStore) {
+        try {
+          await window.FroseIdbStore.setMeta('categories', { vendor_id: getVendorKey(), value: customCategories });
+        } catch (_) {}
+      }
+    }
     window.closeModal('modal-add-section');
-    window.selectCategory(slug);
+    renderCategoryChips();
+    window.selectCategory(name.toLowerCase().replace(/\s+/g, '-'));
+    if (window.FroseMenuPanel && typeof window.FroseMenuPanel.render === 'function') {
+      window.FroseMenuPanel.render();
+    }
+    notify(`Category "${name}" added`, 'success');
   };
 
-  // Dish Management (Add & Edit)
-  window.openAddDishModal = async function() {
+  window.setDishVegFlag = function (val) {
+    formDishIsVeg = val !== 'nonveg';
+    const bVeg = document.getElementById('btn-dish-veg');
+    const bNonVeg = document.getElementById('btn-dish-nonveg');
+    if (bVeg) bVeg.classList.toggle('active', formDishIsVeg);
+    if (bNonVeg) bNonVeg.classList.toggle('active', !formDishIsVeg);
+  };
+
+  window.addDishVariantRow = function (preset) {
+    const container = document.getElementById('dish-variants-rows');
+    if (!container || !window.FroseSafeDom) return;
+    const { el } = window.FroseSafeDom;
+    const row = el('div', {
+      class: 'dish-variant-row',
+      style: 'display: grid; grid-template-columns: 1fr 110px 44px; gap: 8px; align-items: center;',
+    }, [
+      el('input', {
+        type: 'text',
+        class: 'saas-input variant-name-input',
+        placeholder: 'Size (e.g. Half)',
+        value: preset && preset.name ? preset.name : '',
+      }),
+      el('input', {
+        type: 'number',
+        class: 'saas-input tabular-nums variant-price-input',
+        placeholder: '₹',
+        min: 1,
+        step: 1,
+        value: preset && preset.pricePaise ? String(Math.round(Number(preset.pricePaise) / 100)) : '',
+      }),
+      el('button', {
+        type: 'button',
+        class: 'saas-btn saas-btn-danger',
+        style: 'padding: 0; min-width: 44px;',
+        on: { click: () => { if (row.parentNode) row.parentNode.removeChild(row); } },
+      }, '✕'),
+    ]);
+    container.appendChild(row);
+  };
+
+  window.openAddDishModal = async function (editDish) {
+    const heading = document.getElementById('dish-modal-heading');
+    const editIdEl = document.getElementById('dish-form-edit-id');
     const nameEl = document.getElementById('input-dish-name');
     const priceEl = document.getElementById('input-dish-price');
-    if (nameEl) nameEl.value = '';
-    if (priceEl) priceEl.value = '';
+    const photoEl = document.getElementById('input-dish-photo-select');
+    const delBtn = document.getElementById('btn-delete-dish-in-modal');
+    const varRows = document.getElementById('dish-variants-rows');
+    if (varRows && window.FroseSafeDom) window.FroseSafeDom.clear(varRows);
 
-    const vKey = getVendorKey();
-    let cats = [];
-    if (window.FroseIdbStore) {
-      try {
-        const catMeta = await window.FroseIdbStore.getMeta('categories');
-        if (catMeta && Array.isArray(catMeta.value)) cats = catMeta.value;
-      } catch (_) {}
-    }
+    const cats = getMergedCategories();
+    if (cats.length === 0) cats.push('Special Items');
 
     const select = document.getElementById('input-dish-category');
-    if (select) {
-      if (!cats || cats.length === 0) {
-        cats = ['Special Items'];
-        if (window.FroseIdbStore) {
-          await window.FroseIdbStore.setMeta('categories', { vendor_id: vKey, value: cats });
-        }
-        renderSidebarCategories(cats);
-      }
+    if (select && window.FroseSafeDom) {
       const { el, clear } = window.FroseSafeDom;
       clear(select);
-      cats.forEach(c => {
-        select.appendChild(el('option', { value: c.toLowerCase().replace(/\s+/g, '-') }, c));
-      });
+      cats.forEach((c) => select.appendChild(el('option', { value: c }, c)));
+    }
+
+    if (editDish && editDish.id) {
+      if (heading) heading.textContent = 'Edit Dish';
+      if (editIdEl) editIdEl.value = editDish.id;
+      if (nameEl) nameEl.value = editDish.name || '';
+      if (priceEl) priceEl.value = String(Math.round(Number(editDish.pricePaise || 0) / 100));
+      if (select && editDish.category) select.value = editDish.category;
+      if (photoEl && editDish.imageUrl) photoEl.value = editDish.imageUrl;
+      if (delBtn) delBtn.style.display = 'inline-flex';
+      window.setDishVegFlag(editDish.isVeg === false ? 'nonveg' : 'veg');
+      if (Array.isArray(editDish.variants)) {
+        editDish.variants.forEach((v) => window.addDishVariantRow(v));
+      }
+    } else {
+      if (heading) heading.textContent = 'Add Dish';
+      if (editIdEl) editIdEl.value = '';
+      if (nameEl) nameEl.value = '';
+      if (priceEl) priceEl.value = '';
+      if (delBtn) delBtn.style.display = 'none';
+      window.setDishVegFlag('veg');
     }
 
     window.openModal('modal-add-dish');
   };
 
-  window.submitAddDish = async function(e) {
+  window.submitAddDish = async function (e) {
     e.preventDefault();
     const { safeImageUrl } = window.FroseSafeDom;
-    const name = document.getElementById('input-dish-name').value.trim();
-    const category = document.getElementById('input-dish-category').value;
-    const priceRupees = Number(document.getElementById('input-dish-price').value) || 100;
-    const photo = safeImageUrl(document.getElementById('input-dish-photo-select').value) || '/images/dishes/chicken-biryani-full.webp';
-    const pricePaiseNum = Math.round(priceRupees * 100);
+    const editId = document.getElementById('dish-form-edit-id')?.value.trim() || '';
+    const name = document.getElementById('input-dish-name')?.value.trim() || '';
+    const category = document.getElementById('input-dish-category')?.value || 'General';
+    const priceRupees = Number(document.getElementById('input-dish-price')?.value || 0);
+    const photo = safeImageUrl(document.getElementById('input-dish-photo-select')?.value) || '/images/dishes/chicken-biryani-full.webp';
 
-    let newDish = {
-      id: 'dish-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
+    if (!name || !Number.isFinite(priceRupees) || priceRupees <= 0) {
+      notify('Enter a valid dish name and price', 'warning');
+      return;
+    }
+
+    const pricePaiseNum = Math.round(priceRupees * 100);
+    const variants = [];
+    document.querySelectorAll('#dish-variants-rows .dish-variant-row').forEach((row) => {
+      const vName = row.querySelector('.variant-name-input')?.value.trim() || '';
+      const vPriceR = Number(row.querySelector('.variant-price-input')?.value || 0);
+      if (vName && Number.isFinite(vPriceR) && vPriceR > 0) {
+        variants.push({ name: vName, pricePaise: Math.round(vPriceR * 100) });
+      }
+    });
+
+    const payload = {
       name,
-      pricePaise: BigInt(pricePaiseNum),
-      category: category || 'special-items',
-      isBestSeller: false,
-      image: photo
+      category,
+      pricePaise: pricePaiseNum,
+      imageUrl: photo,
+      isVeg: formDishIsVeg,
+      variants: variants.length > 0 ? variants : null,
+      isAvailable: true,
     };
+
+    if (editId) {
+      let updatedItem = null;
+      if (localStorage.getItem('frose_session_active')) {
+        try {
+          const fn = window.froseApiFetch || fetch;
+          const res = await fn(`/api/v1/menu/${editId}`, {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+            body: JSON.stringify(payload),
+          });
+          if (res && res.ok) {
+            const json = await res.json();
+            updatedItem = json.item;
+          }
+        } catch (_) {}
+      }
+      menuCatalog = menuCatalog.map((d) => {
+        if (d.id !== editId) return d;
+        const src = updatedItem || payload;
+        return {
+          ...d,
+          ...src,
+          pricePaise: BigInt(src.pricePaise || pricePaiseNum),
+          image: src.imageUrl || photo,
+        };
+      });
+      notify(`Updated "${name}"`, 'success');
+    } else {
+      let newDish = {
+        id: 'dish-' + Date.now().toString(36),
+        ...payload,
+        pricePaise: BigInt(pricePaiseNum),
+        image: photo,
+        isUserCreated: true,
+      };
+      if (localStorage.getItem('frose_session_active')) {
+        try {
+          const fn = window.froseApiFetch || fetch;
+          const res = await fn('/api/v1/menu', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+            body: JSON.stringify(payload),
+          });
+          if (res && res.ok) {
+            const json = await res.json();
+            if (json && json.item) {
+              newDish = {
+                ...json.item,
+                pricePaise: BigInt(json.item.pricePaise || pricePaiseNum),
+                image: json.item.imageUrl || photo,
+                isUserCreated: true,
+              };
+            }
+          }
+        } catch (_) {}
+      }
+      menuCatalog.push(newDish);
+      notify(`Added "${name}" to menu`, 'success');
+    }
+
+    if (window.FroseIdbStore) {
+      try {
+        await window.FroseIdbStore.putMenuItems(getVendorKey(), menuCatalog.map((d) => ({ ...d, pricePaise: Number(d.pricePaise) })));
+      } catch (_) {}
+    }
+
+    window.closeModal('modal-add-dish');
+    renderCategoryChips();
+    renderDishesGrid();
+    updateCartUI();
+    if (window.FroseMenuPanel && typeof window.FroseMenuPanel.render === 'function') {
+      window.FroseMenuPanel.render();
+    }
+  };
+
+  window.deleteActiveFormDish = async function () {
+    const editId = document.getElementById('dish-form-edit-id')?.value.trim();
+    if (!editId) return;
+    await window.deleteDishById(editId);
+    window.closeModal('modal-add-dish');
+  };
+
+  window.deleteDishById = async function (dishId) {
+    const ok = window.FroseUI
+      ? await window.FroseUI.confirmModal({
+          title: 'Remove Dish?',
+          message: 'This dish will be removed from your active menu.',
+          confirmLabel: 'Remove',
+          danger: true,
+        })
+      : false;
+    if (!ok) return;
 
     if (localStorage.getItem('frose_session_active')) {
       try {
         const fn = window.froseApiFetch || fetch;
-        const res = await fn('/api/v1/menu', {
-          method: 'POST',
+        await fn(`/api/v1/menu/${dishId}`, {
+          method: 'DELETE',
           credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
-          body: JSON.stringify({
-            name,
-            category: category || 'special-items',
-            pricePaise: pricePaiseNum,
-            imageUrl: photo,
-            isAvailable: true
-          })
+          headers: { 'X-FROSE-CSRF': '1' },
         });
-        if (res && res.ok) {
-          const json = await res.json();
-          if (json && json.item) {
-            newDish = {
-              ...json.item,
-              pricePaise: BigInt(json.item.pricePaise || pricePaiseNum),
-              image: json.item.imageUrl || photo
-            };
-          }
-        }
       } catch (_) {}
     }
 
-    menuCatalog.push(newDish);
-    saveCatalog();
-    renderDishesGrid();
-    updateCartUI();
-    window.closeModal('modal-add-dish');
-    if (category) window.selectCategory(category);
-  };
-
-  let activeEditingDishId = null;
-  window.openEditDishModal = async function(dishId, e) {
-    if (e) e.stopPropagation();
-    const dish = menuCatalog.find(i => i.id === dishId);
-    if (!dish) return;
-
-    activeEditingDishId = dishId;
-    document.getElementById('edit-dish-id').value = dish.id;
-    document.getElementById('edit-dish-name').value = dish.name;
-    document.getElementById('edit-dish-price').value = Number(dish.pricePaise / 100n);
-
-    let cats = [];
+    menuCatalog = menuCatalog.filter((d) => d.id !== dishId);
+    cart.forEach((_, key) => {
+      if (key === dishId || key.startsWith(`${dishId}::`)) cart.delete(key);
+    });
     if (window.FroseIdbStore) {
       try {
-        const catMeta = await window.FroseIdbStore.getMeta('categories');
-        if (catMeta && Array.isArray(catMeta.value)) cats = catMeta.value;
+        await window.FroseIdbStore.putMenuItems(getVendorKey(), menuCatalog.map((d) => ({ ...d, pricePaise: Number(d.pricePaise) })));
       } catch (_) {}
     }
-
-    const select = document.getElementById('edit-dish-category');
-    if (select) {
-      const { el, clear } = window.FroseSafeDom;
-      clear(select);
-      if (cats.length === 0) {
-        select.appendChild(el('option', { value: dish.category }, dish.category));
-      } else {
-        cats.forEach(c => {
-          select.appendChild(el('option', { value: c.toLowerCase().replace(/\s+/g, '-') }, c));
-        });
-      }
-      select.value = (dish.category || '').toLowerCase().replace(/\s+/g, '-');
-    }
-
-    window.openModal('modal-edit-dish');
-  };
-
-  window.submitEditDish = function(e) {
-    e.preventDefault();
-    if (!activeEditingDishId) return;
-    const dish = menuCatalog.find(i => i.id === activeEditingDishId);
-    if (!dish) return;
-
-    dish.name = document.getElementById('edit-dish-name').value.trim();
-    const p = Number(document.getElementById('edit-dish-price').value) || 100;
-    dish.pricePaise = BigInt(p * 100);
-    dish.category = document.getElementById('edit-dish-category').value;
-
-    saveCatalog();
-    window.closeModal('modal-edit-dish');
+    renderCategoryChips();
     renderDishesGrid();
     updateCartUI();
-    alert(`✅ Updated "${dish.name}" details and price!`);
+    if (window.FroseMenuPanel && typeof window.FroseMenuPanel.render === 'function') {
+      window.FroseMenuPanel.render();
+    }
+    notify('Dish removed', 'success');
   };
 
-  window.deleteDish = function() {
-    if (!activeEditingDishId) return;
-    if (confirm('Delete this dish from your menu?')) {
-      menuCatalog = menuCatalog.filter(i => i.id !== activeEditingDishId);
-      cart.delete(activeEditingDishId);
-      saveCatalog();
-      window.closeModal('modal-edit-dish');
-      renderDishesGrid();
-      updateCartUI();
+  // Compatibility helpers for modal-edit-dish
+  let activeEditingDishId = null;
+  window.openEditDishModal = function (dishId, e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    const dish = menuCatalog.find((i) => i.id === dishId);
+    if (dish) window.openAddDishModal(dish);
+    activeEditingDishId = dishId;
+  };
+  window.submitEditDish = function (e) { e.preventDefault(); window.closeModal('modal-edit-dish'); };
+  window.deleteDish = function () { if (activeEditingDishId) window.deleteDishById(activeEditingDishId); };
+
+  function populateProfileInfo() {
+    try {
+      const v = getActiveVendorProfile();
+      const name = v.businessName || localStorage.getItem('frose_stall_name') || 'Stall Client';
+      const owner = v.ownerName || 'Stall Owner';
+      const phone = v.phone || localStorage.getItem('frose_stall_phone') || '';
+      const initials = (owner || name).split(' ').map((w) => w[0]).join('').substring(0, 2).toUpperCase() || 'SC';
+
+      const headerTitle = document.getElementById('pos-header-stall-name');
+      if (headerTitle) headerTitle.textContent = name;
+      document.querySelectorAll('.pos-avatar-badge, #settings-client-avatar').forEach((el) => { el.textContent = initials; });
+      document.querySelectorAll('.pos-avatar-label, #settings-client-stall').forEach((el) => { el.textContent = name; });
+      const ownerEl = document.getElementById('settings-client-owner');
+      if (ownerEl) ownerEl.textContent = owner;
+      const phoneEl = document.getElementById('settings-client-phone');
+      if (phoneEl && phone) phoneEl.textContent = '+91 ' + phone;
+    } catch (_) {}
+  }
+
+  window.openModal = function (modalId) {
+    if (window.FroseUI && typeof window.FroseUI.openSheet === 'function') {
+      window.FroseUI.openSheet(modalId);
+      return;
+    }
+    const el = document.getElementById(modalId);
+    if (el) el.classList.add('active');
+  };
+
+  window.closeModal = function (modalId) {
+    if (window.FroseUI && typeof window.FroseUI.closeSheet === 'function') {
+      window.FroseUI.closeSheet(modalId);
+      return;
+    }
+    const el = document.getElementById(modalId);
+    if (el) el.classList.remove('active');
+  };
+
+  window.handleLogout = async function () {
+    if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {
+      await window.FroseIdbStore.safeLogout({
+        vendorId: getVendorKey(),
+        confirmMessage: 'Sign out of Stall Account?',
+      });
+      return;
     }
   };
 
@@ -1430,155 +1603,58 @@
         storageMod.LicenseManager.syncLicenseFromServer(getVendorKey()).catch(() => {});
       }
     }
+    renderCategoryChips();
     renderDishesGrid();
     updateCartUI();
     populateProfileInfo();
+    updateThemeCycleIcon();
   }
 
-  function populateProfileInfo() {
-    try {
-      const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-      const name = v.businessName || localStorage.getItem('frose_stall_name') || 'Stall Client';
-      const owner = v.ownerName || 'Stall Owner';
-      const phone = v.phone || localStorage.getItem('frose_stall_phone') || '';
-      
-      const initials = (owner || name).split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'SC';
-
-      const avatarBadges = document.querySelectorAll('.pos-avatar-badge, #settings-client-avatar');
-      avatarBadges.forEach(el => el.textContent = initials);
-
-      const labelBadges = document.querySelectorAll('.pos-avatar-label, #settings-client-stall');
-      labelBadges.forEach(el => el.textContent = name);
-
-      const ownerEl = document.getElementById('settings-client-owner');
-      if (ownerEl) ownerEl.textContent = owner;
-
-      const phoneEl = document.getElementById('settings-client-phone');
-      if (phoneEl && phone) phoneEl.textContent = '+91 ' + phone;
-    } catch (e) {}
-  }
-
-  window.openModal = function (modalId) {
-    const el = document.getElementById(modalId);
-    if (el) el.classList.add('active');
-    document.body.classList.add('modal-open');
-    document.documentElement.classList.add('modal-open');
+  // Expose workspace API cleanly to Orders / Menu / Payments / Settings panels
+  window.__FROSE_WORKSPACE__ = {
+    getMenuCatalog: () => menuCatalog,
+    setMenuCatalog: (items) => { menuCatalog = items; },
+    getCategories: getMergedCategories,
+    reloadCatalog: async () => {
+      await loadCatalog();
+      renderCategoryChips();
+      renderDishesGrid();
+      updateCartUI();
+    },
+    getVendorKey,
+    getActiveVendorProfile,
+    formatINR,
+    notify,
+    switchTab: (tab) => window.switchWorkspaceTab(tab),
+    openAddDishModal: (dish) => window.openAddDishModal(dish),
+    deleteDishById: (id) => window.deleteDishById(id),
+    openAddSectionModal: () => window.openAddSectionModal(),
+    openReceiptModal: (ord) => window.openReceiptModal(ord),
+    openVoidOrderModal: (id, lbl) => window.openVoidOrderModal(id, lbl),
+    refreshProfileUI: populateProfileInfo,
   };
 
-  window.closeModal = function (modalId) {
-    const el = document.getElementById(modalId);
-    if (el) el.classList.remove('active');
-    const activeModals = document.querySelectorAll('.modal-overlay.active');
-    if (activeModals.length === 0) {
-      document.body.classList.remove('modal-open');
-      document.documentElement.classList.remove('modal-open');
-    }
-  };
-
-  window.handleLogout = async function () {
-    if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {
-      await window.FroseIdbStore.safeLogout({
-        vendorId: getVendorKey(),
-        confirmMessage: 'Sign out of Stall Account?'
-      });
-      return;
-    }
-    if (confirm('Sign out of Stall Account?')) {
-      try {
-        const fn = window.froseApiFetch || fetch;
-        await fn('/api/v1/auth/logout', {
-          method: 'POST',
-          headers: { 'X-FROSE-CSRF': '1' },
-          credentials: 'same-origin'
-        });
-      } catch (e) {}
-      localStorage.removeItem('frose_session_active');
-      localStorage.removeItem('frose_vendors_directory');
-      localStorage.removeItem('frose_current_vendor');
-      window.location.href = '/login.html';
-    }
-  };
-
-  // Immediate event bindings for back navigation / tab focus sync
-  window.addEventListener('pageshow', refreshPOS);
-  window.addEventListener('focus', refreshPOS);
-
-  // First-Time Client Check & Initialization
   document.addEventListener('DOMContentLoaded', async () => {
+    const searchInput = document.getElementById('bill-search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        billSearchQuery = searchInput.value || '';
+        renderDishesGrid();
+      });
+    }
+    const cashTenderInput = document.getElementById('cash-tendered-input');
+    if (cashTenderInput) {
+      cashTenderInput.addEventListener('input', updateCashChangeCalculator);
+    }
+    const splitCashInput = document.getElementById('split-cash-input');
+    if (splitCashInput) {
+      splitCashInput.addEventListener('input', updateSplitRemainder);
+    }
+
     await refreshPOS();
 
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('type') === 'dinein') {
-      window.setOrderType('dinein');
-    }
-
-    // Check if routed with ?setup=1 or first-time login
-// setup check uses existing urlParams
-    if (urlParams.get('setup') === '1') {
-      const banner = document.getElementById('management-toolbar');
-      if (banner) {
-        banner.style.background = '#FFF5F6';
-        banner.style.borderColor = '#FECDD3';
-      }
-      localStorage.setItem('frose_first_login_done', 'true');
-    }
+    if (urlParams.get('type') === 'dinein') window.setOrderType('dinein');
+    if (urlParams.get('tab')) window.switchWorkspaceTab(urlParams.get('tab'));
   });
-
 })();
-
-  // Part 2: Remote Subscription Lockout Listener (Kill-Switch)
-  function getVendorKeyHelper() {
-    try {
-      const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-      return (v.phone || localStorage.getItem('frose_stall_phone') || '').replace(/\D/g, '').slice(-10);
-    } catch (e) {
-      return '';
-    }
-  }
-
-  if (typeof BroadcastChannel !== 'undefined') {
-    const subChannel = new BroadcastChannel('frose_telemetry');
-    subChannel.onmessage = (event) => {
-      const data = event.data;
-      if (data && data.type === 'SUBSCRIPTION_CHANGE') {
-        const vKey = getVendorKeyHelper();
-        if (data.stallPhone === vKey) {
-          if (data.lockout) {
-            window.lockCounterDueToSubscription(data.amountDuePaise || '89900');
-          } else {
-            window.unlockCounterSubscription();
-          }
-        }
-      }
-    };
-  }
-
-  window.lockCounterDueToSubscription = function(amountPaise) {
-    const modal = document.getElementById('modal-subscription-locked');
-    if (!modal) return;
-    const dueEl = document.getElementById('lock-amount-due');
-    const p = typeof amountPaise === 'string' ? BigInt(amountPaise) : BigInt(amountPaise || 89900n);
-    if (dueEl) dueEl.textContent = '₹' + Number(p / 100n).toLocaleString('en-IN');
-
-    const qrImg = document.getElementById('lock-qr-code-img');
-    if (qrImg) {
-      const upiUri = `upi://pay?pa=frosehq@okaxis&pn=FROSE+Street&am=${Number(p / 100n)}&tn=Stall-Renewal`;
-      qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=8&data=' + encodeURIComponent(upiUri);
-    }
-    modal.style.display = 'flex';
-  };
-
-  window.unlockCounterSubscription = function() {
-    const modal = document.getElementById('modal-subscription-locked');
-    if (modal) modal.style.display = 'none';
-  };
-
-  window.contactSuperAdminWhatsApp = function() {
-    const msg = 'Hello Super Admin, I am at my counter and need to renew my FROSE Street subscription.';
-    const supportPhone = localStorage.getItem('frose_support_phone') || '';
-    if (supportPhone) {
-      window.open('https://api.whatsapp.com/send?phone=' + encodeURIComponent(supportPhone) + '&text=' + encodeURIComponent(msg), '_blank');
-    } else {
-      alert('Support contact is not configured. Please contact platform administrator.');
-    }
-  };

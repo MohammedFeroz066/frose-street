@@ -7,7 +7,7 @@
  * - Automatic obsolete cache purge on activate
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v53-phase3-billing';
+const CACHE_NAME = 'frose-street-v9-production-v54-phase4-ux';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const PRECACHE_ASSETS = [
@@ -20,6 +20,14 @@ const PRECACHE_ASSETS = [
   '/packaging.html',
   '/menu-setup.html',
   '/css/style.css',
+  '/css/tokens.css',
+  '/css/ui-kit.css',
+  '/css/workspace.css',
+  '/js/theme.js',
+  '/js/ui-components.js',
+  '/js/orders-panel.js',
+  '/js/payments-panel.js',
+  '/js/menu-panel.js',
   '/js/api-client.js',
   '/js/safe-dom.js',
   '/js/session-guard.js',

@@ -8,7 +8,8 @@ import fastifyStatic from '@fastify/static';
 import path from 'node:path';
 import fs from 'node:fs';
 import { loadConfig, isOriginAllowed, EnvironmentConfig } from './config/env.js';
-import { verifyRuntimeDatabaseRole } from './db/database.js';
+import { getDatabase, verifyRuntimeDatabaseRole } from './db/database.js';
+import { sql } from 'kysely';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { createCsrfProtection } from './middleware/csrf.js';
 import { AppError } from './errors/app-error.js';
@@ -174,6 +175,31 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       },
     };
     return reply.status(200).send(response);
+  });
+
+  // Readiness Probe (Verifies live PostgreSQL connectivity without leaking internal errors)
+  app.get('/health/ready', async (_request, reply) => {
+    const timestamp = new Date().toISOString();
+    try {
+      const customProbe = (app as any).froseHealthProbe;
+      if (typeof customProbe === 'function') {
+        await customProbe();
+      } else if (process.env.USE_MEMORY_DB !== 'true') {
+        const db = getDatabase();
+        await sql`SELECT 1`.execute(db);
+      }
+      return reply.status(200).send({
+        status: 'ok',
+        db: 'connected',
+        timestamp,
+      });
+    } catch {
+      return reply.status(503).send({
+        status: 'error',
+        db: 'unavailable',
+        timestamp,
+      });
+    }
   });
 
   // Portal routing aliases

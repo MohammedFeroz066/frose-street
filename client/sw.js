@@ -7,7 +7,7 @@
  * - Automatic obsolete cache purge on activate
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v55-phase4-ux-polish';
+const CACHE_NAME = 'frose-street-v9-production-v56-phase5-i18n-ops';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const PRECACHE_ASSETS = [
@@ -25,6 +25,7 @@ const PRECACHE_ASSETS = [
   '/css/workspace.css',
   '/css/portals-saas.css',
   '/js/theme.js',
+  '/js/i18n.js',
   '/js/ui-components.js',
   '/js/orders-panel.js',
   '/js/payments-panel.js',
@@ -134,7 +135,7 @@ self.addEventListener('fetch', (event) => {
 
   // Pass health, WebSocket, Admin, downloads, and non-GET requests directly to network
   if (
-    url.pathname === '/health' ||
+    url.pathname.startsWith('/health') ||
     url.pathname.startsWith('/ws') ||
     url.pathname.startsWith('/admin') ||
     url.pathname.startsWith('/downloads/') ||

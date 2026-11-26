@@ -1,0 +1,222 @@
+/**
+ * FROSE Street — SaaS Portal Overrides (Kitchen KDS, Packaging, Auth, Super Admin)
+ * Phase 4: UX-06 — Built on top of tokens.css and ui-kit.css.
+ */
+
+/* Kitchen & Packaging Theme-Aware Surfaces */
+body.kitchen-page,
+body.packaging-page {
+  background: var(--bg-canvas) !important;
+  color: var(--text-primary) !important;
+  font-family: var(--font-sans);
+}
+
+.kitchen-page .kitchen-header,
+.packaging-page .kitchen-header {
+  background: var(--bg-glass) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+
+.kitchen-page .brand-title,
+.packaging-page .brand-title {
+  color: var(--text-primary) !important;
+}
+
+.kitchen-page .btn-icon-header,
+.packaging-page .btn-icon-header {
+  min-width: 44px;
+  min-height: 44px;
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.kitchen-page .kds-card,
+.packaging-page .packaging-card {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-xl) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.kitchen-page .kds-token-num,
+.packaging-page .kds-token-num {
+  font-variant-numeric: tabular-nums;
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  color: var(--text-primary) !important;
+}
+
+.kds-tag-edited {
+  background: var(--accent-blue-soft) !important;
+  color: var(--accent-blue) !important;
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.kds-timer-emerald {
+  background: var(--accent-primary-soft) !important;
+  color: var(--accent-primary) !important;
+}
+
+.kds-timer-amber {
+  background: var(--accent-amber-soft) !important;
+  color: var(--accent-amber) !important;
+}
+
+.kds-timer-rose {
+  background: var(--accent-rose-soft) !important;
+  color: var(--accent-rose) !important;
+  animation: saasPulseAlert 1.5s infinite ease-in-out;
+}
+
+@keyframes saasPulseAlert {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.68; }
+}
+
+.kitchen-page .btn-mark-ready,
+.packaging-page .btn-mark-delivered {
+  border-radius: var(--radius-lg) !important;
+  font-size: 16px !important;
+  font-weight: 900 !important;
+}
+
+/* Auth Pages (Login / Register) */
+body.auth-saas-body {
+  background: var(--bg-canvas) !important;
+  color: var(--text-primary) !important;
+  min-height: 100vh;
+}
+
+.auth-saas-body .login-container,
+.auth-saas-body .onboarding-card {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.auth-saas-body .form-input,
+.auth-saas-body .form-select,
+.auth-saas-body .field-input {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-strong) !important;
+  min-height: 48px !important;
+}
+
+.auth-saas-body .btn-submit-login,
+.auth-saas-body .btn-wizard-primary {
+  background: var(--accent-primary) !important;
+  color: #FFFFFF !important;
+  min-height: 48px !important;
+  border-radius: var(--radius-md) !important;
+}
+
+/* Super Admin Desktop + Mobile SaaS Shell */
+body.admin-saas-body {
+  background: var(--bg-canvas) !important;
+  color: var(--text-primary) !important;
+}
+
+.admin-saas-body .saas-header {
+  background: var(--bg-glass) !important;
+  color: var(--text-primary) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-subtle) !important;
+  box-shadow: none !important;
+}
+
+.admin-saas-body .brand-word-frose { color: var(--text-primary) !important; }
+.admin-saas-body .brand-platform-sub { color: var(--text-muted) !important; }
+.admin-saas-body .user-label-wrap { color: var(--text-primary) !important; }
+
+.admin-saas-body .saas-nav-bar {
+  background: var(--bg-surface) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+.admin-saas-body .nav-tab-pill {
+  min-height: 44px;
+  color: var(--text-muted) !important;
+}
+
+.admin-saas-body .nav-tab-pill.active {
+  background: var(--bg-inverse) !important;
+  color: var(--text-inverse) !important;
+}
+
+.admin-saas-body .kpi-card,
+.admin-saas-body .saas-card-section,
+.admin-saas-body .hero-compact-banner,
+.admin-saas-body .modal-card {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-subtle) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.admin-saas-body .kpi-value,
+.admin-saas-body .section-title-wrap h2,
+.admin-saas-body .hero-title {
+  color: var(--text-primary) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-saas-body .saas-table th {
+  background: var(--bg-subtle) !important;
+  color: var(--text-muted) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+.admin-saas-body .saas-table td {
+  border-bottom: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+
+.admin-saas-body .saas-table tr:hover td {
+  background: var(--bg-subtle);
+}
+
+.admin-saas-body .search-box-wrap input {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-strong) !important;
+  min-height: 44px;
+}
+
+.admin-saas-body .filter-pill {
+  min-height: 40px;
+  background: var(--bg-surface) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+.admin-saas-body .filter-pill.active {
+  background: var(--bg-inverse) !important;
+  color: var(--text-inverse) !important;
+}
+
+.admin-saas-body .saas-bottom-bar {
+  background: var(--bg-glass) !important;
+  border-top: 1px solid var(--border-subtle) !important;
+}
+
+@media (min-width: 1024px) {
+  .admin-saas-body .saas-bottom-bar {
+    display: none !important;
+  }
+  .admin-saas-body .app-main {
+    padding-bottom: 32px !important;
+  }
+}

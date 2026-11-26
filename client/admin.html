@@ -13,10 +13,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   
+  <link rel="stylesheet" href="/css/tokens.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/ui-kit.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/portals-saas.css?v=1.0.0">
+  <script src="/js/theme.js?v=1.0.0"></script>
   <script src="/js/api-client.js?v=1.0.0"></script>
   <script src="/js/safe-dom.js?v=1.0.0"></script>
   <script src="/js/dom-events.js?v=1.0.0"></script>
   <script src="/js/idb-store.js?v=1.0.0"></script>
+  <script src="/js/ui-components.js?v=1.0.0"></script>
   <script src="/js/session-guard.js?v=1.0.0"></script>
 
   <style>
@@ -1046,7 +1051,7 @@
     }
   </style>
 </head>
-<body>
+<body class="admin-saas-body">
 
   <!-- 1. Top Imperial Brand Header -->
   <header class="saas-header">
@@ -1064,7 +1069,12 @@
         </div>
       </a>
 
-      <div class="header-user-badge" id="btn-admin-profile" data-click="toggleUserDropdown" data-pass-event="1">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button type="button" class="saas-icon-btn" id="btn-admin-theme" title="Switch Theme" aria-label="Switch Theme">
+          <span id="admin-theme-icon">🌤️</span>
+        </button>
+
+        <div class="header-user-badge" id="btn-admin-profile" data-click="toggleUserDropdown" data-pass-event="1">
         <svg class="crown-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"></path></svg>
         <div class="avatar-circle">SA</div>
         <div class="user-label-wrap">
@@ -1077,6 +1087,7 @@
           <div class="dropdown-item" id="btn-menu-system" data-click="openModal" data-arg="modal-system-health">🛡️ System Status</div>
           <div class="dropdown-item" id="btn-menu-logout" data-click="adminLogout" style="color: var(--saas-crimson);">🚪 Sign Out</div>
         </div>
+      </div>
       </div>
     </div>
   </header>
@@ -1845,6 +1856,20 @@
       </div>
     </div>
   </div>
+
+    <!-- Vendor Slide-Over Inspector Drawer (UX-06) -->
+    <div class="saas-drawer-backdrop" id="vendor-inspector-drawer" role="dialog" aria-modal="true" aria-labelledby="vendor-inspector-title">
+      <div class="saas-drawer-panel">
+        <div class="saas-sheet-header">
+          <div>
+            <h3 class="saas-sheet-title" id="vendor-inspector-title">Vendor Inspector</h3>
+            <p class="saas-muted saas-text-xs" id="vendor-inspector-subtitle">Subscription, telemetry & license control</p>
+          </div>
+          <button type="button" class="saas-icon-btn" id="btn-close-inspector" aria-label="Close Vendor Inspector">✕</button>
+        </div>
+        <div id="vendor-inspector-body" style="padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto;"></div>
+      </div>
+    </div>
 
     <script src="/js/admin-page.js?v=1.0.0"></script>
     </body>

@@ -23,6 +23,7 @@ const PRECACHE_ASSETS = [
   '/css/tokens.css',
   '/css/ui-kit.css',
   '/css/workspace.css',
+  '/css/portals-saas.css',
   '/js/theme.js',
   '/js/ui-components.js',
   '/js/orders-panel.js',

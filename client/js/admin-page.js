@@ -389,6 +389,14 @@
               title: 'Fiscal Turnover Analytics & Payment History Ledger',
               style: 'background: #FDFBF7; border: 1.5px solid var(--saas-card-border); font-weight: 700; color: var(--saas-burgundy-primary); font-size: 11.5px;'
             }, [el('span', {}, ['📊 Ledger'])]),
+            el('button', {
+              type: 'button',
+              class: 'btn-table-action btn-inspect-vendor',
+              'data-id': v.id,
+              title: 'Inspect Stall Details & Renew License',
+              style: 'background: var(--accent-primary-soft, #ECFDF5); border: 1.5px solid var(--accent-primary, #059669); font-weight: 800; color: var(--accent-primary, #059669); font-size: 11.5px;',
+              on: { click: () => { openVendorInspector(v.id); } }
+            }, [el('span', {}, ['🔎 Inspect'])]),
             el('button', { type: 'button', class: 'btn-table-action btn-view-receipt', 'data-id': v.id, title: 'View Receipt' }, [el('span', {}, ['📄'])]),
             el('button', { type: 'button', class: 'btn-table-action btn-edit-stall', 'data-id': v.id, title: 'Edit Stall' }, [el('span', {}, ['✏️'])]),
             el('button', { type: 'button', class: 'btn-table-action btn-manage-menu', 'data-id': v.id, 'data-name': bName, title: 'Menu' }, [el('span', {}, ['📋'])])
@@ -430,6 +438,126 @@
         openMenuModal(btn.getAttribute('data-id'), btn.getAttribute('data-name'));
       });
     });
+  }
+
+  function closeVendorInspector() {
+    const backdrop = document.getElementById('vendor-inspector-drawer');
+    if (backdrop) backdrop.classList.remove('active');
+  }
+
+  function openVendorInspector(stallId) {
+    const stall = allVendors.find(v => String(v.id) === String(stallId));
+    const backdrop = document.getElementById('vendor-inspector-drawer');
+    const body = document.getElementById('vendor-inspector-body');
+    const titleEl = document.getElementById('vendor-inspector-title');
+    const subEl = document.getElementById('vendor-inspector-subtitle');
+    if (!stall || !backdrop || !body) return;
+
+    const { el, clear } = window.FroseSafeDom;
+    const bName = stall.businessName || stall.business_name || 'Restaurant Stall';
+    const oName = stall.ownerName || stall.owner_name || 'Owner';
+    const phone = stall.phone || 'N/A';
+    const status = stall.subscriptionStatus || stall.subscription_status || 'active';
+    const expRaw = stall.subscriptionExpiresAt || stall.subscription_expires_at || stall.nextDueDate;
+    const expFormatted = formatDate(expRaw);
+    const edition = stall.edition || 'cloud';
+    const fee = formatRupees(stall.monthlyFeePaise || '49900');
+    const lifetime = formatRupees(stall.lifetimeSalesPaise || '0');
+
+    if (titleEl) titleEl.textContent = bName;
+    if (subEl) subEl.textContent = `${oName} • ${phone} • ${edition === 'local' ? 'Mobile P2P' : 'Cloud Edge'}`;
+
+    clear(body);
+    body.appendChild(
+      el('div', { class: 'saas-card', style: 'padding: 14px;' }, [
+        el('div', { style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;' }, [
+          el('span', { class: 'saas-muted' }, ['Subscription Status']),
+          el('span', { class: `badge-status ${status === 'suspended' || status === 'expired' ? 'overdue' : (status === 'trial' ? 'trial' : 'active')}` }, [status.toUpperCase()])
+        ]),
+        el('div', { style: 'display: flex; justify-content: space-between; margin-bottom: 6px;' }, [
+          el('span', { class: 'saas-muted' }, ['License Expires']),
+          el('strong', { style: 'font-variant-numeric: tabular-nums;' }, [expFormatted])
+        ]),
+        el('div', { style: 'display: flex; justify-content: space-between; margin-bottom: 6px;' }, [
+          el('span', { class: 'saas-muted' }, ['Monthly Plan']),
+          el('strong', { style: 'font-variant-numeric: tabular-nums;' }, [`${fee}/mo`])
+        ]),
+        el('div', { style: 'display: flex; justify-content: space-between;' }, [
+          el('span', { class: 'saas-muted' }, ['Lifetime Sales']),
+          el('strong', { style: 'font-variant-numeric: tabular-nums;' }, [lifetime])
+        ])
+      ])
+    );
+
+    const renewBtn = el('button', {
+      type: 'button',
+      class: 'saas-btn saas-btn-primary saas-btn-full',
+      id: 'btn-inspector-renew-30d',
+      on: {
+        click: async () => {
+          renewBtn.disabled = true;
+          renewBtn.textContent = 'Renewing...';
+          const baseTs = expRaw && new Date(expRaw).getTime() > Date.now()
+            ? new Date(expRaw).getTime()
+            : Date.now();
+          const newExpiry = new Date(baseTs + 30 * 86400000).toISOString();
+          const res = await apiFetch(`/api/v1/admin/vendors/${stall.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ subscriptionStatus: 'active', subscriptionExpiresAt: newExpiry })
+          });
+          if (res && res.ok) {
+            stall.subscriptionStatus = 'active';
+            stall.subscription_status = 'active';
+            stall.subscriptionExpiresAt = newExpiry;
+            stall.nextDueDate = newExpiry;
+            renderStallsTable();
+            loadOverview();
+            openVendorInspector(stall.id);
+            if (window.FroseUI && window.FroseUI.showToast) {
+              window.FroseUI.showToast(`✅ Renewed ${bName} (+30 Days)`, 'success');
+            }
+          } else {
+            renewBtn.disabled = false;
+            renewBtn.textContent = '✨ Renew License (+30 Days)';
+            if (window.FroseUI && window.FroseUI.showToast) {
+              window.FroseUI.showToast('Failed to renew license', 'error');
+            }
+          }
+        }
+      }
+    }, ['✨ Renew License (+30 Days)']);
+
+    const editBtn = el('button', {
+      type: 'button',
+      class: 'saas-btn saas-btn-secondary saas-btn-full',
+      on: { click: () => { closeVendorInspector(); openEditStallModal(stall.id); } }
+    }, ['✏️ Edit Stall Settings']);
+
+    const menuBtn = el('button', {
+      type: 'button',
+      class: 'saas-btn saas-btn-secondary saas-btn-full',
+      on: { click: () => { closeVendorInspector(); openMenuModal(stall.id, bName); } }
+    }, ['📋 Inspect Menu']);
+
+    const ledgerBtn = el('button', {
+      type: 'button',
+      class: 'saas-btn saas-btn-secondary saas-btn-full',
+      on: {
+        click: () => {
+          closeVendorInspector();
+          if (typeof window.openStallAnalyticsModal === 'function') window.openStallAnalyticsModal(stall.id);
+        }
+      }
+    }, ['📊 Fiscal Ledger']);
+
+    body.appendChild(el('div', { style: 'display: flex; flex-direction: column; gap: 10px;' }, [
+      renewBtn,
+      editBtn,
+      menuBtn,
+      ledgerBtn
+    ]));
+
+    backdrop.classList.add('active');
   }
 
   // 6. WhatsApp Notification Deep-Link Handler
@@ -1344,6 +1472,33 @@
     }
 
     // Initial Data Fetch & Render
+    const btnAdminTheme = document.getElementById('btn-admin-theme');
+    const adminThemeIcon = document.getElementById('admin-theme-icon');
+    if (btnAdminTheme && window.FroseTheme) {
+      const syncAdminThemeIcon = (theme) => {
+        if (adminThemeIcon) {
+          adminThemeIcon.textContent = theme === 'dark' ? '🌙' : (theme === 'sunlight' ? '☀️' : '🌤️');
+        }
+      };
+      syncAdminThemeIcon(window.FroseTheme.getTheme());
+      btnAdminTheme.addEventListener('click', () => {
+        const next = window.FroseTheme.cycleTheme();
+        syncAdminThemeIcon(next);
+        if (window.FroseUI && window.FroseUI.showToast) {
+          window.FroseUI.showToast(`Theme: ${next}`, 'info');
+        }
+      });
+    }
+
+    const btnCloseInspector = document.getElementById('btn-close-inspector');
+    const inspectorDrawer = document.getElementById('vendor-inspector-drawer');
+    if (btnCloseInspector) btnCloseInspector.addEventListener('click', closeVendorInspector);
+    if (inspectorDrawer) {
+      inspectorDrawer.addEventListener('click', (e) => {
+        if (e.target === inspectorDrawer) closeVendorInspector();
+      });
+    }
+
     loadVendors();
     loadOverview();
     updateSettingsProfile();

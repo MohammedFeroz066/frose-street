@@ -29,6 +29,8 @@
   const iconSoundOn = document.getElementById('icon-sound-on');
   const iconSoundOff = document.getElementById('icon-sound-off');
   const btnToggleFullscreen = document.getElementById('btn-toggle-fullscreen');
+  const btnKdsTheme = document.getElementById('btn-kds-theme');
+  const kdsThemeIcon = document.getElementById('kds-theme-icon');
   const stallNameEl = document.getElementById('kds-stall-name');
   const toastEl = document.getElementById('kds-toast');
   const toastText = document.getElementById('toast-text');
@@ -197,17 +199,23 @@
     const secs = diffSec % 60;
     const timeDisplay = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-    let ageTier = 'age-fresh'; // RED (0-3m)
+    let ageTier = 'age-fresh';
     let ageLabel = 'Fresh';
+    let timerClass = 'kds-timer-emerald';
     if (mins >= 10) {
-      ageTier = 'age-overdue'; // BLACK/DARK (10m+)
+      ageTier = 'age-overdue';
       ageLabel = '10m+ Alert';
+      timerClass = 'kds-timer-rose';
+    } else if (mins >= 5) {
+      ageTier = 'age-cooking';
+      ageLabel = 'In Prep';
+      timerClass = 'kds-timer-amber';
     } else if (mins >= 3) {
-      ageTier = 'age-cooking'; // ORANGE (3-10m)
+      ageTier = 'age-cooking';
       ageLabel = 'In Prep';
     }
 
-    return { diffSec, mins, timeDisplay, ageTier, ageLabel };
+    return { diffSec, mins, timeDisplay, ageTier, ageLabel, timerClass };
   }
 
   // --- 5. RENDER ORDER QUEUE ---
@@ -229,8 +237,9 @@
     if (doneCountPill) doneCountPill.textContent = completedCount.toString();
 
     kitchenOrders.forEach((order) => {
-      const { timeDisplay, ageTier, ageLabel } = getOrderAge(order.createdAt);
-      const isTakeaway = (order.notes || '').toLowerCase().includes('pack') || (order.notes || '').toLowerCase().includes('takeaway');
+      const { timeDisplay, ageTier, ageLabel, timerClass } = getOrderAge(order.createdAt);
+      const notesLower = (order.notes || '').toLowerCase();
+      const isTakeaway = notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
 
       const itemRows = (order.items || []).map((item) =>
         el('div', { class: 'kds-item-row' }, [
@@ -251,6 +260,42 @@
           ])
         : null;
 
+      const footerButtons = [];
+      if (order.orderStatus === 'pending') {
+        footerButtons.push(
+          el('button', {
+            type: 'button',
+            class: 'saas-btn saas-btn-secondary saas-btn-full',
+            style: 'margin-bottom: 8px;',
+            on: {
+              click: (e) => {
+                e.stopPropagation();
+                handleStartCooking(order.id, String(order.tokenNo));
+              },
+            },
+          }, ['🔥 START COOKING'])
+        );
+      }
+
+      footerButtons.push(
+        el('button', {
+          class: 'btn-mark-ready',
+          'data-order-id': order.id,
+          'data-token': order.tokenNo,
+          on: {
+            click: (e) => {
+              e.stopPropagation();
+              handleMarkReady(order.id, String(order.tokenNo));
+            },
+          },
+        }, [
+          svgEl('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
+            svgEl('polyline', { points: '20 6 9 17 4 12' }),
+          ]),
+          el('span', {}, 'MARK ORDER READY'),
+        ])
+      );
+
       const card = el('div', { class: `kds-card ${ageTier}`, id: `card-${order.id}`, 'data-id': order.id }, [
         el('div', { class: 'kds-card-header' }, [
           el('div', { class: 'kds-token-box' }, [
@@ -259,33 +304,17 @@
           ]),
           el('div', { class: 'kds-header-tags' }, [
             el('span', { class: `kds-tag kds-tag-type ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
-              isTakeaway ? '📦 TAKEAWAY' : '🍽️ DINE-IN'
+              isTakeaway ? '📦 PARCEL' : '🍽️ DINE-IN'
             ),
-            el('span', { class: 'kds-tag kds-tag-timer', id: `timer-${order.id}` }, `${timeDisplay} (${ageLabel})`),
+            order.editedAt ? el('span', { class: 'kds-tag kds-tag-edited' }, 'EDITED') : null,
+            el('span', { class: `kds-tag kds-tag-timer ${timerClass}`, id: `timer-${order.id}` }, `${timeDisplay} (${ageLabel})`),
           ]),
         ]),
         el('div', { class: 'kds-card-body' }, [
           el('div', { class: 'kds-item-list' }, itemRows),
           noteBox,
         ]),
-        el('div', { class: 'kds-card-footer' }, [
-          el('button', {
-            class: 'btn-mark-ready',
-            'data-order-id': order.id,
-            'data-token': order.tokenNo,
-            on: {
-              click: (e) => {
-                e.stopPropagation();
-                handleMarkReady(order.id, String(order.tokenNo));
-              },
-            },
-          }, [
-            svgEl('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
-              svgEl('polyline', { points: '20 6 9 17 4 12' }),
-            ]),
-            el('span', {}, 'MARK ORDER READY'),
-          ]),
-        ]),
+        el('div', { class: 'kds-card-footer' }, footerButtons),
       ]);
 
       queueContainer.appendChild(card);
@@ -303,8 +332,13 @@
         const timerEl = document.getElementById(`timer-${order.id}`);
         if (!cardEl || !timerEl) return;
 
-        const { timeDisplay, ageTier, ageLabel } = getOrderAge(order.createdAt);
+        const { timeDisplay, ageTier, ageLabel, timerClass } = getOrderAge(order.createdAt);
         timerEl.textContent = `${timeDisplay} (${ageLabel})`;
+
+        if (!timerEl.classList.contains(timerClass)) {
+          timerEl.classList.remove('kds-timer-emerald', 'kds-timer-amber', 'kds-timer-rose');
+          timerEl.classList.add(timerClass);
+        }
 
         // Update class dynamically if transitioned
         if (!cardEl.classList.contains(ageTier)) {
@@ -313,6 +347,24 @@
         }
       });
     }, 1000);
+  }
+
+  async function handleStartCooking(orderId, tokenNo) {
+    const existing = kitchenOrders.find((o) => o.id === orderId);
+    if (existing) {
+      existing.orderStatus = 'preparing';
+      renderQueue();
+    }
+    showToast(`🔥 Cooking Token #${tokenNo}`);
+    try {
+      const fn = window.froseApiFetch || fetch;
+      await fn(`/api/v1/orders/${orderId}/status`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+        body: JSON.stringify({ status: 'preparing' })
+      });
+    } catch (_) {}
   }
 
   // --- 7. ACTION: MARK ORDER READY ---
@@ -434,6 +486,8 @@
           const msg = JSON.parse(event.data);
           if (msg.event === 'order:new' && msg.data) {
             handleNewIncomingOrder(msg.data);
+          } else if (msg.event === 'order:updated' && msg.data) {
+            handleOrderUpdated(msg.data);
           } else if (msg.event === 'order:status_changed' && msg.data) {
             handleRemoteStatusChange(msg.data);
           }
@@ -468,6 +522,8 @@
       const msg = event.data;
       if (msg && msg.event === 'order:new' && msg.data) {
         handleNewIncomingOrder(msg.data);
+      } else if (msg && msg.event === 'order:updated' && msg.data) {
+        handleOrderUpdated(msg.data);
       } else if (msg && msg.event === 'order:status_changed' && msg.data) {
         handleRemoteStatusChange(msg.data);
       }
@@ -514,6 +570,20 @@
 
     // Auto-scroll to top so cook immediately views new ticket
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleOrderUpdated(updatedOrder) {
+    if (!updatedOrder || !updatedOrder.id) return;
+    const idx = kitchenOrders.findIndex((o) => o.id === updatedOrder.id);
+    if (idx !== -1) {
+      kitchenOrders[idx] = { ...kitchenOrders[idx], ...updatedOrder };
+      renderQueue();
+      showToast(`✏️ Order #${updatedOrder.tokenNo || ''} Updated`);
+    } else if (updatedOrder.orderStatus === 'pending' || updatedOrder.orderStatus === 'preparing') {
+      kitchenOrders.unshift(updatedOrder);
+      renderQueue();
+      playKitchenBell();
+    }
   }
 
   function handleRemoteStatusChange(data) {
@@ -577,6 +647,20 @@
     }
 
     // Sound toggle
+    if (btnKdsTheme && window.FroseTheme) {
+      const syncKdsThemeIcon = (theme) => {
+        if (kdsThemeIcon) {
+          kdsThemeIcon.textContent = theme === 'dark' ? '🌙' : (theme === 'sunlight' ? '☀️' : '🌤️');
+        }
+      };
+      syncKdsThemeIcon(window.FroseTheme.getTheme());
+      btnKdsTheme.addEventListener('click', () => {
+        const next = window.FroseTheme.cycleTheme();
+        syncKdsThemeIcon(next);
+        showToast(`Theme: ${next}`);
+      });
+    }
+
     if (btnToggleSound) {
       btnToggleSound.addEventListener('click', () => {
         soundEnabled = !soundEnabled;

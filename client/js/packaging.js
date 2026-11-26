@@ -34,6 +34,8 @@
   const iconSoundOn = document.getElementById('icon-sound-on');
   const iconSoundOff = document.getElementById('icon-sound-off');
   const btnToggleFullscreen = document.getElementById('btn-toggle-fullscreen');
+  const btnPackTheme = document.getElementById('btn-pack-theme');
+  const packThemeIcon = document.getElementById('pack-theme-icon');
   const stallNameEl = document.getElementById('packaging-stall-name');
   const toastEl = document.getElementById('packaging-toast');
   const toastText = document.getElementById('toast-text');
@@ -202,7 +204,8 @@
       } else {
         if (readyEmptyMsg) readyEmptyMsg.style.display = 'none';
         readyOrders.forEach((order) => {
-          const isTakeaway = (order.notes || '').toLowerCase().includes('pack') || (order.notes || '').toLowerCase().includes('takeaway');
+          const notesLower = (order.notes || '').toLowerCase();
+          const isTakeaway = notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
           const itemNodes = (order.items || []).map((it) =>
             el('div', { class: 'pack-item-row' }, [
               el('span', { class: 'pack-item-qty' }, `${it.quantity}x`),
@@ -220,8 +223,9 @@
                 ]),
                 el('div', { class: 'kds-header-tags' }, [
                   el('span', { class: `kds-tag ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
-                    isTakeaway ? '📦 TAKEAWAY' : '🍽️ DINE-IN'
+                    isTakeaway ? '📦 PARCEL' : '🍽️ DINE-IN'
                   ),
+                  order.editedAt ? el('span', { class: 'kds-tag kds-tag-edited' }, 'EDITED') : null,
                   createPaymentBadgeNode(order),
                 ]),
               ]),
@@ -261,7 +265,8 @@
       } else {
         if (waitingEmptyMsg) waitingEmptyMsg.style.display = 'none';
         waitingOrders.forEach((order) => {
-          const isTakeaway = (order.notes || '').toLowerCase().includes('pack') || (order.notes || '').toLowerCase().includes('takeaway');
+          const notesLower = (order.notes || '').toLowerCase();
+          const isTakeaway = notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
           const age = getOrderAge(order.createdAt);
           const itemNodes = (order.items || []).map((it) =>
             el('div', { class: 'pack-item-row' }, [
@@ -279,8 +284,9 @@
                 ]),
                 el('div', { class: 'kds-header-tags' }, [
                   el('span', { class: `kds-tag ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
-                    isTakeaway ? '📦 TAKEAWAY' : '🍽️ DINE-IN'
+                    isTakeaway ? '📦 PARCEL' : '🍽️ DINE-IN'
                   ),
+                  order.editedAt ? el('span', { class: 'kds-tag kds-tag-edited' }, 'EDITED') : null,
                   el('span', { class: 'kds-tag tag-cooking-status' }, `🍳 Cooking in Kitchen (${age})`),
                 ]),
               ]),
@@ -433,6 +439,8 @@
               waitingOrders.unshift(msg.data);
               renderLanes();
             }
+          } else if (msg.event === 'order:updated' && msg.data) {
+            handleOrderUpdated(msg.data);
           } else if (msg.event === 'order:status_changed' && msg.data) {
             const { id, newStatus } = msg.data;
             if (newStatus === 'ready') {
@@ -477,6 +485,8 @@
           waitingOrders.unshift(msg.data);
           renderLanes();
         }
+      } else if (msg && msg.event === 'order:updated' && msg.data) {
+        handleOrderUpdated(msg.data);
       } else if (msg && msg.event === 'order:status_changed' && msg.data) {
         const { id, newStatus } = msg.data;
         if (newStatus === 'ready') {
@@ -488,6 +498,25 @@
         }
       }
     };
+  }
+
+  function handleOrderUpdated(updatedOrder) {
+    if (!updatedOrder || !updatedOrder.id) return;
+    let updated = false;
+    const rIdx = readyOrders.findIndex((o) => o.id === updatedOrder.id);
+    if (rIdx !== -1) {
+      readyOrders[rIdx] = { ...readyOrders[rIdx], ...updatedOrder };
+      updated = true;
+    }
+    const wIdx = waitingOrders.findIndex((o) => o.id === updatedOrder.id);
+    if (wIdx !== -1) {
+      waitingOrders[wIdx] = { ...waitingOrders[wIdx], ...updatedOrder };
+      updated = true;
+    }
+    if (updated) {
+      renderLanes();
+      showToast(`✏️ Order #${updatedOrder.tokenNo || ''} Updated`);
+    }
   }
 
   function scheduleReconnect() {
@@ -559,6 +588,20 @@
   function init() {
     const storedStall = localStorage.getItem('frose_stall_name');
     if (storedStall && stallNameEl) stallNameEl.textContent = storedStall;
+
+    if (btnPackTheme && window.FroseTheme) {
+      const syncPackThemeIcon = (theme) => {
+        if (packThemeIcon) {
+          packThemeIcon.textContent = theme === 'dark' ? '🌙' : (theme === 'sunlight' ? '☀️' : '🌤️');
+        }
+      };
+      syncPackThemeIcon(window.FroseTheme.getTheme());
+      btnPackTheme.addEventListener('click', () => {
+        const next = window.FroseTheme.cycleTheme();
+        syncPackThemeIcon(next);
+        showToast(`Theme: ${next}`);
+      });
+    }
 
     // Sound toggle
     if (btnToggleSound) {

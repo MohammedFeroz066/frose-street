@@ -1592,7 +1592,7 @@
     if (mode === 'backend') {
       if (tabWeb) { tabWeb.style.background = 'transparent'; tabWeb.style.color = '#64748B'; tabWeb.style.boxShadow = 'none'; }
       if (tabBackend) { tabBackend.style.background = '#FFF'; tabBackend.style.color = '#4A0E17'; tabBackend.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)'; }
-      if (qrImg) qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' + encodeURIComponent(downloadUrl);
+      if (qrImg && window.FroseQrLocal) qrImg.src = window.FroseQrLocal.toDataUrl(downloadUrl, 220);
       if (helperText) {
         const { el, clear } = window.FroseSafeDom;
         clear(helperText);
@@ -1616,7 +1616,7 @@
     } else {
       if (tabWeb) { tabWeb.style.background = '#FFF'; tabWeb.style.color = '#4A0E17'; tabWeb.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)'; }
       if (tabBackend) { tabBackend.style.background = 'transparent'; tabBackend.style.color = '#64748B'; tabBackend.style.boxShadow = 'none'; }
-      if (qrImg) qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' + encodeURIComponent(webUrl);
+      if (qrImg && window.FroseQrLocal) qrImg.src = window.FroseQrLocal.toDataUrl(webUrl, 220);
       if (helperText) helperText.textContent = 'Scan with phone camera to auto-login & install PWA. Works 100% offline after 10-second setup.';
       if (openBtnText) openBtnText.textContent = '👁️ Open Counter in New Tab';
       if (openBtn) openBtn.onclick = () => { window.open(webUrl, '_blank'); };

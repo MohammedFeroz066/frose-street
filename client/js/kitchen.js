@@ -239,7 +239,8 @@
     kitchenOrders.forEach((order) => {
       const { timeDisplay, ageTier, ageLabel, timerClass } = getOrderAge(order.createdAt);
       const notesLower = (order.notes || '').toLowerCase();
-      const isTakeaway = notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
+      const orderTypeNorm = String(order.orderType || order.order_type || '').toLowerCase();
+      const isTakeaway = orderTypeNorm === 'parcel' || orderTypeNorm === 'takeaway' || orderTypeNorm === 'counter' || notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
 
       const itemRows = (order.items || []).map((item) =>
         el('div', { class: 'kds-item-row' }, [

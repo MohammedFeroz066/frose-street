@@ -36,20 +36,182 @@ body.packaging-page {
 }
 
 .kitchen-page .kds-card,
-.packaging-page .packaging-card {
+.packaging-page .packaging-card,
+.packaging-page .packaging-card.card-waiting {
   background: var(--bg-surface) !important;
   color: var(--text-primary) !important;
   border-radius: var(--radius-xl) !important;
-  border: 1px solid var(--border-subtle) !important;
+  border: 1.5px solid var(--border-strong) !important;
+  border-left-width: 8px !important;
   box-shadow: var(--shadow-md) !important;
 }
 
+.kitchen-page .kds-card.age-fresh {
+  border-left-color: var(--accent-rose) !important;
+}
+
+.kitchen-page .kds-card.age-cooking {
+  border-left-color: var(--accent-amber) !important;
+}
+
+.kitchen-page .kds-card.age-overdue {
+  border-left-color: var(--text-primary) !important;
+}
+
+.packaging-page .packaging-card.card-ready {
+  border-left-color: var(--accent-primary) !important;
+}
+
+.packaging-page .packaging-card.card-waiting {
+  border-left-color: var(--accent-amber) !important;
+}
+
+.kitchen-page .kds-card-header,
+.packaging-page .pack-card-header {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+.kitchen-page .kds-card-body,
+.packaging-page .pack-card-body {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+}
+
+.kitchen-page .kds-card-footer,
+.packaging-page .pack-card-footer {
+  background: var(--bg-surface) !important;
+  border-top: 1px solid var(--border-subtle) !important;
+}
+
+.kitchen-page .kds-token-prefix,
+.packaging-page .kds-token-prefix {
+  color: var(--text-secondary) !important;
+}
+
 .kitchen-page .kds-token-num,
-.packaging-page .kds-token-num {
+.packaging-page .kds-token-num,
+.packaging-page .kds-token-num.text-muted {
   font-variant-numeric: tabular-nums;
   font-size: 28px !important;
   font-weight: 900 !important;
   color: var(--text-primary) !important;
+}
+
+.kitchen-page .kds-item-row,
+.packaging-page .pack-item-row,
+.kitchen-page .kds-item-name,
+.packaging-page .pack-item-name {
+  color: var(--text-primary) !important;
+}
+
+.kitchen-page .kds-item-qty {
+  background: var(--bg-inverse) !important;
+  color: var(--text-inverse) !important;
+}
+
+.packaging-page .pack-item-qty {
+  background: var(--accent-primary) !important;
+  color: #FFFFFF !important;
+}
+
+.packaging-page .pack-item-qty.qty-waiting {
+  background: var(--accent-amber) !important;
+  color: #0F172A !important;
+}
+
+.kitchen-page .kds-item-note,
+.packaging-page .pack-item-note {
+  color: var(--accent-amber) !important;
+}
+
+.kitchen-page .kds-order-note-box,
+.packaging-page .kds-order-note-box {
+  background: var(--accent-amber-soft) !important;
+  border: 1px solid var(--accent-amber) !important;
+  color: var(--text-primary) !important;
+}
+
+.kds-tag-type.tag-dinein,
+.kds-tag.tag-dinein {
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-strong) !important;
+}
+
+.kds-tag-type.tag-takeaway,
+.kds-tag.tag-takeaway {
+  background: var(--accent-amber) !important;
+  color: #0F172A !important;
+  border: 1px solid var(--accent-amber) !important;
+  font-weight: 900 !important;
+}
+
+.packaging-page .tag-cooking-status {
+  background: var(--accent-amber-soft) !important;
+  color: var(--accent-amber) !important;
+  border: 1px solid var(--accent-amber) !important;
+}
+
+.packaging-page .pack-pay-badge.pay-paid {
+  background: var(--accent-primary-soft) !important;
+  color: var(--accent-primary) !important;
+  border: 1px solid var(--accent-primary) !important;
+}
+
+.packaging-page .pack-pay-badge.pay-collect {
+  background: var(--accent-amber-soft) !important;
+  color: var(--accent-amber) !important;
+  border: 1px solid var(--accent-amber) !important;
+}
+
+.kitchen-page .kds-stat-pill,
+.packaging-page .kds-stat-pill {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-strong) !important;
+}
+
+.kitchen-page .kds-stat-label,
+.packaging-page .kds-stat-label {
+  color: var(--text-secondary) !important;
+}
+
+.kitchen-page .kds-stat-val,
+.packaging-page .kds-stat-val {
+  color: var(--text-primary) !important;
+}
+
+.packaging-page .lane-subtitle,
+.kitchen-page .empty-subtitle {
+  color: var(--text-secondary) !important;
+}
+
+.packaging-page .lane-count-tag {
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+.kitchen-page .kds-empty-state,
+.packaging-page .packaging-empty-lane,
+.packaging-page .packaging-empty-state {
+  background: var(--bg-surface) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+.kitchen-page .empty-title,
+.packaging-page .empty-title {
+  color: var(--text-primary) !important;
+}
+
+.kitchen-page .modal-card,
+.packaging-page .modal-card {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-strong) !important;
 }
 
 .kds-tag-edited {

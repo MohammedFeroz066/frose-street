@@ -796,7 +796,8 @@
   };
 
   window.setOrderType = function (type) {
-    currentOrderType = type === 'counter' ? 'counter' : 'dinein';
+    const norm = String(type || '').toLowerCase();
+    currentOrderType = (norm === 'counter' || norm === 'parcel' || norm === 'takeaway') ? 'counter' : 'dinein';
     const pairs = [
       ['btn-type-dinein', 'btn-type-counter'],
       ['btn-desktop-type-dinein', 'btn-desktop-type-counter'],
@@ -989,6 +990,7 @@
       items: apiItems,
       paymentMethod: paymentMethodNormalized,
       paymentStatus: 'paid',
+      orderType: currentOrderType === 'counter' ? 'parcel' : 'dinein',
       source: 'pos',
     };
     if (orderNote) payloadBody.notes = orderNote;
@@ -1055,7 +1057,7 @@
       orderData = {
         ...serverOrder,
         client_order_id: serverOrder.clientOrderId || clientOrderId,
-        orderType: currentOrderType,
+        orderType: serverOrder.orderType || (currentOrderType === 'counter' ? 'parcel' : 'dinein'),
         items: serverOrder.items && serverOrder.items.length > 0 ? serverOrder.items : itemsList,
         totalPaise: Number(serverOrder.totalPaise ?? taxInfo.totalPaise),
         syncStatus: 'synced',

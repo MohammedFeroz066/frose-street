@@ -21,6 +21,7 @@ const CreateOrderSchema = z.object({
   customerName: z.string().max(100).optional(),
   customerPhone: z.string().max(20).optional(),
   notes: z.string().max(300).optional(),
+  orderType: z.enum(['dinein', 'parcel', 'counter', 'takeaway']).optional(),
   source: z.enum(['pos', 'qr_customer', 'online']).optional(),
   clientOrderId: z.string().uuid().optional(),
   createdAtClient: z.string().datetime().optional(),
@@ -33,6 +34,7 @@ const UpdateOrderSchema = z.object({
   cashPaise: z.number().int().nonnegative().optional(),
   upiPaise: z.number().int().nonnegative().optional(),
   notes: z.string().max(300).nullable().optional(),
+  orderType: z.enum(['dinein', 'parcel', 'counter', 'takeaway']).optional(),
   editNote: z.string().trim().max(240).optional(),
 }).strict();
 
@@ -144,6 +146,7 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
           cashPaise: body.cashPaise,
           upiPaise: body.upiPaise,
           notes: body.notes,
+          orderType: body.orderType,
           editNote: body.editNote,
         }),
       );

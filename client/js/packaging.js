@@ -205,7 +205,8 @@
         if (readyEmptyMsg) readyEmptyMsg.style.display = 'none';
         readyOrders.forEach((order) => {
           const notesLower = (order.notes || '').toLowerCase();
-          const isTakeaway = notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
+          const orderTypeNorm = String(order.orderType || order.order_type || '').toLowerCase();
+          const isTakeaway = orderTypeNorm === 'parcel' || orderTypeNorm === 'takeaway' || orderTypeNorm === 'counter' || notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
           const itemNodes = (order.items || []).map((it) =>
             el('div', { class: 'pack-item-row' }, [
               el('span', { class: 'pack-item-qty' }, `${it.quantity}x`),
@@ -266,7 +267,8 @@
         if (waitingEmptyMsg) waitingEmptyMsg.style.display = 'none';
         waitingOrders.forEach((order) => {
           const notesLower = (order.notes || '').toLowerCase();
-          const isTakeaway = notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
+          const orderTypeNorm = String(order.orderType || order.order_type || '').toLowerCase();
+          const isTakeaway = orderTypeNorm === 'parcel' || orderTypeNorm === 'takeaway' || orderTypeNorm === 'counter' || notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
           const age = getOrderAge(order.createdAt);
           const itemNodes = (order.items || []).map((it) =>
             el('div', { class: 'pack-item-row' }, [

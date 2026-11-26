@@ -29,6 +29,7 @@ export interface CreateOrderInput {
   customerName?: string;
   customerPhone?: string;
   notes?: string;
+  orderType?: 'dinein' | 'parcel' | 'counter' | 'takeaway';
   source?: 'pos' | 'qr_customer' | 'online';
   clientOrderId?: string;
   createdAtClient?: string;
@@ -40,7 +41,19 @@ export interface UpdateOrderInput {
   cashPaise?: number;
   upiPaise?: number;
   notes?: string | null;
+  orderType?: 'dinein' | 'parcel' | 'counter' | 'takeaway';
   editNote?: string;
+}
+
+export function normalizeOrderType(raw?: string | null, notes?: string | null): 'dinein' | 'parcel' {
+  const norm = String(raw || '').trim().toLowerCase();
+  if (norm === 'parcel' || norm === 'counter' || norm === 'takeaway') return 'parcel';
+  if (norm === 'dinein') return 'dinein';
+  const notesLower = String(notes || '').toLowerCase();
+  if (notesLower.includes('parcel') || notesLower.includes('takeaway') || notesLower.includes('pack')) {
+    return 'parcel';
+  }
+  return 'dinein';
 }
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
@@ -173,6 +186,7 @@ export class OrderService {
           orderStatus: existingOrder.order_status,
           customerName: existingOrder.customer_name,
           customerPhone: existingOrder.customer_phone,
+          orderType: normalizeOrderType(existingOrder.order_type, existingOrder.notes),
           notes: existingOrder.notes,
           source: existingOrder.source,
           clientOrderId: existingOrder.client_order_id ?? clientOrderId,
@@ -294,6 +308,8 @@ export class OrderService {
     // 3. Insert order record
     const paymentStatus = input.paymentStatus || 'paid';
     const initialStatus: OrderStatus = 'preparing';
+    const normalizedNotes = input.notes?.trim() || null;
+    const normalizedOrderType = normalizeOrderType(input.orderType, normalizedNotes);
 
     const order = await db
       .insertInto('orders')
@@ -314,7 +330,8 @@ export class OrderService {
         upi_paise: splitAmounts.upiPaise,
         payment_status: paymentStatus,
         order_status: initialStatus,
-        notes: input.notes?.trim() || null,
+        order_type: normalizedOrderType,
+        notes: normalizedNotes,
         source: input.source || 'pos',
         client_order_id: clientOrderId,
         created_at_client: input.createdAtClient ? new Date(input.createdAtClient) : null,
@@ -373,6 +390,7 @@ export class OrderService {
       orderStatus: order.order_status,
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
+      orderType: normalizeOrderType(order.order_type, order.notes),
       notes: order.notes,
       source: order.source,
       clientOrderId: order.client_order_id ?? null,
@@ -550,6 +568,9 @@ export class OrderService {
     const editedAt = new Date();
     const editNote = input.editNote?.trim() || null;
     const nextNotes = input.notes === undefined ? order.notes : (input.notes ? input.notes.trim() : null);
+    const nextOrderType = input.orderType !== undefined
+      ? normalizeOrderType(input.orderType, nextNotes)
+      : normalizeOrderType(order.order_type, order.notes);
 
     await db
       .deleteFrom('order_items')
@@ -594,6 +615,7 @@ export class OrderService {
         payment_method: nextPaymentMethod,
         cash_paise: splitAmounts.cashPaise,
         upi_paise: splitAmounts.upiPaise,
+        order_type: nextOrderType,
         notes: nextNotes,
         edited_at: editedAt,
         edit_note: editNote,
@@ -626,6 +648,7 @@ export class OrderService {
       orderStatus: order.order_status,
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
+      orderType: nextOrderType,
       notes: nextNotes,
       source: order.source,
       items: updatedLineItems,
@@ -782,6 +805,7 @@ export class OrderService {
         cashPaise: pay.cashPaise,
         upiPaise: pay.upiPaise,
         orderStatus: o.order_status,
+        orderType: normalizeOrderType(o.order_type, o.notes),
         customerName: o.customer_name,
         notes: o.notes,
         editedAt: o.edited_at ?? null,
@@ -842,6 +866,7 @@ export class OrderService {
       orderStatus: order.order_status,
       customerName: order.customer_name,
       customerPhone: order.customer_phone,
+      orderType: normalizeOrderType(order.order_type, order.notes),
       notes: order.notes,
       source: order.source,
       items: items.map((i) => ({
@@ -995,6 +1020,7 @@ export class OrderService {
           upiPaise: pay.upiPaise,
           paymentStatus: o.payment_status,
           orderStatus: o.order_status,
+          orderType: normalizeOrderType(o.order_type, o.notes),
           customerName: o.customer_name,
           notes: o.notes,
           items: itemsByOrderId.get(o.id) || [],

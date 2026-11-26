@@ -981,12 +981,14 @@
         updatedAt: createdAtClient
       };
 
+      const orderTypeNorm = String(orderRecord.orderType || '').toLowerCase();
       const apiPayload = {
         clientOrderId,
         createdAtClient,
         items: items.map((it) => ({ menuItemId: it.menuItemId, quantity: it.quantity })),
         paymentMethod,
         paymentStatus,
+        orderType: (orderTypeNorm === 'counter' || orderTypeNorm === 'parcel' || orderTypeNorm === 'takeaway') ? 'parcel' : 'dinein',
         source: 'pos'
       };
 

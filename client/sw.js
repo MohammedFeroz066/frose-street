@@ -7,7 +7,7 @@
  * - Automatic obsolete cache purge on activate
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v54-phase4-ux';
+const CACHE_NAME = 'frose-street-v9-production-v55-phase4-ux-polish';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const PRECACHE_ASSETS = [
@@ -43,6 +43,7 @@ const PRECACHE_ASSETS = [
   '/js/escpos-generator.js',
   '/js/bluetooth-printer.js',
   '/js/whatsapp-service.js',
+  '/js/qr-local.js',
   '/js/settings-component.js',
   '/js/receipt-view.js',
   '/js/ios-fast-nav.js',

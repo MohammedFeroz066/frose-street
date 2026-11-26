@@ -95,6 +95,7 @@ export interface OrdersTable {
   upi_paise?: number;
   payment_status: 'paid' | 'pending';
   order_status: 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
+  order_type?: 'dinein' | 'parcel';
   notes: string | null;
   source: 'pos' | 'qr_customer' | 'online';
   client_order_id?: string | null;

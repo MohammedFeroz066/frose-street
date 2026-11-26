@@ -419,12 +419,15 @@
       }
       var targetPage = role === 'packer' ? '/packaging' : '/kitchen';
       var pairUrl = window.location.origin + targetPage + '?pair_token=' + encodeURIComponent(data.pairingToken);
-      var qrSrc = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(pairUrl);
+      var qrDataUrl = window.FroseQrLocal ? window.FroseQrLocal.toDataUrl(pairUrl, 220) : '';
+      var qrVisual = qrDataUrl
+        ? el('img', { src: qrDataUrl, alt: 'Device Pairing QR', style: 'width: 190px; height: 190px; border-radius: 12px; background: #FFF; padding: 8px; image-rendering: pixelated;' })
+        : (window.FroseQrLocal ? window.FroseQrLocal.toSvgElement(pairUrl, 190) : el('div', {}, 'QR ready'));
 
       body.appendChild(
         el('div', { style: 'text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center;' }, [
           el('div', { style: 'font-size: 13px; color: var(--text-muted);' }, 'Scan on your ' + (role === 'cook' ? 'Kitchen' : 'Packaging') + ' phone (valid 5 min):'),
-          el('img', { src: qrSrc, alt: 'Device Pairing QR', style: 'width: 190px; height: 190px; border-radius: 12px; background: #FFF; padding: 8px;' }),
+          qrVisual,
           el('button', {
             type: 'button',
             class: 'saas-btn saas-btn-secondary saas-btn-block',

@@ -43,7 +43,6 @@ export const SetupPinSchema = z
 
 export const VerifyPinSchema = z
   .object({
-    vendorId: z.string().min(1).optional(),
     pin: z.string().min(1, 'PIN is required'),
   })
   .strict();

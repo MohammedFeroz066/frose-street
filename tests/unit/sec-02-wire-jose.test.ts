@@ -108,7 +108,8 @@ describe('SEC-02-WIRE-JOSE: Ed25519 Subscription Licenses, Legacy jwt.ts Removal
       method: 'POST',
       url: '/api/v1/auth/verify-pin',
       headers: { 'X-FROSE-CSRF': '1', origin: 'http://localhost:3100' },
-      payload: { vendorId: 'v-1', pin: '4321', is_superadmin: true },
+      cookies: { frose_access_token: accessCookie },
+      payload: { pin: '4321', is_superadmin: true },
     });
     expect(verifyPinRes.statusCode).toBe(400);
 

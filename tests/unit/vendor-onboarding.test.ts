@@ -253,8 +253,10 @@ describe('Phase 12 Acceptance: Vendor Registration, 60-Second Onboarding & Prese
       const pinVerifyRes = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/verify-pin',
+        headers: { 'X-FROSE-CSRF': '1', origin: 'http://localhost:3100' },
+        cookies: { frose_access_token: res.cookies.find((c) => c.name === 'frose_access_token')!.value },
         payload: {
-          vendorId: data.vendor.id,
+          // authenticated session used instead of vendorId
           pin: '4321',
         },
       });

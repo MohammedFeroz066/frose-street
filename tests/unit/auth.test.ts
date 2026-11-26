@@ -504,8 +504,10 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/verify-pin',
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
         payload: {
-          vendorId: registeredVendorId,
           pin: '5678',
         },
       });
@@ -521,8 +523,10 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       const res = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/verify-pin',
+        headers: {
+          authorization: `Bearer ${authToken}`,
+        },
         payload: {
-          vendorId: registeredVendorId,
           pin: '9999',
         },
       });

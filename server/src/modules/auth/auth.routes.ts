@@ -302,18 +302,13 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
   /**
    * POST /api/v1/auth/verify-pin
-   * Verifies 4-digit quick PIN and issues an authenticated session
+   * Verifies 4-digit quick PIN for the authenticated vendor session with lockout protection
    */
-  app.post('/verify-pin', async (request, reply) => {
+  app.post('/verify-pin', { preHandler: [requireAuth] }, async (request, reply) => {
     const db = getDatabase();
     const body = validateSchema(VerifyPinSchema, request.body);
 
-    const vendorId = body.vendorId || request.user?.sub;
-    if (!vendorId) {
-      throw AppError.badRequest('Vendor ID and PIN are required', 'MISSING_PIN_PARAMS');
-    }
-
-    const vendor = await AuthService.verifyQuickPin(db, vendorId, body.pin);
+    const vendor = await AuthService.verifyQuickPin(db, request.user!.sub, body.pin, request.ip);
 
     const accessToken = await signJoseAccessToken(
       {

@@ -231,9 +231,9 @@ export class AuthService {
   }
 
   /**
-   * Verifies 4-digit quick PIN
+   * Verifies 4-digit quick PIN with progressive lockout protection
    */
-  static async verifyQuickPin(db: Kysely<Database>, vendorId: string, pin: string) {
+  static async verifyQuickPin(db: Kysely<Database>, vendorId: string, pin: string, ip?: string) {
     const vendor = await db
       .selectFrom('vendors')
       .select(['id', 'phone', 'business_name', 'edition', 'quick_pin_hash'])
@@ -244,11 +244,29 @@ export class AuthService {
       throw AppError.unauthorized('Quick PIN has not been configured yet', 'PIN_NOT_SET');
     }
 
+    const lockStatus = await LoginSecurityService.checkLockAsync(vendor.phone, ip, db);
+    if (lockStatus.isLocked) {
+      throw AppError.rateLimited(
+        `Account temporarily locked due to failed PIN attempts. Try again in ${lockStatus.remainingSeconds} seconds.`,
+        'ACCOUNT_LOCKED',
+        lockStatus.remainingSeconds,
+      );
+    }
+
     const isMatch = await verifyPin(pin, vendor.quick_pin_hash);
     if (!isMatch) {
+      const failResult = await LoginSecurityService.recordFailedAttemptAsync(vendor.phone, ip, db);
+      if (failResult.isLocked) {
+        throw AppError.rateLimited(
+          `Too many incorrect PIN attempts. Account locked for ${failResult.lockDurationSeconds} seconds.`,
+          'ACCOUNT_LOCKED',
+          failResult.lockDurationSeconds,
+        );
+      }
       throw AppError.unauthorized('Incorrect 4-digit PIN', 'INCORRECT_PIN');
     }
 
+    await LoginSecurityService.recordSuccessAsync(vendor.phone, ip, db);
     return vendor;
   }
 

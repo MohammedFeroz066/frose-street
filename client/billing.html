@@ -7,33 +7,8 @@
   <meta name="description" content="Ultra-fast, formal two-color enterprise POS for street food vendors, carts, and stalls.">
   <meta name="theme-color" content="#5B0612">
   <script src="/js/safe-dom.js?v=1.0.0"></script>
-    <script>
-    (function() {
-      var session = localStorage.getItem('frose_session_active') || localStorage.getItem('frose_license_token');
-      if (!session) {
-        window.location.replace('/login');
-        return;
-      }
-      // Mandatory hard clean-slate purge for installed mobile PWA
-      var PURGE_KEY = 'frose_clean_slate_2026_v99_permanent_empty';
-      if (!localStorage.getItem(PURGE_KEY)) {
-        for (var i = localStorage.length - 1; i >= 0; i--) {
-          var k = localStorage.key(i);
-          if (k && (k.indexOf('frose_dishes') === 0 || k.indexOf('frose_cats') === 0 || k === 'frose_custom_menu_catalog' || k.indexOf('frose_menu') === 0)) {
-            localStorage.removeItem(k);
-          }
-        }
-        localStorage.setItem(PURGE_KEY, 'true');
-      }
-
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
-          for (var r of regs) { r.update(); }
-        });
-      }
-
-    })();
-  </script>
+  <script src="/js/dom-events.js?v=1.0.0"></script>
+  <script src="/js/session-guard.js?v=1.0.0"></script>
   <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -511,7 +486,7 @@
     </div>
 
     <div class="pos-header-right">
-      <div class="pos-header-avatar" id="btn-pos-profile" onclick="window.openModal('settings-modal')" style="cursor: pointer;" title="Stall Settings">
+      <div class="pos-header-avatar" id="btn-pos-profile" data-click="openModal" data-arg="settings-modal" style="cursor: pointer;" title="Stall Settings">
         <div class="pos-avatar-badge">SC</div>
         <div class="pos-avatar-label">Stall Client</div>
       </div>
@@ -524,7 +499,7 @@
     <!-- Left Category Sidebar (Dynamic Client Categories) -->
     <aside class="pos-category-sidebar" id="pos-category-sidebar">
       <!-- Dynamically populated from vendor's custom categories -->
-      <button type="button" class="btn-add-section" onclick="window.openAddSectionModal()" title="Add Custom Menu Section">
+      <button type="button" class="btn-add-section" data-click="openAddSectionModal" title="Add Custom Menu Section">
         <span>+ Add</span>
         <span>Section</span>
       </button>
@@ -539,7 +514,7 @@
           <div class="toolbar-title">✨ Menu Customization</div>
           <div class="toolbar-subtitle">Add dishes, edit prices &amp; photos</div>
         </div>
-        <button type="button" class="btn-toolbar-add-dish" onclick="window.openAddDishModal()">
+        <button type="button" class="btn-toolbar-add-dish" data-click="openAddDishModal">
           ➕ Add Dish
         </button>
       </div>
@@ -554,7 +529,7 @@
   </main>
 
   <!-- 3. Floating Bottom Cart Pill (Image 2 Parity) -->
-  <div class="pos-floating-cart-pill" id="pos-floating-cart-pill" onclick="window.openCheckoutDrawer()">
+  <div class="pos-floating-cart-pill" id="pos-floating-cart-pill" data-click="openCheckoutDrawer">
     <span class="cart-pill-icon">🛒</span>
     <span class="cart-pill-stats" id="cart-pill-stats">0 • &#8377;0.0</span>
     <span class="cart-pill-divider"></span>
@@ -566,7 +541,7 @@
     <div class="pos-modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #E5E7EB; padding-bottom: 10px;">
         <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #5B0612;">🛒 Current Order Checkout</h3>
-        <button onclick="window.closeModal('checkout-drawer-modal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <button data-click="closeModal" data-arg="checkout-drawer-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
       </div>
 
       <!-- Cart Items List -->
@@ -582,26 +557,26 @@
 
       <!-- Order Type -->
       <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-        <button type="button" class="btn-order-type active" id="btn-type-counter" onclick="window.setOrderType('counter')" style="flex: 1; height: 38px; border-radius: 8px; border: 1.5px solid #5B0612; background: #5B0612; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer;">
+        <button type="button" class="btn-order-type active" id="btn-type-counter" data-click="setOrderType" data-arg="counter" style="flex: 1; height: 38px; border-radius: 8px; border: 1.5px solid #5B0612; background: #5B0612; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer;">
           Counter / Takeaway
         </button>
-        <button type="button" class="btn-order-type" id="btn-type-dinein" onclick="window.setOrderType('dinein')" style="flex: 1; height: 38px; border-radius: 8px; border: 1.5px solid #E5E7EB; background: #fff; color: #374151; font-size: 12px; font-weight: 700; cursor: pointer;">
+        <button type="button" class="btn-order-type" id="btn-type-dinein" data-click="setOrderType" data-arg="dinein" style="flex: 1; height: 38px; border-radius: 8px; border: 1.5px solid #E5E7EB; background: #fff; color: #374151; font-size: 12px; font-weight: 700; cursor: pointer;">
           Dine In
         </button>
       </div>
 
       <!-- Fast Action Buttons (Cash & UPI) -->
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <button type="button" id="btn-pay-cash" onclick="window.payCashOrder()" style="height: 46px; border-radius: 12px; border: none; background: #059669; color: #fff; font-size: 13px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);">
+        <button type="button" id="btn-pay-cash" data-click="payCashOrder" style="height: 46px; border-radius: 12px; border: none; background: #059669; color: #fff; font-size: 13px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);">
           💵 CASH (<span id="btn-cash-amount">&#8377;0</span>)
         </button>
-        <button type="button" id="btn-pay-upi" onclick="window.payUpiOrder()" style="height: 46px; border-radius: 12px; border: none; background: #0284C7; color: #fff; font-size: 13px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
+        <button type="button" id="btn-pay-upi" data-click="payUpiOrder" style="height: 46px; border-radius: 12px; border: none; background: #0284C7; color: #fff; font-size: 13px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
           📱 UPI QR (<span id="btn-upi-amount">&#8377;0</span>)
         </button>
       </div>
 
       <div style="margin-top: 10px;">
-        <button type="button" id="btn-clear-cart" onclick="window.clearCurrentCart()" style="width: 100%; height: 34px; border: none; background: none; color: #EF4444; font-size: 11.5px; font-weight: 700; cursor: pointer;">
+        <button type="button" id="btn-clear-cart" data-click="clearCurrentCart" style="width: 100%; height: 34px; border: none; background: none; color: #EF4444; font-size: 11.5px; font-weight: 700; cursor: pointer;">
           🗑️ Clear Cart
         </button>
       </div>
@@ -613,11 +588,11 @@
     <div class="pos-modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #5B0612;">➕ Add New Menu Section</h3>
-        <button onclick="window.closeModal('modal-add-section')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <button data-click="closeModal" data-arg="modal-add-section" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
       </div>
       <p style="font-size: 12px; color: #6B7280; margin: 0 0 14px 0;">Create a custom section tab (e.g. "Specials", "Snacks", "Beverages").</p>
 
-      <form onsubmit="window.submitAddSection(event)">
+      <form data-submit="submitAddSection">
         <div class="form-group-pos">
           <label class="form-label-pos">Section / Category Name *</label>
           <input type="text" id="input-new-section-name" class="form-input-pos" placeholder="e.g. Chef Specials" required>
@@ -634,10 +609,10 @@
     <div class="pos-modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #5B0612;">➕ Add New Dish</h3>
-        <button onclick="window.closeModal('modal-add-dish')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <button data-click="closeModal" data-arg="modal-add-dish" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
       </div>
 
-      <form onsubmit="window.submitAddDish(event)">
+      <form data-submit="submitAddDish">
         <div class="form-group-pos">
           <label class="form-label-pos">Dish Name *</label>
           <input type="text" id="input-dish-name" class="form-input-pos" placeholder="e.g. Paneer Butter Masala" required>
@@ -657,7 +632,7 @@
 
         <div class="form-group-pos">
           <label class="form-label-pos">Dish Image (Select Preset or URL)</label>
-          <select id="input-dish-photo-select" class="form-input-pos" onchange="window.updatePhotoPreview(this.value)">
+          <select id="input-dish-photo-select" class="form-input-pos" data-change-value="updatePhotoPreview">
             <option value="/images/dishes/chicken-biryani-full.webp">Biryani Premium Plate</option>
             <option value="/images/dishes/chicken-handi-biryani.webp">Handi Special Pot</option>
             <option value="/images/dishes/mini-chicken-biryani.webp">Mini Biryani Bowl</option>
@@ -682,10 +657,10 @@
     <div class="pos-modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #5B0612;">✏️ Edit Dish &amp; Price</h3>
-        <button onclick="window.closeModal('modal-edit-dish')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <button data-click="closeModal" data-arg="modal-edit-dish" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
       </div>
 
-      <form onsubmit="window.submitEditDish(event)">
+      <form data-submit="submitEditDish">
         <input type="hidden" id="edit-dish-id">
         <div class="form-group-pos">
           <label class="form-label-pos">Dish Name *</label>
@@ -705,7 +680,7 @@
         </div>
 
         <div style="display: flex; gap: 8px; margin-top: 14px;">
-          <button type="button" onclick="window.deleteDish()" style="flex: 1; height: 42px; border-radius: 10px; border: 1.5px solid #EF4444; background: #fff; color: #EF4444; font-weight: 800; cursor: pointer;">
+          <button type="button" data-click="deleteDish" style="flex: 1; height: 42px; border-radius: 10px; border: 1.5px solid #EF4444; background: #fff; color: #EF4444; font-weight: 800; cursor: pointer;">
             Delete
           </button>
           <button type="submit" style="flex: 2; height: 42px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">
@@ -726,7 +701,7 @@
       <div style="font-size: 32px; font-weight: 900; color: #5B0612; margin: 6px 0;" id="flash-token-number">TOKEN #1</div>
       <div style="font-size: 14px; font-weight: 700; color: #4B5563;" id="flash-token-amount">&#8377;0 Paid (Cash)</div>
       <p style="font-size: 11px; color: #9CA3AF; margin-top: 10px;">Synced to Kitchen Display &bull; Auto-closing</p>
-      <button onclick="window.closeModal('token-flash-modal')" style="width: 100%; height: 40px; margin-top: 12px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">
+      <button data-click="closeModal" data-arg="token-flash-modal" style="width: 100%; height: 40px; margin-top: 12px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">
         Next Order
       </button>
     </div>
@@ -745,8 +720,8 @@
       </div>
 
       <div style="display: flex; gap: 8px; margin-top: 16px;">
-        <button id="btn-cancel-upi" onclick="window.closeModal('upi-qr-modal')" style="flex: 1; height: 42px; border-radius: 10px; border: 1.5px solid #E5E7EB; background: #fff; font-weight: 700; cursor: pointer;">Cancel</button>
-        <button id="btn-confirm-upi" onclick="window.confirmUpiReceived()" style="flex: 2; height: 42px; border-radius: 10px; border: none; background: #059669; color: #fff; font-weight: 800; cursor: pointer;">Payment Received</button>
+        <button id="btn-cancel-upi" data-click="closeModal" data-arg="upi-qr-modal" style="flex: 1; height: 42px; border-radius: 10px; border: 1.5px solid #E5E7EB; background: #fff; font-weight: 700; cursor: pointer;">Cancel</button>
+        <button id="btn-confirm-upi" data-click="confirmUpiReceived" style="flex: 2; height: 42px; border-radius: 10px; border: none; background: #059669; color: #fff; font-weight: 800; cursor: pointer;">Payment Received</button>
       </div>
     </div>
   </div>
@@ -768,32 +743,7 @@
   <script type="module" src="/js/storage-adapter.js?v=8.0.0"></script>
   <script type="module" src="/js/billing.js?v=8.0.0"></script>
   <script src="/js/ios-fast-nav.js?v=8.0.0" defer></script>
-
-  <script>
-    // Global Mobile History & Back Navigation Controller for Billing POS
-    if (!history.state) {
-      history.replaceState({ view: 'billing', root: true }, '', '');
-    }
-
-    window.addEventListener('popstate', (e) => {
-      // 1. If cart drawer is open, close it
-      const cartDrawer = document.getElementById('checkout-drawer');
-      if (cartDrawer && cartDrawer.classList.contains('active')) {
-        cartDrawer.classList.remove('active');
-        return;
-      }
-
-      // 2. If any modal is active, close it
-      const activeModals = document.querySelectorAll('.modal-overlay.active');
-      if (activeModals.length > 0) {
-        activeModals.forEach(m => m.classList.remove('active'));
-        return;
-      }
-
-      // 3. Otherwise navigate back to Dashboard
-      window.location.href = '/';
-    });
-  </script>
+  <script src="/js/billing-page.js?v=1.0.0"></script>
 
     
 <style id="frose-settings-bulletproof-css">
@@ -1179,17 +1129,17 @@
           <div class="sett-header-title">⚙️ Stall Settings &amp; Controls</div>
           <div class="sett-header-sub" id="sett-header-owner-name">Mohammed Feroz &bull; +91 96422 30688</div>
         </div>
-        <button type="button" class="sett-close-btn" onclick="window.closeModal('settings-modal')" aria-label="Close Settings">✕</button>
+        <button type="button" class="sett-close-btn" data-click="closeModal" data-arg="settings-modal" aria-label="Close Settings">✕</button>
       </div>
 
       <!-- Quick Action Navigation Bar -->
       <div class="sett-quick-bar">
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(0)">🏪 Profile</button>
-        <button type="button" class="sett-quick-pill active" onclick="window.jumpToAccordion(1)">💳 QR Code</button>
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(2)">🍽️ Dishes</button>
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(3)">🧾 Billing</button>
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(4)">🍳 Kitchen</button>
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(5)">📦 Packaging</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="0">🏪 Profile</button>
+        <button type="button" class="sett-quick-pill active" data-click="jumpToAccordion" data-arg-num="1">💳 QR Code</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="2">🍽️ Dishes</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="3">🧾 Billing</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="4">🍳 Kitchen</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="5">📦 Packaging</button>
       </div>
 
       <!-- Scrollable Accordion Content -->
@@ -1197,7 +1147,7 @@
 
         <!-- Accordion 0: Profile & Identity -->
         <div class="sett-acc-item" id="sett-acc-item-0">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(0)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="0">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">🏪</span>
               <span>Stall Profile &amp; Business Info</span>
@@ -1221,7 +1171,7 @@
               <label class="sett-label">Stall Address / Landmark</label>
               <input type="text" id="sett-address" class="sett-input" placeholder="e.g. Stall #4, Food Court, Hyderabad" />
             </div>
-            <button type="button" class="sett-btn-action" onclick="window.saveStallProfile()">
+            <button type="button" class="sett-btn-action" data-click="saveStallProfile">
               <span>💾 Save Profile Changes</span>
             </button>
           </div>
@@ -1229,7 +1179,7 @@
 
         <!-- Accordion 1: Payment Scanner & BharatQR (EXPANDED BY DEFAULT) -->
         <div class="sett-acc-item" id="sett-acc-item-1">
-          <div class="sett-acc-header expanded" onclick="window.toggleAccordion(1)">
+          <div class="sett-acc-header expanded" data-click="toggleAccordion" data-arg-num="1">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">💳</span>
               <span>Payment Scanner &amp; BharatQR</span>
@@ -1244,8 +1194,8 @@
               <div style="flex: 1; min-width: 0;">
                 <div style="font-size: 12.5px; font-weight: 800; color: #0F172A;">Counter Scanner Active</div>
                 <div style="font-size: 11px; color: #64748B; margin-top: 2px;" id="sett-qr-vpa-display">Set up payment QR in settings</div>
-                <input type="file" id="sett-scanner-file" accept="image/*" style="display: none;" onchange="window.handleScannerImageUpload(event)" />
-                <button type="button" class="sett-btn-secondary" style="margin-top: 6px; border-color: #3B82F6; color: #1D4ED8; background: #EFF6FF;" onclick="document.getElementById('sett-scanner-file').click()">
+                <input type="file" id="sett-scanner-file" accept="image/*" style="display: none;" data-change="handleScannerImageUpload" />
+                <button type="button" class="sett-btn-secondary" style="margin-top: 6px; border-color: #3B82F6; color: #1D4ED8; background: #EFF6FF;" data-click-target="sett-scanner-file">
                   <span>📸 Upload New Scanner Image</span>
                 </button>
               </div>
@@ -1267,7 +1217,7 @@
                 <div style="width: 16px; height: 16px; border-radius: 50%; background: #FFF; position: absolute; top: 2px; right: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
               </div>
             </div>
-            <button type="button" class="sett-btn-action" onclick="window.savePaymentScanner()">
+            <button type="button" class="sett-btn-action" data-click="savePaymentScanner">
               <span>💾 Save Payment Scanner</span>
             </button>
           </div>
@@ -1275,7 +1225,7 @@
 
         <!-- Accordion 2: Menu Dishes & Instant Stock -->
         <div class="sett-acc-item" id="sett-acc-item-2">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(2)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="2">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">🍽️</span>
               <span>Menu Dishes, Prices &amp; Stock</span>
@@ -1294,7 +1244,7 @@
               <a href="/menu-setup" id="btn-settings-menu-setup" class="sett-btn-secondary" style="flex: 1; text-decoration: none; border-color: #CBD5E1; color: #0F172A;">
                 <span>📋 Open Menu Studio</span>
               </a>
-              <button type="button" class="sett-btn-action" style="flex: 1;" onclick="window.saveDishChanges()">
+              <button type="button" class="sett-btn-action" style="flex: 1;" data-click="saveDishChanges">
                 <span>💾 Save Dish Changes</span>
               </button>
             </div>
@@ -1303,7 +1253,7 @@
 
         <!-- Accordion 3: Billing POS & Thermal Printer -->
         <div class="sett-acc-item" id="sett-acc-item-3">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(3)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="3">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">🧾</span>
               <span>Billing POS, GST &amp; Thermal Printer</span>
@@ -1335,10 +1285,10 @@
               </select>
             </div>
             <div style="display: flex; gap: 8px;">
-              <button type="button" class="sett-btn-secondary" style="flex: 1;" onclick="window.testThermalPrint()">
+              <button type="button" class="sett-btn-secondary" style="flex: 1;" data-click="testThermalPrint">
                 <span>🖨️ Test Thermal Slip</span>
               </button>
-              <button type="button" class="sett-btn-action" style="flex: 1;" onclick="window.saveSubsystemPreferences()">
+              <button type="button" class="sett-btn-action" style="flex: 1;" data-click="saveSubsystemPreferences">
                 <span>💾 Save POS Defaults</span>
               </button>
             </div>
@@ -1347,7 +1297,7 @@
 
         <!-- Accordion 4: Kitchen KDS & Audio Lanes -->
         <div class="sett-acc-item" id="sett-acc-item-4">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(4)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="4">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">🍳</span>
               <span>Kitchen Display (KDS) &amp; Chimes</span>
@@ -1371,7 +1321,7 @@
                 <option value="20">20 Minutes (Dine-in Full Prep)</option>
               </select>
             </div>
-            <button type="button" class="sett-btn-action" onclick="window.saveSubsystemPreferences()">
+            <button type="button" class="sett-btn-action" data-click="saveSubsystemPreferences">
               <span>💾 Save Kitchen Defaults</span>
             </button>
           </div>
@@ -1379,7 +1329,7 @@
 
         <!-- Accordion 5: Packaging & Token Numbers -->
         <div class="sett-acc-item" id="sett-acc-item-5">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(5)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="5">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">📦</span>
               <span>Packaging Station &amp; Tokens</span>
@@ -1403,7 +1353,7 @@
                 <div style="width: 16px; height: 16px; border-radius: 50%; background: #FFF; position: absolute; top: 2px; right: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
               </div>
             </div>
-            <button type="button" class="sett-btn-action" onclick="window.saveSubsystemPreferences()">
+            <button type="button" class="sett-btn-action" data-click="saveSubsystemPreferences">
               <span>💾 Save Packaging Defaults</span>
             </button>
           </div>
@@ -1411,7 +1361,7 @@
 
         <!-- Accordion 6: Offline Sync & Security -->
         <div class="sett-acc-item" id="sett-acc-item-6">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(6)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="6">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">☁️</span>
               <span>Offline Database &amp; Cloud Telemetry</span>
@@ -1424,7 +1374,7 @@
                 <div style="font-size: 12px; font-weight: 800; color: #0F172A;">Phone Storage (IndexedDB)</div>
                 <div style="font-size: 11px; color: #15803D; font-weight: 700;">● Operational &bull; Zero Pending Mutations</div>
               </div>
-              <button type="button" class="sett-btn-action" style="height: 32px; padding: 0 12px; background: #059669;" onclick="window.forceCloudSync()">
+              <button type="button" class="sett-btn-action" style="height: 32px; padding: 0 12px; background: #059669;" data-click="forceCloudSync">
                 <span>Sync Now</span>
               </button>
             </div>
@@ -1440,7 +1390,7 @@
         </div>
 
         <!-- Exit & Sign Out -->
-        <button type="button" onclick="window.handleLogout ? window.handleLogout() : (localStorage.removeItem('frose_session_active'), window.location.href='/login')" style="width: 100%; height: 44px; border-radius: 12px; border: 1.5px solid #FECACA; background: #FFF5F5; color: #DC2626; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
+        <button type="button" data-click="logoutFallback" style="width: 100%; height: 44px; border-radius: 12px; border: 1.5px solid #FECACA; background: #FFF5F5; color: #DC2626; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
           <span>🚪 Sign Out of Counter Account</span>
         </button>
 
@@ -1468,7 +1418,7 @@
         <p style="font-size: 12px; color: #64748B; margin-bottom: 20px; line-height: 1.4;">
           Scan UPI QR with PhonePe, Google Pay, or Paytm to renew your license and unlock your counter immediately.
         </p>
-        <button onclick="window.contactSuperAdminWhatsApp()" style="width: 100%; height: 44px; border-radius: 12px; border: none; background: #25D366; color: #FFF; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);">
+        <button data-click="contactSuperAdminWhatsApp" style="width: 100%; height: 44px; border-radius: 12px; border: none; background: #25D366; color: #FFF; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);">
           <span>💬 Contact Super Admin on WhatsApp</span>
         </button>
       </div>

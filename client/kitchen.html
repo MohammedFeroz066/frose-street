@@ -7,14 +7,7 @@
   <meta name="description" content="Ultra-fast, knuckle-friendly kitchen display order queue for street food cooks.">
   <meta name="theme-color" content="#0F172A">
   <script src="/js/safe-dom.js?v=1.0.0"></script>
-    <script>
-    (function() {
-      var session = localStorage.getItem('frose_session_active') || localStorage.getItem('frose_license_token');
-      if (!session) {
-        window.location.replace('/login');
-      }
-    })();
-  </script>
+  <script src="/js/session-guard.js?v=1.0.0"></script>
   <link rel="manifest" href="/manifest.json">
   <link rel="stylesheet" href="/css/style.css?v=7.0.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">

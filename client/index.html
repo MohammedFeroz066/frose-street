@@ -7,24 +7,8 @@
   <meta name="description" content="Ultra-fast, formal enterprise POS for street food stalls and restaurant counters.">
   <meta name="theme-color" content="#5B0612">
   <script src="/js/safe-dom.js?v=1.0.0"></script>
-  <script>
-    (function() {
-      var session = localStorage.getItem('frose_session_active') || localStorage.getItem('frose_license_token');
-      if (!session) {
-        window.location.replace('/login');
-        return;
-      }
-      try {
-        var vendorStr = localStorage.getItem('frose_current_vendor');
-        if (vendorStr) {
-          var vendor = JSON.parse(vendorStr);
-          if (vendor && (vendor.isSuperadmin || vendor.role === 'superadmin')) {
-            window.location.replace('/admin');
-          }
-        }
-      } catch (e) {}
-    })();
-  </script>
+  <script src="/js/dom-events.js?v=1.0.0"></script>
+  <script src="/js/session-guard.js?v=1.0.0"></script>
   <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -498,7 +482,7 @@
       </div>
     </a>
 
-    <div class="header-user-badge" id="btn-user-profile" onclick="window.openModal('settings-modal')" style="cursor: pointer;" title="Stall Settings">
+    <div class="header-user-badge" id="btn-user-profile" data-click="openModal" data-arg="settings-modal" style="cursor: pointer;" title="Stall Settings">
       <div class="avatar-circle-gold">SC</div>
       <div class="user-client-label">
         <span>Stall Client</span>
@@ -509,10 +493,10 @@
 
   <!-- Top Nav Tabs Bar (Image 1 Parity) -->
   <nav class="nav-tabs-bar">
-    <button class="nav-tab-pill active" onclick="window.switchTab('dashboard')">Dashboard</button>
+    <button class="nav-tab-pill active" data-click="switchTab" data-arg="dashboard">Dashboard</button>
     <a href="/menu-setup" class="nav-tab-pill">Inventory</a>
-    <button class="nav-tab-pill" onclick="window.openModal('pairing-modal')">Users</button>
-    <button class="nav-tab-pill" onclick="window.openModal('settings-modal')">Settings</button>
+    <button class="nav-tab-pill" data-click="openModal" data-arg="pairing-modal">Users</button>
+    <button class="nav-tab-pill" data-click="openModal" data-arg="settings-modal">Settings</button>
   </nav>
 
   <!-- Main Viewport -->
@@ -527,7 +511,7 @@
           <span class="status-dot-active"></span>
           <span id="stall-status-text">Active • Connected</span>
         </div>
-        <button class="btn-hero-reports" id="btn-open-reports" onclick="window.openModal('reports-modal')">
+        <button class="btn-hero-reports" id="btn-open-reports" data-click="openModal" data-arg="reports-modal">
           <span>Reports</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
@@ -652,7 +636,7 @@
       <span>Home</span>
     </a>
 
-    <button class="dock-nav-item" onclick="window.openModal('reports-modal')">
+    <button class="dock-nav-item" data-click="openModal" data-arg="reports-modal">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
       <span>Analytics</span>
     </button>
@@ -661,13 +645,13 @@
       <span>+ Add Order</span>
     </a>
 
-    <button class="dock-nav-item" onclick="window.openModal('notifications-modal')">
+    <button class="dock-nav-item" data-click="openModal" data-arg="notifications-modal">
       <span class="dock-badge-pill">3</span>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
       <span>Notifications</span>
     </button>
 
-    <button class="dock-nav-item" onclick="window.handleLogout()">
+    <button class="dock-nav-item" data-click="handleLogout">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
       <span>Logout</span>
     </button>
@@ -678,7 +662,7 @@
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #5B0612;">📊 Shift & Sales Reports</h3>
-        <button onclick="window.closeModal('reports-modal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <button data-click="closeModal" data-arg="reports-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
       </div>
 
       <!-- Daily Galla Summary -->
@@ -701,7 +685,7 @@
       </div>
 
       <div style="margin-top: 16px; display: flex; gap: 8px;">
-        <button onclick="window.closeModal('reports-modal')" style="width: 100%; height: 44px; border-radius: 12px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Close Reports</button>
+        <button data-click="closeModal" data-arg="reports-modal" style="width: 100%; height: 44px; border-radius: 12px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Close Reports</button>
       </div>
     </div>
   </div>
@@ -711,7 +695,7 @@
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #111827;">👥 Helper & Device Pairing</h3>
-        <button onclick="window.closeModal('pairing-modal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <button data-click="closeModal" data-arg="pairing-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
       </div>
       <p style="font-size: 12px; color: #6B7280; margin: 0 0 14px 0;">Connect cook or packing helper phone via local Wi-Fi Hotspot P2P.</p>
 
@@ -722,7 +706,7 @@
 
       <div style="margin-top: 14px; display: flex; gap: 8px;">
         <button id="btn-open-pairing" style="flex: 1; height: 42px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Generate New QR</button>
-        <button onclick="window.closeModal('pairing-modal')" style="flex: 1; height: 42px; border-radius: 10px; border: 1px solid #E5E7EB; background: #fff; font-weight: 700; cursor: pointer;">Done</button>
+        <button data-click="closeModal" data-arg="pairing-modal" style="flex: 1; height: 42px; border-radius: 10px; border: 1px solid #E5E7EB; background: #fff; font-weight: 700; cursor: pointer;">Done</button>
       </div>
     </div>
   </div>
@@ -1068,17 +1052,17 @@
           <div class="sett-header-title">⚙️ Stall Settings &amp; Controls</div>
           <div class="sett-header-sub" id="sett-header-owner-name">Mohammed Feroz &bull; +91 96422 30688</div>
         </div>
-        <button type="button" class="sett-close-btn" onclick="window.closeModal('settings-modal')" aria-label="Close Settings">✕</button>
+        <button type="button" class="sett-close-btn" data-click="closeModal" data-arg="settings-modal" aria-label="Close Settings">✕</button>
       </div>
 
       <!-- Quick Action Navigation Bar -->
       <div class="sett-quick-bar">
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(0)">🏪 Profile</button>
-        <button type="button" class="sett-quick-pill active" onclick="window.jumpToAccordion(1)">💳 QR Code</button>
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(2)">🍽️ Dishes</button>
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(3)">🧾 Billing</button>
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(4)">🍳 Kitchen</button>
-        <button type="button" class="sett-quick-pill" onclick="window.jumpToAccordion(5)">📦 Packaging</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="0">🏪 Profile</button>
+        <button type="button" class="sett-quick-pill active" data-click="jumpToAccordion" data-arg-num="1">💳 QR Code</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="2">🍽️ Dishes</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="3">🧾 Billing</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="4">🍳 Kitchen</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="5">📦 Packaging</button>
       </div>
 
       <!-- Scrollable Accordion Content -->
@@ -1086,7 +1070,7 @@
 
         <!-- Accordion 0: Profile & Identity -->
         <div class="sett-acc-item" id="sett-acc-item-0">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(0)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="0">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">🏪</span>
               <span>Stall Profile &amp; Business Info</span>
@@ -1110,7 +1094,7 @@
               <label class="sett-label">Stall Address / Landmark</label>
               <input type="text" id="sett-address" class="sett-input" placeholder="e.g. Stall #4, Food Court, Hyderabad" />
             </div>
-            <button type="button" class="sett-btn-action" onclick="window.saveStallProfile()">
+            <button type="button" class="sett-btn-action" data-click="saveStallProfile">
               <span>💾 Save Profile Changes</span>
             </button>
           </div>
@@ -1118,7 +1102,7 @@
 
         <!-- Accordion 1: Payment Scanner & BharatQR (EXPANDED BY DEFAULT) -->
         <div class="sett-acc-item" id="sett-acc-item-1">
-          <div class="sett-acc-header expanded" onclick="window.toggleAccordion(1)">
+          <div class="sett-acc-header expanded" data-click="toggleAccordion" data-arg-num="1">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">💳</span>
               <span>Payment Scanner &amp; BharatQR</span>
@@ -1133,8 +1117,8 @@
               <div style="flex: 1; min-width: 0;">
                 <div style="font-size: 12.5px; font-weight: 800; color: #0F172A;">Counter Scanner Active</div>
                 <div style="font-size: 11px; color: #64748B; margin-top: 2px;" id="sett-qr-vpa-display">Set up payment QR in settings</div>
-                <input type="file" id="sett-scanner-file" accept="image/*" style="display: none;" onchange="window.handleScannerImageUpload(event)" />
-                <button type="button" class="sett-btn-secondary" style="margin-top: 6px; border-color: #3B82F6; color: #1D4ED8; background: #EFF6FF;" onclick="document.getElementById('sett-scanner-file').click()">
+                <input type="file" id="sett-scanner-file" accept="image/*" style="display: none;" data-change="handleScannerImageUpload" />
+                <button type="button" class="sett-btn-secondary" style="margin-top: 6px; border-color: #3B82F6; color: #1D4ED8; background: #EFF6FF;" data-click-target="sett-scanner-file">
                   <span>📸 Upload New Scanner Image</span>
                 </button>
               </div>
@@ -1156,7 +1140,7 @@
                 <div style="width: 16px; height: 16px; border-radius: 50%; background: #FFF; position: absolute; top: 2px; right: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
               </div>
             </div>
-            <button type="button" class="sett-btn-action" onclick="window.savePaymentScanner()">
+            <button type="button" class="sett-btn-action" data-click="savePaymentScanner">
               <span>💾 Save Payment Scanner</span>
             </button>
           </div>
@@ -1164,7 +1148,7 @@
 
         <!-- Accordion 2: Menu Dishes & Instant Stock -->
         <div class="sett-acc-item" id="sett-acc-item-2">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(2)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="2">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">🍽️</span>
               <span>Menu Dishes, Prices &amp; Stock</span>
@@ -1183,7 +1167,7 @@
               <a href="/menu-setup" id="btn-settings-menu-setup" class="sett-btn-secondary" style="flex: 1; text-decoration: none; border-color: #CBD5E1; color: #0F172A;">
                 <span>📋 Open Menu Studio</span>
               </a>
-              <button type="button" class="sett-btn-action" style="flex: 1;" onclick="window.saveDishChanges()">
+              <button type="button" class="sett-btn-action" style="flex: 1;" data-click="saveDishChanges">
                 <span>💾 Save Dish Changes</span>
               </button>
             </div>
@@ -1192,7 +1176,7 @@
 
         <!-- Accordion 3: Billing POS & Thermal Printer -->
         <div class="sett-acc-item" id="sett-acc-item-3">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(3)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="3">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">🧾</span>
               <span>Billing POS, GST &amp; Thermal Printer</span>
@@ -1224,10 +1208,10 @@
               </select>
             </div>
             <div style="display: flex; gap: 8px;">
-              <button type="button" class="sett-btn-secondary" style="flex: 1;" onclick="window.testThermalPrint()">
+              <button type="button" class="sett-btn-secondary" style="flex: 1;" data-click="testThermalPrint">
                 <span>🖨️ Test Thermal Slip</span>
               </button>
-              <button type="button" class="sett-btn-action" style="flex: 1;" onclick="window.saveSubsystemPreferences()">
+              <button type="button" class="sett-btn-action" style="flex: 1;" data-click="saveSubsystemPreferences">
                 <span>💾 Save POS Defaults</span>
               </button>
             </div>
@@ -1236,7 +1220,7 @@
 
         <!-- Accordion 4: Kitchen KDS & Audio Lanes -->
         <div class="sett-acc-item" id="sett-acc-item-4">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(4)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="4">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">🍳</span>
               <span>Kitchen Display (KDS) &amp; Chimes</span>
@@ -1260,7 +1244,7 @@
                 <option value="20">20 Minutes (Dine-in Full Prep)</option>
               </select>
             </div>
-            <button type="button" class="sett-btn-action" onclick="window.saveSubsystemPreferences()">
+            <button type="button" class="sett-btn-action" data-click="saveSubsystemPreferences">
               <span>💾 Save Kitchen Defaults</span>
             </button>
           </div>
@@ -1268,7 +1252,7 @@
 
         <!-- Accordion 5: Packaging & Token Numbers -->
         <div class="sett-acc-item" id="sett-acc-item-5">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(5)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="5">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">📦</span>
               <span>Packaging Station &amp; Tokens</span>
@@ -1292,7 +1276,7 @@
                 <div style="width: 16px; height: 16px; border-radius: 50%; background: #FFF; position: absolute; top: 2px; right: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
               </div>
             </div>
-            <button type="button" class="sett-btn-action" onclick="window.saveSubsystemPreferences()">
+            <button type="button" class="sett-btn-action" data-click="saveSubsystemPreferences">
               <span>💾 Save Packaging Defaults</span>
             </button>
           </div>
@@ -1300,7 +1284,7 @@
 
         <!-- Accordion 6: Offline Sync & Security -->
         <div class="sett-acc-item" id="sett-acc-item-6">
-          <div class="sett-acc-header" onclick="window.toggleAccordion(6)">
+          <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="6">
             <div class="sett-acc-title-group">
               <span class="sett-acc-icon">☁️</span>
               <span>Offline Database &amp; Cloud Telemetry</span>
@@ -1313,7 +1297,7 @@
                 <div style="font-size: 12px; font-weight: 800; color: #0F172A;">Phone Storage (IndexedDB)</div>
                 <div style="font-size: 11px; color: #15803D; font-weight: 700;">● Operational &bull; Zero Pending Mutations</div>
               </div>
-              <button type="button" class="sett-btn-action" style="height: 32px; padding: 0 12px; background: #059669;" onclick="window.forceCloudSync()">
+              <button type="button" class="sett-btn-action" style="height: 32px; padding: 0 12px; background: #059669;" data-click="forceCloudSync">
                 <span>Sync Now</span>
               </button>
             </div>
@@ -1329,7 +1313,7 @@
         </div>
 
         <!-- Exit & Sign Out -->
-        <button type="button" onclick="window.handleLogout ? window.handleLogout() : (localStorage.removeItem('frose_session_active'), window.location.href='/login')" style="width: 100%; height: 44px; border-radius: 12px; border: 1.5px solid #FECACA; background: #FFF5F5; color: #DC2626; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
+        <button type="button" data-click="logoutFallback" style="width: 100%; height: 44px; border-radius: 12px; border: 1.5px solid #FECACA; background: #FFF5F5; color: #DC2626; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
           <span>🚪 Sign Out of Counter Account</span>
         </button>
 
@@ -1344,7 +1328,7 @@
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #111827;">🔔 Stall Notifications</h3>
-        <button onclick="window.closeModal('notifications-modal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <button data-click="closeModal" data-arg="notifications-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
       </div>
       <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12.5px;">
         <div style="background: #F0FDF4; border: 1px solid #DCFCE7; padding: 10px; border-radius: 10px;">
@@ -1360,7 +1344,7 @@
           <div style="color: #4B5563; font-size: 11.5px;">Instant sound confirmation enabled.</div>
         </div>
       </div>
-      <button onclick="window.closeModal('notifications-modal')" style="width: 100%; height: 42px; margin-top: 14px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Dismiss</button>
+      <button data-click="closeModal" data-arg="notifications-modal" style="width: 100%; height: 42px; margin-top: 14px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Dismiss</button>
     </div>
   </div>
 
@@ -1379,66 +1363,6 @@
   <script type="module" src="/js/storage-adapter.js?v=7.0.0"></script>
   <script type="module" src="/js/app.js?v=7.0.0"></script>
   <script src="/js/ios-fast-nav.js?v=7.0.0" defer></script>
-  <script>
-    window.openModal = function(id) {
-      document.getElementById(id)?.classList.add('active');
-      document.body.classList.add('modal-open');
-      document.documentElement.classList.add('modal-open');
-    };
-    window.closeModal = function(id) {
-      document.getElementById(id)?.classList.remove('active');
-      const activeModals = document.querySelectorAll('.modal-overlay.active');
-      if (activeModals.length === 0) {
-        document.body.classList.remove('modal-open');
-        document.documentElement.classList.remove('modal-open');
-      }
-    };
-    window.switchTab = function(tab) {
-      document.querySelectorAll('.nav-tab-pill').forEach(btn => btn.classList.remove('active'));
-      event.target?.classList.add('active');
-      if (tab === 'inventory') {
-        window.location.href = '/menu-setup';
-      }
-    };
-    window.handleLogout = async function() {
-      if (confirm('Sign out of Stall Client session?')) {
-        try {
-          const fn = window.froseApiFetch || fetch;
-          await fn('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } });
-        } catch (e) {}
-        localStorage.removeItem('frose_session_active');
-        window.location.href = '/login.html';
-      }
-    };
-    window.toggleUserMenu = function(e) {
-      if (confirm('Stall Client Account: Switch stall or sign out?')) {
-        window.handleLogout();
-      }
-    };
-
-    // Load actual stall business name and populate Settings Profile modal
-    try {
-      const vStr = localStorage.getItem('frose_current_vendor');
-      if (vStr) {
-        const v = JSON.parse(vStr);
-        if (v.businessName) {
-          const el = document.getElementById('stall-owner-name');
-          if (el) el.textContent = v.businessName + '!';
-          const sStall = document.getElementById('settings-client-stall');
-          if (sStall) sStall.textContent = v.businessName;
-        }
-        if (v.ownerName) {
-          const sOwner = document.getElementById('settings-client-owner');
-          if (sOwner) sOwner.textContent = v.ownerName;
-          const sAvatar = document.getElementById('settings-client-avatar');
-          if (sAvatar) sAvatar.textContent = v.ownerName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-        }
-        if (v.phone) {
-          const sPhone = document.getElementById('settings-client-phone');
-          if (sPhone) sPhone.textContent = '+91 ' + v.phone;
-        }
-      }
-    } catch (e) {}
-  </script>
+  <script src="/js/index-page.js?v=1.0.0"></script>
 </body>
 </html>

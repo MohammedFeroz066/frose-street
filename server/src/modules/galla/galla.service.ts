@@ -3,8 +3,39 @@ import type { Database } from '../../db/types.js';
 import type { Expense, GallaSummary, DailySummary } from '../../../../shared/types/index.js';
 import { AppError } from '../../errors/app-error.js';
 import { WebSocketHub } from '../websocket/websocket.hub.js';
-import { getIstDateString } from '../../utils/ist-date.js';
+import { getIstDateString, normalizeDateColumnString } from '../../utils/ist-date.js';
 import { resolveOrderPaymentAmounts } from '../orders/order.service.js';
+
+const IST_OFFSET_MS = 19_800_000;
+
+export function formatPaiseToInr(paise: number | bigint | null | undefined): string {
+  const num = typeof paise === 'bigint' ? Number(paise) : Number(paise ?? 0);
+  if (!Number.isFinite(num)) return '0.00';
+  const rounded = Math.trunc(num);
+  const sign = rounded < 0 ? '-' : '';
+  const abs = Math.abs(rounded);
+  const rupees = Math.floor(abs / 100);
+  const remPaise = abs % 100;
+  return `${sign}${rupees}.${String(remPaise).padStart(2, '0')}`;
+}
+
+export function sanitizeCsvCell(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  let str = String(value);
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  if (/[",\n\r]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function getIstTimeString(dateInput: Date | string | number): string {
+  const date = new Date(dateInput);
+  if (Number.isNaN(date.getTime())) return '00:00:00';
+  return new Date(date.getTime() + IST_OFFSET_MS).toISOString().slice(11, 19);
+}
 
 export interface LogExpenseInput {
   amountPaise: number | bigint;
@@ -501,6 +532,117 @@ export class GallaService {
       topSellingItem: r.top_selling_item,
       createdAt: new Date(r.created_at).toISOString(),
     }));
+  }
+
+  /**
+   * Exports CA-ready GSTR-1 / Monthly Sales Register CSV for a vendor in IST date range
+   */
+  static async exportSalesCsv(
+    db: Kysely<Database>,
+    vendorId: string,
+    dateFrom: string,
+    dateTo: string,
+  ): Promise<string> {
+    const startUtc = new Date(`${dateFrom}T00:00:00.000+05:30`);
+    const endUtc = new Date(`${dateTo}T23:59:59.999+05:30`);
+
+    const rows = await db
+      .selectFrom('orders')
+      .selectAll()
+      .where('vendor_id', '=', vendorId)
+      .where('created_at', '>=', startUtc)
+      .where('created_at', '<=', endUtc)
+      .orderBy('created_at', 'asc')
+      .execute();
+
+    const header = [
+      'Receipt No',
+      'Token',
+      'Date IST',
+      'Time IST',
+      'Status',
+      'Tax Mode',
+      'Order Type',
+      'Customer/Notes',
+      'Subtotal INR',
+      'CGST INR',
+      'SGST INR',
+      'Total INR',
+      'Payment Mode',
+      'Cash INR',
+      'UPI INR',
+      'Cancel Reason',
+      'Edited At',
+    ].join(',');
+
+    const lines = rows.map((r) => {
+      const totalPaise = Number(r.total_paise || 0);
+      const subtotalPaise = r.subtotal_paise !== undefined && r.subtotal_paise !== null ? Number(r.subtotal_paise) : totalPaise;
+      const cgstPaise = Number(r.cgst_paise || 0);
+      const sgstPaise = Number(r.sgst_paise || 0);
+      const split = resolveOrderPaymentAmounts({
+        total_paise: totalPaise,
+        payment_method: r.payment_method,
+        cash_paise: r.cash_paise,
+        upi_paise: r.upi_paise,
+      });
+
+      const customerNotes = [r.customer_name, r.notes].filter(Boolean).join(' | ');
+      const createdIso = r.created_at ? new Date(r.created_at) : new Date();
+
+      return [
+        sanitizeCsvCell(r.receipt_number || ''),
+        sanitizeCsvCell(r.token_no),
+        sanitizeCsvCell(getIstDateString(createdIso)),
+        sanitizeCsvCell(getIstTimeString(createdIso)),
+        sanitizeCsvCell(r.order_status),
+        sanitizeCsvCell(r.tax_mode_snapshot || 'unregistered'),
+        sanitizeCsvCell(r.order_type || 'dinein'),
+        sanitizeCsvCell(customerNotes),
+        sanitizeCsvCell(formatPaiseToInr(subtotalPaise)),
+        sanitizeCsvCell(formatPaiseToInr(cgstPaise)),
+        sanitizeCsvCell(formatPaiseToInr(sgstPaise)),
+        sanitizeCsvCell(formatPaiseToInr(totalPaise)),
+        sanitizeCsvCell(r.payment_method),
+        sanitizeCsvCell(formatPaiseToInr(split.cashPaise)),
+        sanitizeCsvCell(formatPaiseToInr(split.upiPaise)),
+        sanitizeCsvCell(r.cancel_reason || ''),
+        sanitizeCsvCell(r.edited_at ? new Date(r.edited_at).toISOString() : ''),
+      ].join(',');
+    });
+
+    return [header, ...lines].join('\r\n');
+  }
+
+  /**
+   * Exports Daily Expenses & Cash-Out Register CSV for a vendor in IST date range
+   */
+  static async exportExpensesCsv(
+    db: Kysely<Database>,
+    vendorId: string,
+    dateFrom: string,
+    dateTo: string,
+  ): Promise<string> {
+    const rows = await db
+      .selectFrom('expenses')
+      .selectAll()
+      .where('vendor_id', '=', vendorId)
+      .where('expense_date', '>=', dateFrom)
+      .where('expense_date', '<=', dateTo)
+      .orderBy('expense_date', 'asc')
+      .orderBy('created_at', 'asc')
+      .execute();
+
+    const header = ['Date IST', 'Category', 'Description', 'Amount INR'].join(',');
+
+    const lines = rows.map((r) => [
+      sanitizeCsvCell(normalizeDateColumnString(r.expense_date)),
+      sanitizeCsvCell(r.category || 'general'),
+      sanitizeCsvCell(r.description),
+      sanitizeCsvCell(formatPaiseToInr(r.amount_paise)),
+    ].join(','));
+
+    return [header, ...lines].join('\r\n');
   }
 }
 

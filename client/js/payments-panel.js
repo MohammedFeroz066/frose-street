@@ -78,6 +78,34 @@
     renderLedger();
   }
 
+  async function downloadCsv(kind) {
+    var date = state.date || getTodayIst();
+    var endpoint = kind === 'expenses' ? '/api/v1/galla/export/expenses.csv' : '/api/v1/galla/export/sales.csv';
+    var url = endpoint + '?dateFrom=' + encodeURIComponent(date) + '&dateTo=' + encodeURIComponent(date);
+    var filename = 'frose-' + (kind === 'expenses' ? 'expenses' : 'sales') + '-' + date + '.csv';
+
+    try {
+      var fn = global.froseApiFetch || fetch;
+      var res = await fn(url, { credentials: 'same-origin' });
+      if (!res || !res.ok) {
+        toast('CSV export failed (' + (res ? res.status : 'network') + ')', 'danger');
+        return;
+      }
+      var blob = await res.blob();
+      var objectUrl = URL.createObjectURL(blob);
+      var a = global.document.createElement('a');
+      a.href = objectUrl;
+      a.download = filename;
+      global.document.body.appendChild(a);
+      a.click();
+      global.document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+      toast('Downloaded ' + filename, 'success');
+    } catch (_) {
+      toast('Network error exporting CSV', 'danger');
+    }
+  }
+
   function renderShell() {
     var root = global.document.getElementById('payments-panel-root');
     if (!root || !global.FroseSafeDom) return;
@@ -166,12 +194,26 @@
         ]),
         el('div', { style: 'display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;' }, [
           el('span', { style: 'font-size: 12.5px; color: var(--text-muted); font-weight: 700;' }, s.isDayClosed ? 'Day Closed — Z-Report saved' : 'Shift Open'),
-          el('button', {
-            type: 'button',
-            id: 'btn-open-close-day',
-            class: 'saas-btn saas-btn-slate',
-            on: { click: openCloseDayDrawer },
-          }, s.isDayClosed ? 'View / Update Z-Report' : 'Close Day / Z-Report'),
+          el('div', { style: 'display: flex; align-items: center; gap: 8px; flex-wrap: wrap;' }, [
+            el('button', {
+              type: 'button',
+              id: 'btn-export-sales-csv',
+              class: 'saas-btn saas-btn-secondary',
+              on: { click: function () { downloadCsv('sales'); } },
+            }, tr('payments.export_sales_csv', 'Export Sales CSV (CA / GST)')),
+            el('button', {
+              type: 'button',
+              id: 'btn-export-expenses-csv',
+              class: 'saas-btn saas-btn-secondary',
+              on: { click: function () { downloadCsv('expenses'); } },
+            }, tr('payments.export_expenses_csv', 'Export Expenses CSV')),
+            el('button', {
+              type: 'button',
+              id: 'btn-open-close-day',
+              class: 'saas-btn saas-btn-slate',
+              on: { click: openCloseDayDrawer },
+            }, s.isDayClosed ? tr('payments.view_z_report', 'View / Update Z-Report') : tr('payments.close_day', 'Close Day / Z-Report')),
+          ]),
         ]),
       ])
     );

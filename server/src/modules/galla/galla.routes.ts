@@ -5,6 +5,7 @@ import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
 import { withTenantContext } from '../../db/rls-context.js';
 import { AppError } from '../../errors/app-error.js';
+import { getIstDateString } from '../../utils/ist-date.js';
 
 const LogExpenseSchema = z.object({
   amountPaise: z.union([z.number(), z.bigint()]).optional(),
@@ -33,6 +34,27 @@ const PaginationQuerySchema = z.object({
   limit: z.string().regex(/^\d+$/).optional(),
   offset: z.string().regex(/^\d+$/).optional(),
 }).strict();
+
+const ExportDateRangeSchema = z.object({
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+}).strict();
+
+function resolveExportDateRange(query: { dateFrom?: string; dateTo?: string }): { dateFrom: string; dateTo: string } {
+  const today = getIstDateString();
+  const dateFrom = query.dateFrom || today;
+  const dateTo = query.dateTo || query.dateFrom || today;
+
+  const start = new Date(`${dateFrom}T00:00:00.000+05:30`);
+  const end = new Date(`${dateTo}T00:00:00.000+05:30`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    throw AppError.badRequest('Invalid IST date parameter', 'INVALID_DATE_FORMAT');
+  }
+  if (dateFrom > dateTo) {
+    throw AppError.badRequest('dateFrom cannot be after dateTo', 'INVALID_DATE_RANGE');
+  }
+  return { dateFrom, dateTo };
+}
 
 export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   /**
@@ -226,6 +248,48 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         status: 'success',
         summaries,
       });
+    },
+  );
+
+  /**
+   * GET /api/v1/galla/export/sales.csv
+   * CA-ready GSTR-1 / Monthly Sales Register CSV export (Owner & Cashier)
+   */
+  app.get(
+    '/export/sales.csv',
+    { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
+    async (request, reply) => {
+      const query = validateSchema(ExportDateRangeSchema, request.query || {});
+      const { dateFrom, dateTo } = resolveExportDateRange(query);
+
+      const csv = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.exportSalesCsv(db, request.user!.sub, dateFrom, dateTo),
+      );
+
+      reply.header('Content-Type', 'text/csv; charset=utf-8');
+      reply.header('Content-Disposition', `attachment; filename="frose-sales-${dateTo}.csv"`);
+      return reply.status(200).send(csv);
+    },
+  );
+
+  /**
+   * GET /api/v1/galla/export/expenses.csv
+   * Daily Expenses & Cash-Out Register CSV export (Owner & Cashier)
+   */
+  app.get(
+    '/export/expenses.csv',
+    { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
+    async (request, reply) => {
+      const query = validateSchema(ExportDateRangeSchema, request.query || {});
+      const { dateFrom, dateTo } = resolveExportDateRange(query);
+
+      const csv = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.exportExpensesCsv(db, request.user!.sub, dateFrom, dateTo),
+      );
+
+      reply.header('Content-Type', 'text/csv; charset=utf-8');
+      reply.header('Content-Disposition', `attachment; filename="frose-expenses-${dateTo}.csv"`);
+      return reply.status(200).send(csv);
     },
   );
 };

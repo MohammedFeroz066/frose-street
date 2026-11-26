@@ -1,33 +1,111 @@
-import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
+import { z } from 'zod';
 import { WebSocketHub, ConnectedClient } from './websocket.hub.js';
-import { verifyJwt } from '../auth/jwt.js';
 import { requireAuth } from '../../middleware/auth.js';
-import { loadConfig } from '../../config/env.js';
+import { isOriginAllowed, loadConfig, type EnvironmentConfig } from '../../config/env.js';
+import { AppError } from '../../errors/app-error.js';
+import { verifyJoseAccessToken, getJwtKeyRotationConfig } from '../auth/jwt-jose.js';
+import { getSessionCookieNames, readAccessTokenCookie } from '../auth/session-cookies.js';
 
-import { readAccessTokenCookie } from '../auth/session-cookies.js';
+const WsQuerySchema = z.object({}).strict();
 
-export const handleWsConnection = (connection: any, req: any) => {
-  const config = loadConfig();
-  const socket = connection.socket;
-  const query = req.query as any;
-
-  // 1. Extract authentication token
-  let token = query?.token;
-  if (!token) {
-    token = readAccessTokenCookie(req.cookies, config.NODE_ENV);
+function resolveJwtConfig(config: EnvironmentConfig) {
+  try {
+    return getJwtKeyRotationConfig(config);
+  } catch {
+    return {
+      currentSecret: config.JWT_SECRET || 'dev-fallback-secret-at-least-32-chars-long-2026',
+      currentKid: 'k1',
+    };
   }
-  if (!token && req.headers?.authorization) {
-    const parts = req.headers.authorization.split(' ');
-    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
-      token = parts[1];
+}
+
+function parseCookieHeaderValue(cookieHeader: string | undefined, cookieName: string): string | undefined {
+  if (!cookieHeader) return undefined;
+  for (const part of cookieHeader.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    const name = part.slice(0, idx).trim();
+    if (name === cookieName) {
+      return decodeURIComponent(part.slice(idx + 1).trim());
     }
   }
+  return undefined;
+}
+
+function validateOriginAndQuery(req: FastifyRequest, config: EnvironmentConfig): void {
+  const originHeader = typeof req.headers.origin === 'string' ? req.headers.origin : undefined;
+
+  if (config.NODE_ENV === 'production') {
+    if (!originHeader || !isOriginAllowed(originHeader, config)) {
+      throw AppError.forbidden('WebSocket upgrade rejected: Untrusted or missing Origin', 'WS_ORIGIN_FORBIDDEN');
+    }
+  } else if (originHeader && !isOriginAllowed(originHeader, config)) {
+    throw AppError.forbidden('WebSocket upgrade rejected: Untrusted Origin', 'WS_ORIGIN_FORBIDDEN');
+  }
+
+  const queryCheck = WsQuerySchema.safeParse(req.query || {});
+  if (!queryCheck.success || (req.url && req.url.includes('token='))) {
+    throw AppError.unauthorized(
+      'WebSocket query string authentication (?token=) is disabled; use HttpOnly session cookie',
+      'WS_QUERY_TOKEN_REJECTED',
+    );
+  }
+}
+
+export const verifyWsUpgrade = async (request: FastifyRequest, _reply: FastifyReply) => {
+  const config = request.server.froseConfig || loadConfig();
+  validateOriginAndQuery(request, config);
+};
+
+export const handleWsConnection = (connection: any, req: FastifyRequest) => {
+  const config = req.server?.froseConfig || loadConfig();
+  const socket = connection.socket;
+
+  // Enforce <= 5s handshake authentication ceiling
+  const handshakeTimer = setTimeout(() => {
+    try {
+      socket.close(1008, 'WebSocket authentication handshake timeout');
+    } catch {
+      // Ignore close error on already-closed socket
+    }
+  }, 5000);
 
   let client: ConnectedClient | null = null;
 
-  const authenticateAndRegister = (jwtToken: string) => {
+  const rejectAndClose = (reason: string) => {
+    clearTimeout(handshakeTimer);
     try {
-      const userPayload = verifyJwt(jwtToken, config.JWT_SECRET);
+      socket.close(1008, reason);
+    } catch {
+      // Ignore close error
+    }
+  };
+
+  try {
+    validateOriginAndQuery(req, config);
+  } catch (err: any) {
+    rejectAndClose(err?.message || 'WebSocket connection rejected');
+    return;
+  }
+
+  const cookieNames = getSessionCookieNames(config.NODE_ENV);
+  const accessToken =
+    readAccessTokenCookie(req.cookies, config.NODE_ENV) ||
+    parseCookieHeaderValue(req.headers.cookie, cookieNames.access);
+
+  if (!accessToken) {
+    rejectAndClose('Authentication required via HttpOnly session cookie');
+    return;
+  }
+
+  const jwtConfig = resolveJwtConfig(config);
+  let authenticated = false;
+
+  void verifyJoseAccessToken(accessToken, jwtConfig)
+    .then((userPayload) => {
+      clearTimeout(handshakeTimer);
+      authenticated = true;
       client = {
         socket,
         vendorId: userPayload.sub,
@@ -44,41 +122,23 @@ export const handleWsConnection = (connection: any, req: any) => {
           timestamp: new Date().toISOString(),
         }),
       );
-      return true;
-    } catch (err: any) {
-      socket.send(
-        JSON.stringify({
-          event: 'error',
-          data: { code: 'INVALID_TOKEN', message: err.message || 'Invalid or expired session token' },
-          timestamp: new Date().toISOString(),
-        }),
-      );
-      return false;
-    }
-  };
+    })
+    .catch(() => {
+      rejectAndClose('Invalid or expired session token');
+    });
 
-  if (token) {
-    authenticateAndRegister(token);
-  } else {
-    // Allow unauthenticated connection to wait for auth message frame
-    socket.send(
-      JSON.stringify({
-        event: 'auth:required',
-        data: { message: 'Provide token via ?token=... or send { event: "auth", token }' },
-        timestamp: new Date().toISOString(),
-      }),
-    );
-  }
+  socket.on('close', () => {
+    clearTimeout(handshakeTimer);
+  });
 
-  // 4. Handle client messages (e.g. heartbeat ping/pong, dynamic auth)
+  // Handle authenticated client heartbeat ping/pong only
   socket.on('message', (rawMessage: any) => {
+    if (!authenticated || !client) return;
     try {
       const parsed = JSON.parse(rawMessage.toString());
       if (parsed.event === 'ping') {
-        if (client) client.lastPing = Date.now();
+        client.lastPing = Date.now();
         socket.send(JSON.stringify({ event: 'pong', data: { time: Date.now() } }));
-      } else if (parsed.event === 'auth' && parsed.token) {
-        authenticateAndRegister(parsed.token);
       }
     } catch {
       // Ignore unparseable frames
@@ -97,17 +157,19 @@ export const httpWsFallback = async (_request: any, reply: any) => {
 export const websocketRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   /**
    * WebSocket Connection Endpoints: / and /ws
-   * Connects Billing Counter, Kitchen Display, and Packaging Station
+   * Connects Billing Counter, Kitchen Display, and Packaging Station via HttpOnly cookies
    */
   app.route({
     method: 'GET',
     url: '/',
+    preValidation: [verifyWsUpgrade],
     wsHandler: handleWsConnection,
     handler: httpWsFallback,
   });
   app.route({
     method: 'GET',
     url: '/ws',
+    preValidation: [verifyWsUpgrade],
     wsHandler: handleWsConnection,
     handler: httpWsFallback,
   });

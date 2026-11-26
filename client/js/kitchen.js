@@ -413,9 +413,8 @@
   function initWebSocket() {
     if (reconnectTimer) clearTimeout(reconnectTimer);
 
-    const token = localStorage.getItem('frose_device_token') || '';
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
 
     try {
       wsConnection = new WebSocket(wsUrl);

@@ -15,7 +15,7 @@ import { authRoutes } from './modules/auth/auth.routes.js';
 import { deviceRoutes } from './modules/devices/device.routes.js';
 import { menuRoutes } from './modules/menu/menu.routes.js';
 import { orderRoutes } from './modules/orders/order.routes.js';
-import { websocketRoutes, handleWsConnection, httpWsFallback } from './modules/websocket/websocket.routes.js';
+import { websocketRoutes, handleWsConnection, httpWsFallback, verifyWsUpgrade } from './modules/websocket/websocket.routes.js';
 import { gallaRoutes } from './modules/galla/galla.routes.js';
 import { paymentRoutes } from './modules/payments/payment.routes.js';
 import { subscriptionRoutes } from './modules/subscriptions/subscription.routes.js';
@@ -283,6 +283,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.route({
     method: 'GET',
     url: '/ws',
+    preValidation: [verifyWsUpgrade],
     wsHandler: handleWsConnection,
     handler: httpWsFallback,
   });

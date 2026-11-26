@@ -1,8 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { SubscriptionService } from './subscription.service.js';
+import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
-import { AppError } from '../../errors/app-error.js';
 import { getDatabase } from '../../db/database.js';
 
 const RenewSubscriptionSchema = z.object({
@@ -19,21 +19,9 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    * GET /api/v1/subscriptions/status
    * Returns current subscription status, days left, grace period, and signed token.
    */
-  app.get('/status', async (req, reply) => {
+  app.get('/status', { preHandler: [requireAuth] }, async (req, reply) => {
     const db = getDatabase();
-    let vendorId = req.user?.sub;
-
-    // Fallback: If not authenticated in local/test environment, take first vendor from DB
-    if (!vendorId) {
-      const firstVendor = await db.selectFrom('vendors').select('id').limit(1).executeTakeFirst();
-      vendorId = firstVendor?.id;
-    }
-
-    if (!vendorId) {
-      throw AppError.unauthorized('Authentication required to check subscription status');
-    }
-
-    const status = await SubscriptionService.getSubscriptionStatus(db, vendorId);
+    const status = await SubscriptionService.getSubscriptionStatus(db, req.user!.sub);
     return reply.status(200).send(status);
   });
 
@@ -41,24 +29,13 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    * POST /api/v1/subscriptions/renew
    * Renews or upgrades subscription plan via UPI
    */
-  app.post('/renew', async (req, reply) => {
+  app.post('/renew', { preHandler: [requireAuth, requireRole('owner', 'cashier')] }, async (req, reply) => {
     const db = getDatabase();
-    let vendorId = req.user?.sub;
-
-    if (!vendorId) {
-      const firstVendor = await db.selectFrom('vendors').select('id').limit(1).executeTakeFirst();
-      vendorId = firstVendor?.id;
-    }
-
-    if (!vendorId) {
-      throw AppError.unauthorized('Authentication required to renew subscription');
-    }
-
     const { plan, paymentReference } = validateSchema(RenewSubscriptionSchema, req.body);
 
     const result = await SubscriptionService.renewSubscription(
       db,
-      vendorId,
+      req.user!.sub,
       plan,
       paymentReference || 'UPI-' + Date.now()
     );
@@ -94,7 +71,7 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    * GET /api/v1/subscriptions/admin/vendors
    * Super-Admin endpoint: lists all vendors with subscription metrics and revenue
    */
-  app.get('/admin/vendors', async (_req, reply) => {
+  app.get('/admin/vendors', { preHandler: [requireAuth, requireRole('superadmin')] }, async (_req, reply) => {
     const db = getDatabase();
     const adminData = await SubscriptionService.getAdminVendorsList(db);
     return reply.status(200).send(adminData);

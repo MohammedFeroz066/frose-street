@@ -424,15 +424,31 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     expect(typeof firstVendor?.totalRevenueRupees).toBe('number');
   });
 
-  it('12. Endpoints: GET /status, POST /renew, POST /verify-token, GET /admin/vendors respond with HTTP 200', async () => {
+  it('12. Endpoints: GET /status, POST /renew, POST /verify-token, GET /admin/vendors enforce auth/role and respond 200 when authorized', async () => {
+    const { signJoseAccessToken } = await import('../../server/src/modules/auth/jwt-jose.js');
+    const { DEFAULT_DEV_JWT_SECRET } = await import('../../server/src/config/env.js');
+    const jwtCfg = { currentSecret: process.env.JWT_SECRET || DEFAULT_DEV_JWT_SECRET, currentKid: 'k1' };
+
+    const ownerToken = await signJoseAccessToken(
+      { sub: 'vendor-test-01', phone: '9876543210', businessName: 'Tibetan Momo Point', role: 'owner', edition: 'cloud' },
+      jwtCfg,
+      900,
+    );
+    const adminToken = await signJoseAccessToken(
+      { sub: 'vendor-test-01', phone: '9876543210', businessName: 'Platform Admin', role: 'superadmin', edition: 'cloud' },
+      jwtCfg,
+      900,
+    );
+
     // 1. GET /status
     const statusRes = await app.inject({
       method: 'GET',
       url: '/api/v1/subscriptions/status',
+      headers: { authorization: `Bearer ${ownerToken}` },
     });
     expect(statusRes.statusCode).toBe(200);
     const statusBody = JSON.parse(statusRes.body);
-    expect(statusBody.vendorId).toBeDefined();
+    expect(statusBody.vendorId).toBe('vendor-test-01');
     expect(statusBody.licenseToken).toBeDefined();
 
     // 2. POST /verify-token
@@ -449,21 +465,19 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     const renewRes = await app.inject({
       method: 'POST',
       url: '/api/v1/subscriptions/renew',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${ownerToken}` },
       payload: JSON.stringify({ plan: 'cloud', paymentReference: 'UPI-INJECT-TEST' }),
     });
-    if (renewRes.statusCode !== 200) {
-      console.log('RENEW ERROR BODY:', renewRes.body);
-    }
     expect(renewRes.statusCode).toBe(200);
     const renewBody = JSON.parse(renewRes.body);
     expect(renewBody.ok).toBe(true);
     expect(renewBody.amountRupees).toBe(1499);
 
-    // 4. GET /admin/vendors
+    // 4. GET /admin/vendors requires superadmin
     const adminRes = await app.inject({
       method: 'GET',
       url: '/api/v1/subscriptions/admin/vendors',
+      headers: { authorization: `Bearer ${adminToken}` },
     });
     expect(adminRes.statusCode).toBe(200);
     const adminBody = JSON.parse(adminRes.body);

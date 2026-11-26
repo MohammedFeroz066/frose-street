@@ -180,6 +180,7 @@ export class MenuService {
       .selectFrom('menu_items')
       .selectAll()
       .where('id', '=', itemId)
+      .where('vendor_id', '=', vendorId)
       .executeTakeFirstOrThrow();
 
     return {

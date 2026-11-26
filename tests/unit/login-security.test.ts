@@ -206,11 +206,13 @@ describe('Login Security & Lockout System Tests', () => {
       expect(loginHtml).toContain('icon-eye-show');
       expect(loginHtml).toContain('icon-eye-hide');
 
-      // Lockout countdown timer script present
-      expect(loginHtml).toContain('startLockoutCountdown');
-      expect(loginHtml).toContain('Account locked');
-      expect(loginHtml).toContain('Account does not exist with this mobile number');
-      expect(loginHtml).toContain('Password incorrect');
+      // Lockout countdown timer script present (extracted to external script for strict CSP)
+      expect(loginHtml).toContain('/js/login-page.js');
+      const loginJs = fs.readFileSync(path.resolve('client/js/login-page.js'), 'utf8');
+      expect(loginJs).toContain('startLockoutCountdown');
+      expect(loginJs).toContain('Account locked');
+      expect(loginJs).toContain('Account does not exist with this mobile number');
+      expect(loginJs).toContain('Password incorrect');
     });
 
     it('index.html top nav and footer do not expose PIN trigger buttons', () => {

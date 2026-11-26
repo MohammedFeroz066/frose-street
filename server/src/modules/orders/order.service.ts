@@ -11,16 +11,20 @@ import {
   formatReceiptNumber,
 } from '../../utils/ist-date.js';
 import { calculateOrderTax, type VendorTaxMode } from '../../utils/tax-calculator.js';
+import { parseVariantsJson } from '../menu/menu.service.js';
 
 export interface CreateOrderItemInput {
   menuItemId: string;
   quantity: number;
   notes?: string;
+  variantName?: string;
 }
 
 export interface CreateOrderInput {
   items: CreateOrderItemInput[];
   paymentMethod: 'cash' | 'upi' | 'split';
+  cashPaise?: number;
+  upiPaise?: number;
   paymentStatus?: 'paid' | 'pending';
   customerName?: string;
   customerPhone?: string;
@@ -30,7 +34,62 @@ export interface CreateOrderInput {
   createdAtClient?: string;
 }
 
+export interface UpdateOrderInput {
+  items: CreateOrderItemInput[];
+  paymentMethod?: 'cash' | 'upi' | 'split';
+  cashPaise?: number;
+  upiPaise?: number;
+  notes?: string | null;
+  editNote?: string;
+}
+
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
+
+export function resolveOrderPaymentAmounts(order: {
+  total_paise: unknown;
+  payment_method: string;
+  cash_paise?: unknown;
+  upi_paise?: unknown;
+}): { cashPaise: number; upiPaise: number } {
+  const total = Number(order.total_paise || 0);
+  const cash = Number(order.cash_paise ?? 0);
+  const upi = Number(order.upi_paise ?? 0);
+  if (cash === 0 && upi === 0 && total > 0) {
+    if (order.payment_method === 'cash') return { cashPaise: total, upiPaise: 0 };
+    if (order.payment_method === 'upi') return { cashPaise: 0, upiPaise: total };
+  }
+  return { cashPaise: cash, upiPaise: upi };
+}
+
+function resolveSplitPaymentAmounts(
+  paymentMethod: 'cash' | 'upi' | 'split',
+  totalPaise: number,
+  cashPaise?: number,
+  upiPaise?: number,
+): { cashPaise: number; upiPaise: number } {
+  if (paymentMethod === 'cash') {
+    return { cashPaise: totalPaise, upiPaise: 0 };
+  }
+  if (paymentMethod === 'upi') {
+    return { cashPaise: 0, upiPaise: totalPaise };
+  }
+  if (
+    typeof cashPaise !== 'number' ||
+    typeof upiPaise !== 'number' ||
+    !Number.isSafeInteger(cashPaise) ||
+    !Number.isSafeInteger(upiPaise) ||
+    cashPaise < 0 ||
+    upiPaise < 0 ||
+    cashPaise + upiPaise !== totalPaise ||
+    (cashPaise === 0 && upiPaise === 0)
+  ) {
+    throw AppError.badRequest(
+      'Split payment requires non-negative integer cashPaise and upiPaise summing exactly to totalPaise',
+      'INVALID_SPLIT_PAYMENT',
+    );
+  }
+  return { cashPaise, upiPaise };
+}
 
 const DEFAULT_PRESET_ITEMS_MAP = new Map<string, any>([
   ['def-1', { id: 'def-1', name: 'Veg Steamed Momos', price_paise: 6000, is_available: true, is_active: true }],
@@ -91,6 +150,7 @@ export class OrderService {
           .where('order_id', '=', existingOrder.id)
           .execute();
 
+        const existingPayment = resolveOrderPaymentAmounts(existingOrder);
         return {
           id: existingOrder.id,
           vendorId: existingOrder.vendor_id,
@@ -102,9 +162,13 @@ export class OrderService {
           sgstPaise: Number(existingOrder.sgst_paise ?? 0),
           taxModeSnapshot: (existingOrder.tax_mode_snapshot as VendorTaxMode) || 'unregistered',
           cancelReason: existingOrder.cancel_reason ?? null,
+          editedAt: existingOrder.edited_at ?? null,
+          editNote: existingOrder.edit_note ?? null,
           totalPaise: Number(existingOrder.total_paise),
           totalRupees: Number(existingOrder.total_paise) / 100,
           paymentMethod: existingOrder.payment_method,
+          cashPaise: existingPayment.cashPaise,
+          upiPaise: existingPayment.upiPaise,
           paymentStatus: existingOrder.payment_status,
           orderStatus: existingOrder.order_status,
           customerName: existingOrder.customer_name,
@@ -174,60 +238,7 @@ export class OrderService {
     }
 
     // 2. Validate menu items and compute integer paise totals
-    const itemIds = input.items.map((i) => i.menuItemId);
-    const menuItems = await db
-      .selectFrom('menu_items')
-      .selectAll()
-      .where('vendor_id', '=', vendorId)
-      .where('id', 'in', itemIds)
-      .where('is_active', '=', true)
-      .execute();
-
-    const menuItemsMap = new Map(menuItems.map((m) => [m.id, m]));
-
-    let subtotalPaise = 0;
-    const computedLineItems: {
-      menuItemId: string;
-      itemName: string;
-      quantity: number;
-      unitPricePaise: number;
-      lineTotalPaise: number;
-      notes: string | null;
-    }[] = [];
-
-    for (const itemInput of input.items) {
-      if (!itemInput.quantity || !Number.isInteger(itemInput.quantity) || itemInput.quantity <= 0) {
-        throw AppError.badRequest(`Invalid quantity for item ${itemInput.menuItemId}`, 'INVALID_QUANTITY');
-      }
-
-      let menuItem = menuItemsMap.get(itemInput.menuItemId);
-      if (!menuItem && DEFAULT_PRESET_ITEMS_MAP.has(itemInput.menuItemId)) {
-        menuItem = DEFAULT_PRESET_ITEMS_MAP.get(itemInput.menuItemId);
-      }
-      if (!menuItem) {
-        throw AppError.badRequest(`Menu item "${itemInput.menuItemId}" does not exist in stall menu`, 'ITEM_NOT_FOUND');
-      }
-
-      if (!menuItem.is_available) {
-        throw AppError.badRequest(
-          `Item "${menuItem.name}" is currently marked out of stock and cannot be ordered`,
-          'ITEM_OUT_OF_STOCK',
-        );
-      }
-
-      const unitPricePaise = Number(menuItem.price_paise);
-      const lineTotalPaise = unitPricePaise * itemInput.quantity;
-      subtotalPaise += lineTotalPaise;
-
-      computedLineItems.push({
-        menuItemId: menuItem.id,
-        itemName: menuItem.name,
-        quantity: itemInput.quantity,
-        unitPricePaise,
-        lineTotalPaise,
-        notes: itemInput.notes?.trim() || null,
-      });
-    }
+    const { subtotalPaise, computedLineItems } = await this.resolveLineItems(db, vendorId, input.items);
 
     // 2b. Compute integer-paise tax breakdown from vendor's tax profile
     const vendorTaxMode: VendorTaxMode =
@@ -239,6 +250,13 @@ export class OrderService {
       taxMode: vendorTaxMode,
       gstRateBps: vendorGstRateBps,
     });
+
+    const splitAmounts = resolveSplitPaymentAmounts(
+      input.paymentMethod,
+      taxBreakdown.totalPaise,
+      input.cashPaise,
+      input.upiPaise,
+    );
 
     // 2c. Generate sequential Indian Financial Year receipt number atomically (under vendor FOR UPDATE lock)
     const fyCode = getIndianFinancialYearCode(new Date());
@@ -292,6 +310,8 @@ export class OrderService {
         customer_phone: input.customerPhone?.replace(/\D/g, '') || null,
         total_paise: BigInt(taxBreakdown.totalPaise),
         payment_method: input.paymentMethod,
+        cash_paise: splitAmounts.cashPaise,
+        upi_paise: splitAmounts.upiPaise,
         payment_status: paymentStatus,
         order_status: initialStatus,
         notes: input.notes?.trim() || null,
@@ -342,9 +362,13 @@ export class OrderService {
       taxModeSnapshot: (order.tax_mode_snapshot as VendorTaxMode) || taxBreakdown.taxMode,
       gstRateBps: taxBreakdown.gstRateBps,
       cancelReason: order.cancel_reason ?? null,
+      editedAt: order.edited_at ?? null,
+      editNote: order.edit_note ?? null,
       totalPaise: Number(order.total_paise),
       totalRupees: Number(order.total_paise) / 100,
       paymentMethod: order.payment_method,
+      cashPaise: Number(order.cash_paise ?? splitAmounts.cashPaise),
+      upiPaise: Number(order.upi_paise ?? splitAmounts.upiPaise),
       paymentStatus: order.payment_status,
       orderStatus: order.order_status,
       customerName: order.customer_name,
@@ -361,6 +385,257 @@ export class OrderService {
     WebSocketHub.broadcast(vendorId, 'order:new', createdOrder);
 
     return createdOrder;
+  }
+
+  private static async resolveLineItems(
+    db: Kysely<Database>,
+    vendorId: string,
+    items: CreateOrderItemInput[],
+    allowUnavailableIds?: Set<string>,
+  ) {
+    const itemIds = items.map((i) => i.menuItemId);
+    const menuItems = await db
+      .selectFrom('menu_items')
+      .selectAll()
+      .where('vendor_id', '=', vendorId)
+      .where('id', 'in', itemIds)
+      .where('is_active', '=', true)
+      .execute();
+
+    const menuItemsMap = new Map(menuItems.map((m) => [m.id, m]));
+
+    let subtotalPaise = 0;
+    const computedLineItems: {
+      menuItemId: string;
+      itemName: string;
+      quantity: number;
+      unitPricePaise: number;
+      lineTotalPaise: number;
+      notes: string | null;
+    }[] = [];
+
+    for (const itemInput of items) {
+      if (!itemInput.quantity || !Number.isInteger(itemInput.quantity) || itemInput.quantity <= 0) {
+        throw AppError.badRequest(`Invalid quantity for item ${itemInput.menuItemId}`, 'INVALID_QUANTITY');
+      }
+
+      let menuItem = menuItemsMap.get(itemInput.menuItemId);
+      if (!menuItem && DEFAULT_PRESET_ITEMS_MAP.has(itemInput.menuItemId)) {
+        menuItem = DEFAULT_PRESET_ITEMS_MAP.get(itemInput.menuItemId);
+      }
+      if (!menuItem) {
+        throw AppError.badRequest(`Menu item "${itemInput.menuItemId}" does not exist in stall menu`, 'ITEM_NOT_FOUND');
+      }
+
+      if (!menuItem.is_available && !allowUnavailableIds?.has(menuItem.id)) {
+        throw AppError.badRequest(
+          `Item "${menuItem.name}" is currently marked out of stock and cannot be ordered`,
+          'ITEM_OUT_OF_STOCK',
+        );
+      }
+
+      let unitPricePaise = Number(menuItem.price_paise);
+      let itemName = menuItem.name;
+
+      if (itemInput.variantName && itemInput.variantName.trim().length > 0) {
+        const variants = parseVariantsJson((menuItem as any).variants_json);
+        const target = itemInput.variantName.trim().toLowerCase();
+        const matchedVariant = variants?.find((v) => v.name.toLowerCase() === target);
+        if (!matchedVariant) {
+          throw AppError.badRequest(
+            `Variant "${itemInput.variantName}" is not available for "${menuItem.name}"`,
+            'INVALID_VARIANT',
+          );
+        }
+        unitPricePaise = matchedVariant.pricePaise;
+        itemName = `${menuItem.name} (${matchedVariant.name})`;
+      }
+
+      const lineTotalPaise = unitPricePaise * itemInput.quantity;
+      subtotalPaise += lineTotalPaise;
+
+      computedLineItems.push({
+        menuItemId: menuItem.id,
+        itemName,
+        quantity: itemInput.quantity,
+        unitPricePaise,
+        lineTotalPaise,
+        notes: itemInput.notes?.trim() || null,
+      });
+    }
+
+    return { subtotalPaise, computedLineItems };
+  }
+
+  /**
+   * Atomically updates items, notes, and split payment mode on a non-cancelled order
+   */
+  static async updateOrder(
+    db: Kysely<Database>,
+    vendorId: string,
+    orderId: string,
+    input: UpdateOrderInput,
+  ) {
+    if (!input.items || !Array.isArray(input.items) || input.items.length === 0) {
+      throw AppError.badRequest('Order must contain at least one menu item', 'EMPTY_ORDER');
+    }
+
+    const isRealPg = process.env.USE_MEMORY_DB !== 'true' && typeof (db as any)?.getExecutor === 'function';
+    let order: any;
+    let vendor: any;
+
+    if (isRealPg) {
+      const ordRes = await sql<any>`
+        SELECT * FROM orders WHERE id = ${orderId} AND vendor_id = ${vendorId} FOR UPDATE
+      `.execute(db);
+      order = ordRes.rows[0];
+      const vRes = await sql<any>`
+        SELECT * FROM vendors WHERE id = ${vendorId} FOR UPDATE
+      `.execute(db);
+      vendor = vRes.rows[0];
+    } else {
+      order = await db
+        .selectFrom('orders')
+        .selectAll()
+        .where('id', '=', orderId)
+        .where('vendor_id', '=', vendorId)
+        .executeTakeFirst();
+      vendor = await db
+        .selectFrom('vendors')
+        .selectAll()
+        .where('id', '=', vendorId)
+        .executeTakeFirst();
+    }
+
+    if (!order) {
+      throw AppError.notFound('Order not found', 'ORDER_NOT_FOUND');
+    }
+
+    if (order.order_status === 'cancelled') {
+      throw AppError.badRequest('Cancelled orders cannot be edited', 'ORDER_CANCELLED_UNEDITABLE');
+    }
+
+    const existingItems = await db
+      .selectFrom('order_items')
+      .selectAll()
+      .where('order_id', '=', order.id)
+      .execute();
+    const existingIds = new Set(existingItems.map((i) => i.menu_item_id));
+
+    const { subtotalPaise, computedLineItems } = await this.resolveLineItems(
+      db,
+      vendorId,
+      input.items,
+      existingIds,
+    );
+
+    const vendorTaxMode: VendorTaxMode =
+      vendor?.tax_mode === 'composition' || vendor?.tax_mode === 'regular' ? vendor.tax_mode : 'unregistered';
+    const vendorGstRateBps =
+      vendorTaxMode === 'regular' ? Number(vendor?.gst_rate_bps ?? 500) : 0;
+    const taxBreakdown = calculateOrderTax({
+      subtotalPaise,
+      taxMode: vendorTaxMode,
+      gstRateBps: vendorGstRateBps,
+    });
+
+    const nextPaymentMethod = (input.paymentMethod || order.payment_method || 'cash') as 'cash' | 'upi' | 'split';
+    const splitAmounts = resolveSplitPaymentAmounts(
+      nextPaymentMethod,
+      taxBreakdown.totalPaise,
+      input.cashPaise,
+      input.upiPaise,
+    );
+
+    const editedAt = new Date();
+    const editNote = input.editNote?.trim() || null;
+    const nextNotes = input.notes === undefined ? order.notes : (input.notes ? input.notes.trim() : null);
+
+    await db
+      .deleteFrom('order_items')
+      .where('order_id', '=', order.id)
+      .execute();
+
+    const updatedLineItems: any[] = [];
+    for (const line of computedLineItems) {
+      const inserted = await db
+        .insertInto('order_items')
+        .values({
+          order_id: order.id,
+          menu_item_id: line.menuItemId,
+          item_name: line.itemName,
+          quantity: line.quantity,
+          unit_price_paise: BigInt(line.unitPricePaise),
+          line_total_paise: BigInt(line.lineTotalPaise),
+          notes: line.notes,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      updatedLineItems.push({
+        id: inserted.id,
+        menuItemId: inserted.menu_item_id,
+        itemName: inserted.item_name,
+        quantity: inserted.quantity,
+        unitPricePaise: Number(inserted.unit_price_paise),
+        lineTotalPaise: Number(inserted.line_total_paise),
+        notes: inserted.notes,
+      });
+    }
+
+    await db
+      .updateTable('orders')
+      .set({
+        subtotal_paise: taxBreakdown.subtotalPaise,
+        cgst_paise: taxBreakdown.cgstPaise,
+        sgst_paise: taxBreakdown.sgstPaise,
+        tax_mode_snapshot: taxBreakdown.taxMode,
+        total_paise: BigInt(taxBreakdown.totalPaise),
+        payment_method: nextPaymentMethod,
+        cash_paise: splitAmounts.cashPaise,
+        upi_paise: splitAmounts.upiPaise,
+        notes: nextNotes,
+        edited_at: editedAt,
+        edit_note: editNote,
+        updated_at: editedAt,
+      })
+      .where('id', '=', order.id)
+      .where('vendor_id', '=', vendorId)
+      .execute();
+
+    const updatedOrder = {
+      id: order.id,
+      vendorId: order.vendor_id,
+      tokenNo: order.token_no,
+      tokenDisplay: `#${order.token_no}`,
+      receiptNumber: order.receipt_number ?? null,
+      subtotalPaise: taxBreakdown.subtotalPaise,
+      cgstPaise: taxBreakdown.cgstPaise,
+      sgstPaise: taxBreakdown.sgstPaise,
+      taxModeSnapshot: taxBreakdown.taxMode,
+      gstRateBps: taxBreakdown.gstRateBps,
+      cancelReason: order.cancel_reason ?? null,
+      editedAt: editedAt.toISOString(),
+      editNote,
+      totalPaise: taxBreakdown.totalPaise,
+      totalRupees: taxBreakdown.totalPaise / 100,
+      paymentMethod: nextPaymentMethod,
+      cashPaise: splitAmounts.cashPaise,
+      upiPaise: splitAmounts.upiPaise,
+      paymentStatus: order.payment_status,
+      orderStatus: order.order_status,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone,
+      notes: nextNotes,
+      source: order.source,
+      items: updatedLineItems,
+      createdAt: order.created_at,
+      updatedAt: editedAt.toISOString(),
+    };
+
+    WebSocketHub.broadcast(vendorId, 'order:updated', updatedOrder);
+
+    return updatedOrder;
   }
 
   /**
@@ -495,19 +770,26 @@ export class OrderService {
       });
     }
 
-    const formattedOrders = orders.map((o) => ({
-      id: o.id,
-      tokenNo: o.token_no,
-      tokenDisplay: `#${o.token_no}`,
-      totalPaise: Number(o.total_paise),
-      totalRupees: Number(o.total_paise) / 100,
-      paymentMethod: o.payment_method,
-      orderStatus: o.order_status,
-      customerName: o.customer_name,
-      notes: o.notes,
-      items: itemsByOrderId.get(o.id) || [],
-      createdAt: o.created_at,
-    }));
+    const formattedOrders = orders.map((o) => {
+      const pay = resolveOrderPaymentAmounts(o);
+      return {
+        id: o.id,
+        tokenNo: o.token_no,
+        tokenDisplay: `#${o.token_no}`,
+        totalPaise: Number(o.total_paise),
+        totalRupees: Number(o.total_paise) / 100,
+        paymentMethod: o.payment_method,
+        cashPaise: pay.cashPaise,
+        upiPaise: pay.upiPaise,
+        orderStatus: o.order_status,
+        customerName: o.customer_name,
+        notes: o.notes,
+        editedAt: o.edited_at ?? null,
+        editNote: o.edit_note ?? null,
+        items: itemsByOrderId.get(o.id) || [],
+        createdAt: o.created_at,
+      };
+    });
 
     return {
       kitchenQueue: formattedOrders.filter((o) => o.orderStatus === 'pending' || o.orderStatus === 'preparing'),
@@ -537,6 +819,7 @@ export class OrderService {
       .where('order_id', '=', order.id)
       .execute();
 
+    const pay = resolveOrderPaymentAmounts(order);
     return {
       id: order.id,
       vendorId: order.vendor_id,
@@ -548,9 +831,13 @@ export class OrderService {
       sgstPaise: Number(order.sgst_paise ?? 0),
       taxModeSnapshot: (order.tax_mode_snapshot as VendorTaxMode) || 'unregistered',
       cancelReason: order.cancel_reason ?? null,
+      editedAt: order.edited_at ?? null,
+      editNote: order.edit_note ?? null,
       totalPaise: Number(order.total_paise),
       totalRupees: Number(order.total_paise) / 100,
       paymentMethod: order.payment_method,
+      cashPaise: pay.cashPaise,
+      upiPaise: pay.upiPaise,
       paymentStatus: order.payment_status,
       orderStatus: order.order_status,
       customerName: order.customer_name,
@@ -572,12 +859,21 @@ export class OrderService {
   }
 
   /**
-   * Order history for the stall with optional date and status filters
+   * Order history for the stall with IST date range, status, paymentMode, search, pagination & totals
    */
   static async getOrderHistory(
     db: Kysely<Database>,
     vendorId: string,
-    options?: { limit?: number; offset?: number; status?: string; paymentMethod?: string },
+    options?: {
+      limit?: number;
+      offset?: number;
+      status?: string;
+      paymentMethod?: string;
+      paymentMode?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      search?: string;
+    },
   ) {
     let query = db
       .selectFrom('orders')
@@ -588,39 +884,123 @@ export class OrderService {
       query = query.where('order_status', '=', options.status as any);
     }
 
-    if (options?.paymentMethod) {
-      query = query.where('payment_method', '=', options.paymentMethod as any);
+    const modeFilter = options?.paymentMode || options?.paymentMethod;
+    if (modeFilter) {
+      query = query.where('payment_method', '=', modeFilter as any);
+    }
+
+    const rawOrders = await query
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    // Filter IST date range cleanly across both PG and in-memory DB
+    let filteredOrders = rawOrders;
+    if (options?.dateFrom || options?.dateTo) {
+      filteredOrders = filteredOrders.filter((o) => {
+        const istDate = getIstDateString(o.created_at);
+        if (options.dateFrom && istDate < options.dateFrom) return false;
+        if (options.dateTo && istDate > options.dateTo) return false;
+        return true;
+      });
+    }
+
+    // Fetch order items for search matching & line-item previews
+    const filteredIds = filteredOrders.map((o) => o.id);
+    const itemsByOrderId = new Map<string, any[]>();
+    if (filteredIds.length > 0) {
+      const orderItems = await db
+        .selectFrom('order_items')
+        .selectAll()
+        .where('order_id', 'in', filteredIds)
+        .execute();
+
+      for (const item of orderItems) {
+        if (!itemsByOrderId.has(item.order_id)) {
+          itemsByOrderId.set(item.order_id, []);
+        }
+        itemsByOrderId.get(item.order_id)!.push({
+          id: item.id,
+          menuItemId: item.menu_item_id,
+          itemName: item.item_name,
+          quantity: item.quantity,
+          unitPricePaise: Number(item.unit_price_paise),
+          lineTotalPaise: Number(item.line_total_paise),
+          notes: item.notes,
+        });
+      }
+    }
+
+    const rawSearch = options?.search?.trim().toLowerCase() || '';
+    if (rawSearch) {
+      const strippedHash = rawSearch.startsWith('#') ? rawSearch.slice(1) : rawSearch;
+      filteredOrders = filteredOrders.filter((o) => {
+        const tokenStr = String(o.token_no);
+        if (tokenStr === strippedHash || `#${tokenStr}` === rawSearch) return true;
+        if (o.receipt_number && String(o.receipt_number).toLowerCase().includes(rawSearch)) return true;
+        const orderItems = itemsByOrderId.get(o.id) || [];
+        return orderItems.some((it) => String(it.itemName || '').toLowerCase().includes(rawSearch));
+      });
+    }
+
+    let netSalesPaise = 0;
+    let cashPaise = 0;
+    let upiPaise = 0;
+    let orderCount = 0;
+    let voidCount = 0;
+
+    for (const o of filteredOrders) {
+      if (o.order_status === 'cancelled') {
+        voidCount++;
+        continue;
+      }
+      orderCount++;
+      netSalesPaise += Number(o.total_paise || 0);
+      const pay = resolveOrderPaymentAmounts(o);
+      cashPaise += pay.cashPaise;
+      upiPaise += pay.upiPaise;
     }
 
     const limit = Math.min(options?.limit || 50, 100);
     const offset = options?.offset || 0;
-
-    const orders = await query
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .offset(offset)
-      .execute();
+    const paged = filteredOrders.slice(offset, offset + limit);
 
     return {
-      count: orders.length,
-      orders: orders.map((o) => ({
-        id: o.id,
-        tokenNo: o.token_no,
-        tokenDisplay: `#${o.token_no}`,
-        receiptNumber: o.receipt_number ?? null,
-        subtotalPaise: Number(o.subtotal_paise ?? o.total_paise),
-        cgstPaise: Number(o.cgst_paise ?? 0),
-        sgstPaise: Number(o.sgst_paise ?? 0),
-        taxModeSnapshot: (o.tax_mode_snapshot as VendorTaxMode) || 'unregistered',
-        cancelReason: o.cancel_reason ?? null,
-        totalPaise: Number(o.total_paise),
-        totalRupees: Number(o.total_paise) / 100,
-        paymentMethod: o.payment_method,
-        paymentStatus: o.payment_status,
-        orderStatus: o.order_status,
-        customerName: o.customer_name,
-        createdAt: o.created_at,
-      })),
+      count: paged.length,
+      totalMatched: filteredOrders.length,
+      summary: {
+        netSalesPaise,
+        cashPaise,
+        upiPaise,
+        orderCount,
+        voidCount,
+      },
+      orders: paged.map((o) => {
+        const pay = resolveOrderPaymentAmounts(o);
+        return {
+          id: o.id,
+          tokenNo: o.token_no,
+          tokenDisplay: `#${o.token_no}`,
+          receiptNumber: o.receipt_number ?? null,
+          subtotalPaise: Number(o.subtotal_paise ?? o.total_paise),
+          cgstPaise: Number(o.cgst_paise ?? 0),
+          sgstPaise: Number(o.sgst_paise ?? 0),
+          taxModeSnapshot: (o.tax_mode_snapshot as VendorTaxMode) || 'unregistered',
+          cancelReason: o.cancel_reason ?? null,
+          editedAt: o.edited_at ?? null,
+          editNote: o.edit_note ?? null,
+          totalPaise: Number(o.total_paise),
+          totalRupees: Number(o.total_paise) / 100,
+          paymentMethod: o.payment_method,
+          cashPaise: pay.cashPaise,
+          upiPaise: pay.upiPaise,
+          paymentStatus: o.payment_status,
+          orderStatus: o.order_status,
+          customerName: o.customer_name,
+          notes: o.notes,
+          items: itemsByOrderId.get(o.id) || [],
+          createdAt: o.created_at,
+        };
+      }),
     };
   }
 }

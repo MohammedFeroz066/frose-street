@@ -5,13 +5,18 @@ import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
 import { withTenantContext } from '../../db/rls-context.js';
 
+const OrderItemInputSchema = z.object({
+  menuItemId: z.string().min(1),
+  quantity: z.number().int().positive(),
+  notes: z.string().max(300).optional(),
+  variantName: z.string().trim().min(1).max(60).optional(),
+}).strict();
+
 const CreateOrderSchema = z.object({
-  items: z.array(z.object({
-    menuItemId: z.string().min(1),
-    quantity: z.number().int().positive(),
-    notes: z.string().max(300).optional(),
-  }).strict()).min(1),
+  items: z.array(OrderItemInputSchema).min(1),
   paymentMethod: z.enum(['cash', 'upi', 'split']),
+  cashPaise: z.number().int().nonnegative().optional(),
+  upiPaise: z.number().int().nonnegative().optional(),
   paymentStatus: z.enum(['paid', 'pending']).optional(),
   customerName: z.string().max(100).optional(),
   customerPhone: z.string().max(20).optional(),
@@ -21,11 +26,25 @@ const CreateOrderSchema = z.object({
   createdAtClient: z.string().datetime().optional(),
 }).strict();
 
+const UpdateOrderSchema = z.object({
+  items: z.array(OrderItemInputSchema).min(1),
+  paymentMode: z.enum(['cash', 'upi', 'split']).optional(),
+  paymentMethod: z.enum(['cash', 'upi', 'split']).optional(),
+  cashPaise: z.number().int().nonnegative().optional(),
+  upiPaise: z.number().int().nonnegative().optional(),
+  notes: z.string().max(300).nullable().optional(),
+  editNote: z.string().trim().max(240).optional(),
+}).strict();
+
 const OrderHistoryQuerySchema = z.object({
   limit: z.string().regex(/^\d+$/).optional(),
   offset: z.string().regex(/^\d+$/).optional(),
   status: z.enum(['pending', 'preparing', 'ready', 'served', 'cancelled']).optional(),
   paymentMethod: z.enum(['cash', 'upi', 'split']).optional(),
+  paymentMode: z.enum(['cash', 'upi', 'split']).optional(),
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  search: z.string().trim().max(100).optional(),
 }).strict();
 
 const OrderIdParamSchema = z.object({ id: z.string().min(1).max(100) }).strict();
@@ -94,7 +113,10 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         limit: query.limit ? parseInt(query.limit, 10) : undefined,
         offset: query.offset ? parseInt(query.offset, 10) : undefined,
         status: query.status,
-        paymentMethod: query.paymentMethod,
+        paymentMode: query.paymentMode ?? query.paymentMethod,
+        dateFrom: query.dateFrom,
+        dateTo: query.dateTo,
+        search: query.search,
       }),
     );
 
@@ -103,6 +125,36 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       ...result,
     });
   });
+
+  /**
+   * PUT /api/v1/orders/:id
+   * Edits items, quantities, notes, or split payment mode on a non-cancelled order
+   */
+  app.put(
+    '/:id',
+    { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
+    async (request, reply) => {
+      const params = validateSchema(OrderIdParamSchema, request.params);
+      const body = validateSchema(UpdateOrderSchema, request.body);
+
+      const order = await withTenantContext(request.user!.sub, (db) =>
+        OrderService.updateOrder(db, request.user!.sub, params.id, {
+          items: body.items,
+          paymentMethod: body.paymentMode ?? body.paymentMethod,
+          cashPaise: body.cashPaise,
+          upiPaise: body.upiPaise,
+          notes: body.notes,
+          editNote: body.editNote,
+        }),
+      );
+
+      return reply.status(200).send({
+        status: 'success',
+        message: `Order #${order.tokenNo} updated successfully`,
+        order,
+      });
+    },
+  );
 
   /**
    * GET /api/v1/orders/:id

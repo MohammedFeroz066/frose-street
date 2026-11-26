@@ -4,6 +4,11 @@ import { AppError } from '../../errors/app-error.js';
 import { STREET_MENU_PRESETS } from './menu.presets.js';
 import { WebSocketHub } from '../websocket/websocket.hub.js';
 
+export interface MenuVariantInput {
+  name: string;
+  pricePaise: number;
+}
+
 export interface CreateMenuItemInput {
   name: string;
   pricePaise: number;
@@ -11,6 +16,8 @@ export interface CreateMenuItemInput {
   emojiIcon?: string;
   colorHex?: string;
   imageUrl?: string;
+  isVeg?: boolean;
+  variants?: MenuVariantInput[] | null;
   displayOrder?: number;
   isAvailable?: boolean;
 }
@@ -22,8 +29,77 @@ export interface UpdateMenuItemInput {
   emojiIcon?: string;
   colorHex?: string;
   imageUrl?: string;
+  isVeg?: boolean;
+  variants?: MenuVariantInput[] | null;
   displayOrder?: number;
   isAvailable?: boolean;
+}
+
+export function parseVariantsJson(raw: unknown): MenuVariantInput[] | null {
+  if (!raw) return null;
+  let parsed: unknown = raw;
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) return null;
+  const cleaned: MenuVariantInput[] = [];
+  for (const v of parsed) {
+    if (
+      v &&
+      typeof v === 'object' &&
+      typeof (v as any).name === 'string' &&
+      (v as any).name.trim().length > 0 &&
+      Number.isInteger(Number((v as any).pricePaise)) &&
+      Number((v as any).pricePaise) > 0
+    ) {
+      cleaned.push({
+        name: (v as any).name.trim().slice(0, 60),
+        pricePaise: Number((v as any).pricePaise),
+      });
+    }
+  }
+  return cleaned.length > 0 ? cleaned : null;
+}
+
+function normalizeVariantsInput(variants?: MenuVariantInput[] | null): MenuVariantInput[] | null {
+  if (variants === undefined || variants === null) return null;
+  if (!Array.isArray(variants) || variants.length === 0) return null;
+  const normalized: MenuVariantInput[] = [];
+  for (const v of variants) {
+    const name = typeof v?.name === 'string' ? v.name.trim() : '';
+    if (!name) {
+      throw AppError.badRequest('Variant name is required', 'INVALID_VARIANT');
+    }
+    if (typeof v.pricePaise !== 'number' || !Number.isInteger(v.pricePaise) || v.pricePaise <= 0) {
+      throw AppError.badRequest('Variant price must be a positive integer in paise', 'INVALID_PRICE_PAISE');
+    }
+    normalized.push({ name: name.slice(0, 60), pricePaise: v.pricePaise });
+  }
+  return normalized;
+}
+
+function formatMenuItem(item: any) {
+  return {
+    id: item.id,
+    vendorId: item.vendor_id,
+    name: item.name,
+    pricePaise: Number(item.price_paise),
+    priceRupees: Number(item.price_paise) / 100,
+    category: item.category || 'General',
+    emojiIcon: item.emoji_icon || '🍽️',
+    colorHex: item.color_hex || '#f59e0b',
+    imageUrl: item.image_url || null,
+    isVeg: item.is_veg !== false,
+    variants: parseVariantsJson(item.variants_json),
+    displayOrder: item.display_order,
+    isAvailable: item.is_available,
+    isActive: item.is_active,
+    createdAt: item.created_at,
+  };
 }
 
 export class MenuService {
@@ -43,21 +119,7 @@ export class MenuService {
 
     const items = await query.orderBy('display_order', 'asc').orderBy('created_at', 'asc').execute();
 
-    return items.map((item) => ({
-      id: item.id,
-      vendorId: item.vendor_id,
-      name: item.name,
-      pricePaise: Number(item.price_paise),
-      priceRupees: Number(item.price_paise) / 100,
-      category: item.category || 'General',
-      emojiIcon: item.emoji_icon || '🍽️',
-      colorHex: item.color_hex || '#f59e0b',
-      imageUrl: (item as any).image_url || null,
-      displayOrder: item.display_order,
-      isAvailable: item.is_available,
-      isActive: item.is_active,
-      createdAt: item.created_at,
-    }));
+    return items.map(formatMenuItem);
   }
 
   /**
@@ -78,6 +140,8 @@ export class MenuService {
         'INVALID_PRICE_PAISE',
       );
     }
+
+    const normalizedVariants = normalizeVariantsInput(input.variants);
 
     // Determine display order if not specified
     let displayOrder = input.displayOrder;
@@ -102,6 +166,8 @@ export class MenuService {
         emoji_icon: input.emojiIcon || '🍽️',
         color_hex: input.colorHex || '#f59e0b',
         image_url: input.imageUrl || null,
+        is_veg: input.isVeg !== false,
+        variants_json: normalizedVariants ? (JSON.stringify(normalizedVariants) as any) : null,
         display_order: displayOrder,
         is_available: input.isAvailable !== false,
         is_active: true,
@@ -109,21 +175,7 @@ export class MenuService {
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    return {
-      id: created.id,
-      vendorId: created.vendor_id,
-      name: created.name,
-      pricePaise: Number(created.price_paise),
-      priceRupees: Number(created.price_paise) / 100,
-      category: created.category,
-      emojiIcon: created.emoji_icon,
-      colorHex: created.color_hex,
-      imageUrl: (created as any).image_url || null,
-      displayOrder: created.display_order,
-      isAvailable: created.is_available,
-      isActive: created.is_active,
-      createdAt: created.created_at,
-    };
+    return formatMenuItem(created);
   }
 
   /**
@@ -166,15 +218,23 @@ export class MenuService {
     if (input.category !== undefined) updatePayload.category = input.category.trim();
     if (input.emojiIcon !== undefined) updatePayload.emoji_icon = input.emojiIcon;
     if (input.colorHex !== undefined) updatePayload.color_hex = input.colorHex;
+    if (input.imageUrl !== undefined) updatePayload.image_url = input.imageUrl || null;
+    if (input.isVeg !== undefined) updatePayload.is_veg = input.isVeg;
+    if (input.variants !== undefined) {
+      const normalizedVariants = normalizeVariantsInput(input.variants);
+      updatePayload.variants_json = normalizedVariants ? JSON.stringify(normalizedVariants) : null;
+    }
     if (input.displayOrder !== undefined) updatePayload.display_order = input.displayOrder;
     if (input.isAvailable !== undefined) updatePayload.is_available = input.isAvailable;
 
-    await db
-      .updateTable('menu_items')
-      .set(updatePayload)
-      .where('id', '=', itemId)
-      .where('vendor_id', '=', vendorId)
-      .execute();
+    if (Object.keys(updatePayload).length > 0) {
+      await db
+        .updateTable('menu_items')
+        .set(updatePayload)
+        .where('id', '=', itemId)
+        .where('vendor_id', '=', vendorId)
+        .execute();
+    }
 
     const updated = await db
       .selectFrom('menu_items')
@@ -183,20 +243,7 @@ export class MenuService {
       .where('vendor_id', '=', vendorId)
       .executeTakeFirstOrThrow();
 
-    return {
-      id: updated.id,
-      vendorId: updated.vendor_id,
-      name: updated.name,
-      pricePaise: Number(updated.price_paise),
-      priceRupees: Number(updated.price_paise) / 100,
-      category: updated.category,
-      emojiIcon: updated.emoji_icon,
-      colorHex: updated.color_hex,
-      imageUrl: (updated as any).image_url || null,
-      displayOrder: updated.display_order,
-      isAvailable: updated.is_available,
-      isActive: updated.is_active,
-    };
+    return formatMenuItem(updated);
   }
 
   /**

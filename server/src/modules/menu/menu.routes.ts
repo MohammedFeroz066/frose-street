@@ -13,6 +13,11 @@ const SeedPresetSchema = z.object({
   presetKey: z.string().min(1).max(80),
 }).strict();
 
+const MenuVariantSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  pricePaise: z.number().int().positive(),
+}).strict();
+
 const CreateMenuSchema = z.object({
   name: z.string().min(1).max(120),
   pricePaise: z.number(),
@@ -20,6 +25,8 @@ const CreateMenuSchema = z.object({
   emojiIcon: z.string().max(16).optional(),
   colorHex: z.string().max(20).optional(),
   imageUrl: z.string().max(500000).optional(),
+  isVeg: z.boolean().optional(),
+  variants: z.array(MenuVariantSchema).max(12).nullable().optional(),
   displayOrder: z.number().int().optional(),
   isAvailable: z.boolean().optional(),
 }).strict();

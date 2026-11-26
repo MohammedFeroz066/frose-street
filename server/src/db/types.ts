@@ -61,6 +61,11 @@ export interface BiometricCredentialsTable {
   created_at: Generated<Timestamp>;
 }
 
+export interface MenuVariant {
+  name: string;
+  pricePaise: number;
+}
+
 export interface MenuItemsTable {
   id: Generated<string>;
   vendor_id: string;
@@ -70,6 +75,8 @@ export interface MenuItemsTable {
   emoji_icon: string | null;
   color_hex: string | null;
   image_url?: string | null;
+  is_veg?: boolean;
+  variants_json?: MenuVariant[] | string | null;
   display_order: number;
   is_available: boolean;
   is_active: boolean;
@@ -84,6 +91,8 @@ export interface OrdersTable {
   customer_phone: string | null;
   total_paise: MoneyPaise;
   payment_method: 'cash' | 'upi' | 'split';
+  cash_paise?: number;
+  upi_paise?: number;
   payment_status: 'paid' | 'pending';
   order_status: 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
   notes: string | null;
@@ -96,6 +105,8 @@ export interface OrdersTable {
   sgst_paise?: number;
   tax_mode_snapshot?: 'unregistered' | 'composition' | 'regular';
   cancel_reason?: string | null;
+  edited_at?: Timestamp | null;
+  edit_note?: string | null;
   created_at: Generated<Timestamp>;
   updated_at: Generated<Timestamp>;
 }

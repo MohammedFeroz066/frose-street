@@ -4,6 +4,7 @@ import type { Expense, GallaSummary, DailySummary } from '../../../../shared/typ
 import { AppError } from '../../errors/app-error.js';
 import { WebSocketHub } from '../websocket/websocket.hub.js';
 import { getIstDateString } from '../../utils/ist-date.js';
+import { resolveOrderPaymentAmounts } from '../orders/order.service.js';
 
 export interface LogExpenseInput {
   amountPaise: number | bigint;
@@ -249,11 +250,9 @@ export class GallaService {
     for (const order of paidOrders) {
       const amount = Number(order.total_paise);
       totalSalesPaise += amount;
-      if (order.payment_method === 'cash') {
-        cashSalesPaise += amount;
-      } else if (order.payment_method === 'upi') {
-        upiSalesPaise += amount;
-      }
+      const pay = resolveOrderPaymentAmounts(order);
+      cashSalesPaise += pay.cashPaise;
+      upiSalesPaise += pay.upiPaise;
     }
 
     // 2. Fetch expenses for target date

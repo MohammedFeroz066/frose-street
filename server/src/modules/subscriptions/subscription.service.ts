@@ -2,6 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import { AppError } from '../../errors/app-error.js';
 import { loadConfig } from '../../config/env.js';
+import { getIstDateString, normalizeDateColumnString } from '../../utils/ist-date.js';
 import {
   generateEd25519LicenseToken,
   verifyEd25519LicenseToken,
@@ -148,7 +149,7 @@ export class SubscriptionService {
       .executeTakeFirst();
 
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0]!;
+    const todayStr = getIstDateString(now);
 
     // If no subscription record exists or missing period_end, auto-provision trial
     if (!sub || !sub.period_end) {
@@ -164,8 +165,8 @@ export class SubscriptionService {
           businessName: vendor.business_name,
           plan: subscription.plan,
           status: 'trial_active',
-          periodStart: subscription.period_start,
-          periodEnd: subscription.period_end,
+          periodStart: normalizeDateColumnString(subscription.period_start),
+          periodEnd: normalizeDateColumnString(subscription.period_end),
           daysRemaining: 14,
           gracePeriodDaysRemaining: this.GRACE_PERIOD_DAYS,
           isReadOnly: false,
@@ -189,7 +190,9 @@ export class SubscriptionService {
       }
     }
 
-    const expiryDate = new Date(sub.period_end + 'T23:59:59.999Z');
+    const periodStartStr = normalizeDateColumnString(sub.period_start) || todayStr;
+    const periodEndStr = normalizeDateColumnString(sub.period_end);
+    const expiryDate = new Date(periodEndStr + 'T23:59:59.999Z');
     if (isNaN(expiryDate.getTime())) {
       return {
         vendorId,
@@ -211,11 +214,12 @@ export class SubscriptionService {
     let state: SubscriptionState = 'active';
     let isReadOnly = false;
     let graceDaysLeft = this.GRACE_PERIOD_DAYS;
+    const isZeroAmount = BigInt(sub.amount_paise ?? 0) === 0n;
 
     if (daysRemaining > 4) {
-      state = sub.amount_paise === 0n ? 'trial_active' : 'active';
+      state = isZeroAmount ? 'trial_active' : 'active';
     } else if (daysRemaining >= 0 && daysRemaining <= 4) {
-      state = sub.amount_paise === 0n ? 'trial_expiring' : 'active';
+      state = isZeroAmount ? 'trial_expiring' : 'active';
     } else {
       // Expired: Check 3-day grace period
       const daysOverdue = Math.abs(daysRemaining);
@@ -234,8 +238,8 @@ export class SubscriptionService {
       vendorId,
       businessName: vendor.business_name,
       plan: sub.plan,
-      periodStart: sub.period_start,
-      periodEnd: sub.period_end,
+      periodStart: periodStartStr,
+      periodEnd: periodEndStr,
       status: state === 'expired_readonly' ? 'expired' : 'active',
       issuedAt: now.toISOString(),
     });
@@ -245,8 +249,8 @@ export class SubscriptionService {
       businessName: vendor.business_name,
       plan: sub.plan,
       status: state,
-      periodStart: sub.period_start,
-      periodEnd: sub.period_end,
+      periodStart: periodStartStr,
+      periodEnd: periodEndStr,
       daysRemaining,
       gracePeriodDaysRemaining: graceDaysLeft,
       isReadOnly,

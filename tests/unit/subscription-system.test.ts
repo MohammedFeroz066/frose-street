@@ -484,4 +484,36 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     expect(adminBody.ok).toBe(true);
     expect(adminBody.count).toBeGreaterThan(0);
   });
+
+  it('13. handles PostgreSQL DATE (JS Date objects) and string BIGINT (amount_paise = "0") when issuing Ed25519 offline license tokens', async () => {
+    const { getDatabase } = await import('../../server/src/db/database.js');
+    const db = getDatabase() as any;
+
+    const futureDate = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+    const startDate = new Date(Date.now() - 4 * 24 * 60 * 60 * 1000);
+    memoryVendors.set('vendor-pg-types', {
+      id: 'vendor-pg-types',
+      business_name: 'PG Date Stall',
+      phone: '9111122222',
+      edition: 'cloud',
+    });
+    memorySubscriptions.set('sub-pg-types', {
+      id: 'sub-pg-types',
+      vendor_id: 'vendor-pg-types',
+      plan: 'trial',
+      status: 'active',
+      period_start: startDate as unknown as string,
+      period_end: futureDate as unknown as string,
+      amount_paise: '0' as unknown as bigint,
+      created_at: new Date().toISOString(),
+    });
+
+    const status = await SubscriptionService.getSubscriptionStatus(db, 'vendor-pg-types');
+    expect(status.status).toBe('trial_active');
+    expect(status.canCreateOrders).toBe(true);
+    expect(status.daysRemaining).toBeGreaterThan(0);
+    expect(status.periodStart).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(status.periodEnd).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(status.licenseToken.length).toBeGreaterThan(20);
+  });
 });

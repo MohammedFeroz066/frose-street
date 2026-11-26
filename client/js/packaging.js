@@ -136,8 +136,8 @@
           })
         });
         const data = await res.json();
-        if (res.ok && data.token) {
-          localStorage.setItem('frose_device_token', data.token); localStorage.setItem('frose_session_active', '1');
+        if (res.ok && data.device) {
+          localStorage.setItem('frose_session_active', '1');
           if (data.device && data.device.businessName) {
             localStorage.setItem('frose_stall_name', data.device.businessName);
           }
@@ -624,7 +624,7 @@
     // Check QR pairing
     checkUrlPairing();
 
-    if (!localStorage.getItem('frose_session_active') && !localStorage.getItem('frose_device_token')) {
+    if (!localStorage.getItem('frose_session_active')) {
       window.location.replace('/login');
       return;
     }

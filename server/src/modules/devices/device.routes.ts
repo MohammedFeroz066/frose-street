@@ -79,7 +79,6 @@ export const deviceRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
       status: 'success',
       message: `Connected successfully as ${device.role}`,
       device,
-      token,
       portalUrl,
     });
   });

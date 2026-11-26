@@ -335,7 +335,7 @@ describe('Phase 6 Acceptance: Device Pairing — QR-Based Kitchen/Packer Connect
       expect(json.device.deviceName).toBe('Kitchen Line 1 Display');
       expect(json.device.role).toBe('cook');
       expect(json.portalUrl).toBe('/kitchen');
-      expect(json.token).toBeDefined();
+      expect(json.token).toBeUndefined();
 
       // Check cookie
       const cookieHeader = res.headers['set-cookie'];
@@ -343,8 +343,10 @@ describe('Phase 6 Acceptance: Device Pairing — QR-Based Kitchen/Packer Connect
       expect(String(cookieHeader)).not.toContain('frose_street_token=');
       expect(String(cookieHeader)).toContain('HttpOnly');
 
+      const accessCookie = res.cookies.find((c) => c.name === 'frose_access_token');
+      expect(accessCookie).toBeDefined();
       pairedDeviceId = json.device.id;
-      cookJwt = json.token;
+      cookJwt = accessCookie!.value;
 
       // Verify scoped JWT claims
       const decoded = verifyJwt(cookJwt, JWT_SECRET);

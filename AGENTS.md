@@ -46,3 +46,4 @@ For EVERY change affecting UI, auth, billing, KDS, settings, WebSockets, or APIs
 - **Inviolable Git Safety:** NEVER run `git reset --hard`, `git clean -fd`, or force-push. Never discard or overwrite uncommitted user modifications.
 - **No silent shortcuts:** Never silently revert files, disable tests, loosen lint/TS rules, or bypass security checks to make a build pass.
 - **Hard stop at phase gates:** Wait for explicit user approval of `git diff --stat`, test output, and `AUDIT.md` before starting the next step.
+- **Permanent Master Branch Gate:** After completing any phase or sub-phase, commit locally on the phase branch, present the verification report, and ALWAYS STOP to ask Project Head for explicit permission BEFORE merging or pushing to `master`. Never push to `master` without explicit approval for that phase/sub-phase.

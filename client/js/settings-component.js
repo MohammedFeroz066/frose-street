@@ -10,13 +10,66 @@
   let currentVendor = null;
   let activeDishes = [];
 
+  const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+  const FSSAI_REGEX = /^\d{14}$/;
+
   // Initialize on modal open or DOM ready
-  function initSettings() {
+  async function initSettings() {
     loadVendorProfile();
+    await hydrateVendorProfileFromServer();
     loadScannerSettings();
     loadDishesList();
     loadSubsystemPreferences();
   }
+
+  async function hydrateVendorProfileFromServer() {
+    try {
+      if (!localStorage.getItem('frose_session_active')) return;
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn('/api/v1/auth/me', { credentials: 'same-origin' });
+      if (!res || !res.ok) return;
+      const profile = await res.json();
+      if (!profile || !profile.id) return;
+      currentVendor = { ...(currentVendor || {}), ...profile };
+      localStorage.setItem('frose_current_vendor', JSON.stringify(currentVendor));
+      if (window.FroseIdbStore && typeof window.FroseIdbStore.setMeta === 'function') {
+        await window.FroseIdbStore.setMeta('vendor_profile', {
+          vendor_id: currentVendor.id,
+          value: currentVendor,
+        });
+      }
+      loadVendorProfile();
+    } catch (_) {}
+  }
+
+  function syncTaxModeFields() {
+    const modeEl = document.getElementById('sett-tax-mode');
+    const rateEl = document.getElementById('sett-gst-rate-bps');
+    const gstinEl = document.getElementById('sett-gstin');
+    if (!modeEl) return;
+    const mode = modeEl.value || 'unregistered';
+    if (rateEl) {
+      if (mode !== 'regular') {
+        rateEl.value = '0';
+        rateEl.disabled = true;
+      } else {
+        rateEl.disabled = false;
+        if (rateEl.value === '0' && currentVendor && currentVendor.gstRateBps) {
+          rateEl.value = String(currentVendor.gstRateBps);
+        } else if (rateEl.value === '0') {
+          rateEl.value = '500';
+        }
+      }
+    }
+    if (gstinEl) {
+      gstinEl.required = mode === 'composition' || mode === 'regular';
+    }
+  }
+
+  window.onTaxModeChange = function () {
+    syncTaxModeFields();
+  };
 
   // Load Vendor Profile
   function loadVendorProfile() {
@@ -24,12 +77,17 @@
       const raw = localStorage.getItem('frose_current_vendor');
       currentVendor = raw ? JSON.parse(raw) : {
         id: 'v-stall-default',
-        businessName: 'Cloud Edge Kitchen',
-        ownerName: 'Mohammed Feroz',
+        businessName: 'FROSE Street Stall',
+        ownerName: 'Stall Owner',
         phone: '',
         city: 'Hyderabad',
         upiId: '',
-        payeeName: 'Cloud Edge Kitchen'
+        payeeName: 'FROSE Street Stall',
+        taxMode: 'unregistered',
+        gstin: '',
+        fssaiNumber: '',
+        gstRateBps: 0,
+        stallAddress: ''
       };
 
       // Populate Inputs if present
@@ -37,15 +95,29 @@
       const oName = document.getElementById('sett-owner-name');
       const phone = document.getElementById('sett-phone');
       const addr = document.getElementById('sett-address');
+      const taxMode = document.getElementById('sett-tax-mode');
+      const gstin = document.getElementById('sett-gstin');
+      const gstRateBps = document.getElementById('sett-gst-rate-bps');
+      const fssai = document.getElementById('sett-fssai-number');
       const upi = document.getElementById('sett-upi-id');
       const payee = document.getElementById('sett-payee-name');
 
       if (bName) bName.value = currentVendor.businessName || '';
       if (oName) oName.value = currentVendor.ownerName || '';
-      if (phone) phone.value = currentVendor.phone ? `+91 ${currentVendor.phone}` : '+91 96422 30688';
-      if (addr) addr.value = currentVendor.address || currentVendor.city || 'Stall #4, Food Court, Hyderabad';
+      if (phone) phone.value = currentVendor.phone ? `+91 ${currentVendor.phone}` : '';
+      if (addr) addr.value = currentVendor.stallAddress || currentVendor.address || currentVendor.city || '';
+      if (taxMode) taxMode.value = currentVendor.taxMode || 'unregistered';
+      if (gstin) gstin.value = currentVendor.gstin || '';
+      if (gstRateBps) {
+        const bps = currentVendor.taxMode === 'regular'
+          ? String(currentVendor.gstRateBps !== undefined ? currentVendor.gstRateBps : 500)
+          : '0';
+        gstRateBps.value = bps;
+      }
+      if (fssai) fssai.value = currentVendor.fssaiNumber || '';
       if (upi) upi.value = currentVendor.upiId || '';
-      if (payee) payee.value = currentVendor.payeeName || currentVendor.businessName || 'Cloud Edge Kitchen';
+      if (payee) payee.value = currentVendor.payeeName || currentVendor.businessName || 'FROSE Street Stall';
+      syncTaxModeFields();
 
       // Header strip
       const sStall = document.getElementById('sett-header-stall-name');
@@ -315,25 +387,95 @@
     }
   };
 
-  // Save Stall Profile Changes
-  window.saveStallProfile = function () {
+  // Save Stall Profile & Compliance Changes
+  window.saveStallProfile = async function () {
     const bName = document.getElementById('sett-business-name')?.value.trim();
     const oName = document.getElementById('sett-owner-name')?.value.trim();
-    const addr = document.getElementById('sett-address')?.value.trim();
+    const addr = document.getElementById('sett-address')?.value.trim() || '';
+    const taxMode = document.getElementById('sett-tax-mode')?.value || 'unregistered';
+    const gstinRaw = document.getElementById('sett-gstin')?.value.trim().toUpperCase() || '';
+    const fssaiRaw = document.getElementById('sett-fssai-number')?.value.trim() || '';
+    const gstRateRaw = parseInt(document.getElementById('sett-gst-rate-bps')?.value || '0', 10);
 
     if (!bName) {
       alert('Please enter a business name for the stall.');
       return;
     }
 
+    if ((taxMode === 'composition' || taxMode === 'regular') && !gstinRaw) {
+      alert('A 15-character GSTIN is required for Composition and Regular GST modes.');
+      return;
+    }
+
+    if (gstinRaw && !GSTIN_REGEX.test(gstinRaw)) {
+      alert('Invalid GSTIN format. Must be 15 characters (e.g. 36AABCU9603R1ZM).');
+      return;
+    }
+
+    if (fssaiRaw && !FSSAI_REGEX.test(fssaiRaw)) {
+      alert('FSSAI License / Registration number must be exactly 14 digits.');
+      return;
+    }
+
+    const effectiveGstRateBps = taxMode === 'regular' && [0, 500, 1200, 1800].includes(gstRateRaw) ? gstRateRaw : 0;
+
+    const payload = {
+      businessName: bName,
+      ownerName: oName || undefined,
+      stallAddress: addr || null,
+      taxMode,
+      gstin: gstinRaw || null,
+      fssaiNumber: fssaiRaw || null,
+      gstRateBps: effectiveGstRateBps,
+    };
+
+    if (localStorage.getItem('frose_session_active') && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+      try {
+        const fn = window.froseApiFetch || fetch;
+        const res = await fn('/api/v1/auth/profile', {
+          method: 'PATCH',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-FROSE-CSRF': '1',
+          },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = data?.error?.message || data?.message || 'Failed to save stall profile';
+          alert(`❌ ${msg}`);
+          return;
+        }
+        if (data && data.vendor) {
+          currentVendor = { ...(currentVendor || {}), ...data.vendor };
+        }
+      } catch (_) {
+        showToast('⚠️ Offline: saved profile locally (will sync when online)');
+      }
+    }
+
     currentVendor = currentVendor || {};
     currentVendor.businessName = bName;
     if (oName) currentVendor.ownerName = oName;
-    if (addr) currentVendor.address = addr;
+    currentVendor.address = addr;
+    currentVendor.stallAddress = addr || null;
+    currentVendor.taxMode = taxMode;
+    currentVendor.gstin = gstinRaw || null;
+    currentVendor.fssaiNumber = fssaiRaw || null;
+    currentVendor.gstRateBps = effectiveGstRateBps;
 
     localStorage.setItem('frose_current_vendor', JSON.stringify(currentVendor));
+    if (window.FroseIdbStore && currentVendor.id && typeof window.FroseIdbStore.setMeta === 'function') {
+      try {
+        await window.FroseIdbStore.setMeta('vendor_profile', {
+          vendor_id: currentVendor.id,
+          value: currentVendor,
+        });
+      } catch (_) {}
+    }
     loadVendorProfile();
-    showToast('✅ Stall profile updated successfully!');
+    showToast('✅ Stall profile & compliance saved!');
   };
 
   // Save Payment Scanner & UPI (Fully linked to Cart Checkout)

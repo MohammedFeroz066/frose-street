@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { AuthService } from './auth.service.js';
 import type { StaffRole } from '../../../../shared/types/index.js';
-import { requireAuth } from '../../middleware/auth.js';
+import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { getDatabase } from '../../db/database.js';
 import { withTenantContext } from '../../db/rls-context.js';
 import { loadConfig } from '../../config/env.js';
@@ -15,6 +15,7 @@ import {
   VerifyPinSchema,
   BiometricRegisterSchema,
   BiometricVerifySchema,
+  UpdateVendorProfileSchema,
   validateSchema,
 } from './auth.schemas.js';
 import { LoginSecurityService } from './login-security.service.js';
@@ -28,6 +29,18 @@ import {
 
 export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   const config = (app as any).froseConfig || loadConfig();
+
+  function formatVendorCompliance(vendor: any) {
+    const taxMode = (vendor.tax_mode as 'unregistered' | 'composition' | 'regular') || 'unregistered';
+    const gstRateBps = taxMode === 'regular' ? Number(vendor.gst_rate_bps ?? 500) : 0;
+    return {
+      taxMode,
+      gstin: vendor.gstin ?? null,
+      fssaiNumber: vendor.fssai_number ?? null,
+      gstRateBps,
+      stallAddress: vendor.stall_address ?? null,
+    };
+  }
 
   let jwtConfig: any;
   try {
@@ -88,6 +101,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         edition: vendor.edition,
         subscriptionStatus: vendor.subscription_status,
         subscriptionExpiresAt: vendor.subscription_expires_at,
+        ...formatVendorCompliance(vendor),
       },
     });
   });
@@ -155,6 +169,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
           subscriptionExpiresAt: vendor.subscription_expires_at,
           hasQuickPin: !!vendor.quick_pin_hash,
           upiId: PaymentService.getVendorVpa(vendor.id),
+          ...formatVendorCompliance(vendor),
         },
         seededItemsCount,
       });
@@ -219,6 +234,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         subscriptionExpiresAt: vendor.subscription_expires_at,
         hasQuickPin: !!vendor.quick_pin_hash,
         upiId: PaymentService.getVendorVpa(vendor.id),
+        ...formatVendorCompliance(vendor),
         isSuperadmin,
         role,
       },
@@ -450,7 +466,38 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       subscriptionStatus: vendor.subscription_status,
       subscriptionExpiresAt: vendor.subscription_expires_at,
       hasQuickPin: !!vendor.quick_pin_hash,
+      ...formatVendorCompliance(vendor),
       role: request.user!.role,
+    });
+  });
+
+  /**
+   * PATCH /api/v1/auth/profile
+   * Updates stall profile and Indian GST/FSSAI compliance fields
+   */
+  app.patch('/profile', { preHandler: [requireAuth, requireRole('owner', 'superadmin')] }, async (request, reply) => {
+    const body = validateSchema(UpdateVendorProfileSchema, request.body);
+
+    const updated = await withTenantContext(request.user!.sub, (db) =>
+      AuthService.updateVendorProfile(db, request.user!.sub, body),
+    );
+
+    return reply.status(200).send({
+      status: 'success',
+      message: 'Stall profile & compliance settings saved',
+      vendor: {
+        id: updated.id,
+        phone: updated.phone,
+        businessName: updated.business_name,
+        ownerName: updated.owner_name,
+        businessType: updated.business_type,
+        city: updated.city,
+        edition: updated.edition,
+        subscriptionStatus: updated.subscription_status,
+        subscriptionExpiresAt: updated.subscription_expires_at,
+        hasQuickPin: !!updated.quick_pin_hash,
+        ...formatVendorCompliance(updated),
+      },
     });
   });
 };

@@ -18,6 +18,11 @@ export interface VendorsTable {
   password_hash: string | null;
   quick_pin_hash: string | null;
   is_superadmin?: boolean;
+  tax_mode?: 'unregistered' | 'composition' | 'regular';
+  gstin?: string | null;
+  fssai_number?: string | null;
+  gst_rate_bps?: number;
+  stall_address?: string | null;
   created_at: Generated<Timestamp>;
   updated_at: Generated<Timestamp>;
 }

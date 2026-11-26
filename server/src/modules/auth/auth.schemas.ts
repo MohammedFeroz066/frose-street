@@ -61,6 +61,45 @@ export const BiometricVerifySchema = z
   })
   .strict();
 
+export const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+export const FSSAI_REGEX = /^\d{14}$/;
+export const ALLOWED_GST_RATE_BPS = [0, 500, 1200, 1800] as const;
+
+export const UpdateVendorProfileSchema = z
+  .object({
+    businessName: z.string().trim().min(1).max(100).optional(),
+    ownerName: z.string().trim().min(1).max(100).optional(),
+    city: z.string().trim().max(50).optional(),
+    stallAddress: z.string().trim().max(240).nullable().optional(),
+    taxMode: z.enum(['unregistered', 'composition', 'regular']).optional(),
+    gstin: z
+      .string()
+      .trim()
+      .transform((val) => (val === '' ? null : val.toUpperCase()))
+      .nullable()
+      .optional()
+      .refine((val) => val === undefined || val === null || GSTIN_REGEX.test(val), {
+        message: 'Invalid 15-character Indian GSTIN format (e.g. 36AABCU9603R1ZM)',
+      }),
+    fssaiNumber: z
+      .string()
+      .trim()
+      .transform((val) => (val === '' ? null : val))
+      .nullable()
+      .optional()
+      .refine((val) => val === undefined || val === null || FSSAI_REGEX.test(val), {
+        message: 'FSSAI number must be exactly 14 digits',
+      }),
+    gstRateBps: z
+      .number()
+      .int()
+      .refine((val) => (ALLOWED_GST_RATE_BPS as readonly number[]).includes(val), {
+        message: 'gstRateBps must be one of 0, 500, 1200, 1800',
+      })
+      .optional(),
+  })
+  .strict();
+
 export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown): T {
   const result = schema.safeParse(data);
   if (!result.success) {

@@ -4,6 +4,7 @@ import type { Database } from '../../db/types.js';
 import { hashPassword, verifyPassword, hashPin, verifyPin } from '../../utils/crypto.js';
 import { validateStrongPassword } from '../../utils/password-validator.js';
 import { getIstDateString } from '../../utils/ist-date.js';
+import { GSTIN_REGEX, FSSAI_REGEX, ALLOWED_GST_RATE_BPS } from './auth.schemas.js';
 import { AppError } from '../../errors/app-error.js';
 import { STREET_MENU_PRESETS } from '../menu/menu.presets.js';
 import { SubscriptionService } from '../subscriptions/subscription.service.js';
@@ -93,6 +94,11 @@ export class AuthService {
           token_reset_date: getIstDateString(),
           password_hash: passwordHash,
           quick_pin_hash: pinHash,
+          tax_mode: 'unregistered',
+          gstin: null,
+          fssai_number: null,
+          gst_rate_bps: 0,
+          stall_address: null,
         })
         .returningAll()
         .executeTakeFirstOrThrow();
@@ -399,5 +405,90 @@ export class AuthService {
     }
 
     return cred;
+  }
+
+  /**
+   * Updates vendor stall profile & Indian GST/FSSAI compliance fields inside tenant context
+   */
+  static async updateVendorProfile(
+    db: Kysely<Database>,
+    vendorId: string,
+    input: {
+      businessName?: string;
+      ownerName?: string;
+      city?: string;
+      stallAddress?: string | null;
+      taxMode?: 'unregistered' | 'composition' | 'regular';
+      gstin?: string | null;
+      fssaiNumber?: string | null;
+      gstRateBps?: number;
+    }
+  ) {
+    const existing = await db
+      .selectFrom('vendors')
+      .selectAll()
+      .where('id', '=', vendorId)
+      .executeTakeFirst();
+
+    if (!existing) {
+      throw AppError.notFound('Vendor profile not found', 'VENDOR_NOT_FOUND');
+    }
+
+    const effectiveTaxMode = input.taxMode ?? ((existing.tax_mode as 'unregistered' | 'composition' | 'regular') || 'unregistered');
+    const rawGstin = input.gstin !== undefined ? input.gstin : (existing.gstin ?? null);
+    const normalizedGstin = rawGstin ? rawGstin.trim().toUpperCase() : null;
+
+    if (normalizedGstin !== null && !GSTIN_REGEX.test(normalizedGstin)) {
+      throw AppError.badRequest(
+        'Invalid 15-character Indian GSTIN format (e.g. 36AABCU9603R1ZM)',
+        'INVALID_GSTIN'
+      );
+    }
+
+    if ((effectiveTaxMode === 'composition' || effectiveTaxMode === 'regular') && !normalizedGstin) {
+      throw AppError.badRequest(
+        'A valid 15-character GSTIN is required for Composition and Regular GST modes',
+        'GSTIN_REQUIRED'
+      );
+    }
+
+    const rawFssai = input.fssaiNumber !== undefined ? input.fssaiNumber : (existing.fssai_number ?? null);
+    const normalizedFssai = rawFssai ? rawFssai.trim() : null;
+    if (normalizedFssai !== null && !FSSAI_REGEX.test(normalizedFssai)) {
+      throw AppError.badRequest('FSSAI number must be exactly 14 digits', 'INVALID_FSSAI');
+    }
+
+    let effectiveGstRateBps = 0;
+    if (effectiveTaxMode === 'regular') {
+      const candidateRate = input.gstRateBps !== undefined ? input.gstRateBps : Number(existing.gst_rate_bps ?? 500);
+      if (!(ALLOWED_GST_RATE_BPS as readonly number[]).includes(candidateRate)) {
+        throw AppError.badRequest('gstRateBps must be one of 0, 500, 1200, 1800', 'INVALID_GST_RATE');
+      }
+      effectiveGstRateBps = candidateRate === 0 && input.gstRateBps === undefined ? 500 : candidateRate;
+    }
+
+    const updateFields: Record<string, any> = {
+      tax_mode: effectiveTaxMode,
+      gstin: normalizedGstin,
+      fssai_number: normalizedFssai,
+      gst_rate_bps: effectiveGstRateBps,
+      updated_at: new Date(),
+    };
+
+    if (input.businessName !== undefined) updateFields.business_name = input.businessName.trim();
+    if (input.ownerName !== undefined) updateFields.owner_name = input.ownerName.trim();
+    if (input.city !== undefined) updateFields.city = input.city.trim();
+    if (input.stallAddress !== undefined) {
+      updateFields.stall_address = input.stallAddress ? input.stallAddress.trim() : null;
+    }
+
+    const updated = await db
+      .updateTable('vendors')
+      .set(updateFields)
+      .where('id', '=', vendorId)
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return updated;
   }
 }

@@ -1169,11 +1169,36 @@
               <input type="text" id="sett-phone" class="sett-input" readonly style="background: #F1F5F9; color: #64748B; font-weight: 700;" />
             </div>
             <div class="sett-input-group">
-              <label class="sett-label">Stall Address / Landmark</label>
-              <input type="text" id="sett-address" class="sett-input" placeholder="e.g. Stall #4, Food Court, Hyderabad" />
+              <label class="sett-label">Stall Address / Landmark (Prints on Receipt)</label>
+              <input type="text" id="sett-address" class="sett-input" maxlength="240" placeholder="e.g. Stall #4, Food Court, Hyderabad" />
             </div>
-            <button type="button" class="sett-btn-action" data-click="saveStallProfile">
-              <span>💾 Save Profile Changes</span>
+            <div class="sett-input-group">
+              <label class="sett-label">GST Tax Registration Mode</label>
+              <select id="sett-tax-mode" class="sett-input" data-change="onTaxModeChange">
+                <option value="unregistered">Unregistered / Non-GST (Cash Memo)</option>
+                <option value="composition">GST Composition Scheme (Bill of Supply • 0% Tax)</option>
+                <option value="regular">Regular GST Registered (Tax Invoice • CGST + SGST)</option>
+              </select>
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">15-Character GSTIN (Required for Composition / Regular)</label>
+              <input type="text" id="sett-gstin" class="sett-input" maxlength="15" placeholder="e.g. 36AABCU9603R1ZM" />
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">GST Rate Slab (Regular GST Only)</label>
+              <select id="sett-gst-rate-bps" class="sett-input">
+                <option value="500">5% GST (2.5% CGST + 2.5% SGST)</option>
+                <option value="0">0% Exempt</option>
+                <option value="1200">12% GST (6% CGST + 6% SGST)</option>
+                <option value="1800">18% GST (9% CGST + 9% SGST)</option>
+              </select>
+            </div>
+            <div class="sett-input-group">
+              <label class="sett-label">14-Digit FSSAI License / Registration No.</label>
+              <input type="text" id="sett-fssai-number" class="sett-input" maxlength="14" inputmode="numeric" placeholder="e.g. 23626001000123" />
+            </div>
+            <button type="button" id="btn-save-stall-profile" class="sett-btn-action" data-click="saveStallProfile">
+              <span>💾 Save Profile &amp; Compliance</span>
             </button>
           </div>
         </div>

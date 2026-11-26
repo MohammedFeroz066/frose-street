@@ -1,13 +1,21 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { AuthService } from './auth.service.js';
 import type { StaffRole } from '../../../../shared/types/index.js';
-import { signJwt } from './jwt.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { getDatabase } from '../../db/database.js';
 import { loadConfig } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
 import { PaymentService } from '../payments/payment.service.js';
-import { RegisterSchema, RegisterStallSchema, LoginSchema, validateSchema } from './auth.schemas.js';
+import {
+  RegisterSchema,
+  RegisterStallSchema,
+  LoginSchema,
+  SetupPinSchema,
+  VerifyPinSchema,
+  BiometricRegisterSchema,
+  BiometricVerifySchema,
+  validateSchema,
+} from './auth.schemas.js';
 import { LoginSecurityService } from './login-security.service.js';
 import { signJoseAccessToken, getJwtKeyRotationConfig } from './jwt-jose.js';
 import { RefreshTokenService } from './refresh-token.service.js';
@@ -154,9 +162,12 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.post('/login', async (request, reply) => {
     const db = getDatabase();
-    const rawBody = (request.body || {}) as any;
+    const rawObj =
+      typeof request.body === 'object' && request.body !== null
+        ? (request.body as Record<string, unknown>)
+        : {};
 
-    if (rawBody.pin && !rawBody.password) {
+    if (rawObj.pin && !rawObj.password) {
       throw AppError.badRequest(
         'PIN-only login is deprecated. Please log in with your master password. PIN is reserved for local device unlock only.',
         'PIN_LOGIN_NOT_ALLOWED'
@@ -279,11 +290,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.post('/setup-pin', { preHandler: [requireAuth] }, async (request, reply) => {
     const db = getDatabase();
-    const body = request.body as any;
-
-    if (!body || !body.pin) {
-      throw AppError.badRequest('4-digit PIN is required', 'MISSING_PIN');
-    }
+    const body = validateSchema(SetupPinSchema, request.body);
 
     await AuthService.setupQuickPin(db, request.user!.sub, body.pin);
 
@@ -299,10 +306,10 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.post('/verify-pin', async (request, reply) => {
     const db = getDatabase();
-    const body = request.body as any;
+    const body = validateSchema(VerifyPinSchema, request.body);
 
-    const vendorId = body?.vendorId || request.user?.sub;
-    if (!vendorId || !body?.pin) {
+    const vendorId = body.vendorId || request.user?.sub;
+    if (!vendorId) {
       throw AppError.badRequest('Vendor ID and PIN are required', 'MISSING_PIN_PARAMS');
     }
 
@@ -350,11 +357,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.post('/biometric/register', { preHandler: [requireAuth] }, async (request, reply) => {
     const db = getDatabase();
-    const body = request.body as any;
-
-    if (!body || !body.credentialId || !body.publicKey) {
-      throw AppError.badRequest('credentialId and publicKey are required', 'MISSING_BIOMETRIC_DATA');
-    }
+    const body = validateSchema(BiometricRegisterSchema, request.body);
 
     const credential = await AuthService.registerBiometric(db, request.user!.sub, {
       credentialId: body.credentialId,
@@ -375,11 +378,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.post('/biometric/verify', async (request, reply) => {
     const db = getDatabase();
-    const body = request.body as any;
-
-    if (!body || !body.credentialId) {
-      throw AppError.badRequest('credentialId is required', 'MISSING_CREDENTIAL_ID');
-    }
+    const body = validateSchema(BiometricVerifySchema, request.body);
 
     const cred = await AuthService.verifyBiometric(db, body.credentialId);
 

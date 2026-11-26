@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import type { StaffRole } from '../../../../shared/types/index.js';
-import { signJwt } from '../auth/jwt.js';
+import { signJoseAccessToken, type JwtKeyRotationConfig } from '../auth/jwt-jose.js';
 import { AppError } from '../../errors/app-error.js';
 
 // In-memory set to prevent replay / double redemption of single-use pairing tokens
@@ -142,8 +142,12 @@ export class DeviceService {
       .returningAll()
       .executeTakeFirstOrThrow();
 
-    // Generate scoped device JWT
-    const jwt = signJwt(
+    // Generate scoped device JWT using jose HS256
+    const rotationConfig: JwtKeyRotationConfig = {
+      currentSecret: secret,
+      currentKid: 'k1',
+    };
+    const jwt = await signJoseAccessToken(
       {
         sub: vendor.id,
         phone: vendor.phone,
@@ -152,7 +156,7 @@ export class DeviceService {
         edition: vendor.edition,
         deviceId: device.id,
       },
-      secret,
+      rotationConfig,
       30 * 86400, // 30 days session
     );
 

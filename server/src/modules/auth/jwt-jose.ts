@@ -3,6 +3,9 @@ import {
   jwtVerify,
   importPKCS8,
   importSPKI,
+  generateKeyPair,
+  exportPKCS8,
+  exportSPKI,
   type JWTPayload,
 } from 'jose';
 import type { StaffRole, BackendEdition } from '../../../../shared/types/index.js';
@@ -32,6 +35,44 @@ export interface OfflineLicensePayload {
   periodStart: string;
   periodEnd: string;
   status: 'active' | 'expired';
+  issuedAt?: string;
+}
+
+let cachedDevEdKeys: { privateKeyPem: string; publicKeyPem: string } | null = null;
+
+/**
+ * Resolves Ed25519 (EdDSA) keypair for offline license signing & verification.
+ * Production strictly requires LICENSE_ED25519_PRIVATE_KEY and LICENSE_ED25519_PUBLIC_KEY in env.
+ * Dev/test generates a process-scoped ephemeral Ed25519 keypair when env vars are unset.
+ */
+export async function getEd25519LicenseKeys(nodeEnv: string = process.env.NODE_ENV || 'development'): Promise<{
+  privateKeyPem: string;
+  publicKeyPem: string;
+}> {
+  const envPriv = process.env.LICENSE_ED25519_PRIVATE_KEY?.replace(/\\n/g, '\n');
+  const envPub = process.env.LICENSE_ED25519_PUBLIC_KEY?.replace(/\\n/g, '\n');
+
+  if (envPriv && envPub) {
+    return { privateKeyPem: envPriv, publicKeyPem: envPub };
+  }
+
+  if (nodeEnv === 'production') {
+    throw new Error('FATAL SECURITY ERROR: LICENSE_ED25519_PRIVATE_KEY and LICENSE_ED25519_PUBLIC_KEY are required in production');
+  }
+
+  if (!cachedDevEdKeys) {
+    const pair = await generateKeyPair('EdDSA', { crv: 'Ed25519', extractable: true });
+    cachedDevEdKeys = {
+      privateKeyPem: await exportPKCS8(pair.privateKey),
+      publicKeyPem: await exportSPKI(pair.publicKey),
+    };
+  }
+  return cachedDevEdKeys;
+}
+
+export async function getEd25519PublicKeyPem(nodeEnv?: string): Promise<string> {
+  const { publicKeyPem } = await getEd25519LicenseKeys(nodeEnv);
+  return publicKeyPem;
 }
 
 const DEFAULT_JWT_SECRET = 'frose-street-default-jwt-secret-dev-2026-change-in-prod-xyz';

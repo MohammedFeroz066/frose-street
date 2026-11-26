@@ -503,11 +503,12 @@
         return { valid: false, reason: 'Malformed token' };
       }
       const parts = token.split('.');
-      if (parts.length !== 2) {
+      if (parts.length !== 2 && parts.length !== 3) {
         return { valid: false, reason: 'Invalid token segment count' };
       }
       try {
-        const payloadBase64 = parts[0].replace(/-/g, '+').replace(/_/g, '/');
+        const rawPayloadPart = parts.length === 3 ? parts[1] : parts[0];
+        const payloadBase64 = rawPayloadPart.replace(/-/g, '+').replace(/_/g, '/');
         const jsonStr = (typeof atob === 'function')
           ? atob(payloadBase64)
           : Buffer.from(payloadBase64, 'base64').toString('utf8');

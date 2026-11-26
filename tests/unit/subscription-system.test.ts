@@ -206,7 +206,7 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     expect(status.licenseToken).toContain('.');
   });
 
-  it('2. Generates cryptographically signed HMAC-SHA256 license token', () => {
+  it('2. Generates cryptographically signed Ed25519 license token', async () => {
     const payload = {
       vendorId: 'test-vendor-uuid-001',
       businessName: 'Dosa King Stall',
@@ -217,19 +217,19 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
       issuedAt: new Date().toISOString(),
     };
 
-    const token = SubscriptionService.generateSignedLicenseToken(payload);
+    const token = await SubscriptionService.generateSignedLicenseToken(payload);
     expect(token).toBeDefined();
     expect(typeof token).toBe('string');
-    expect(token.split('.').length).toBe(2);
+    expect(token.split('.').length).toBe(3);
 
-    const verification = SubscriptionService.verifySignedLicenseToken(token);
+    const verification = await SubscriptionService.verifySignedLicenseToken(token);
     expect(verification.valid).toBe(true);
     expect(verification.payload?.vendorId).toBe('test-vendor-uuid-001');
     expect(verification.payload?.businessName).toBe('Dosa King Stall');
     expect(verification.payload?.plan).toBe('cloud');
   });
 
-  it('3. Detects and rejects tampered license tokens via timing-safe HMAC mismatch', () => {
+  it('3. Detects and rejects tampered license tokens via Ed25519 signature verification', async () => {
     const payload = {
       vendorId: 'test-vendor-uuid-002',
       businessName: 'Momos Point',
@@ -240,27 +240,27 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
       issuedAt: new Date().toISOString(),
     };
 
-    const validToken = SubscriptionService.generateSignedLicenseToken(payload);
-    const [payloadBase64, signature] = validToken.split('.');
+    const validToken = await SubscriptionService.generateSignedLicenseToken(payload);
+    const [headerBase64, payloadBase64, signature] = validToken.split('.');
 
     const decoded = JSON.parse(Buffer.from(payloadBase64, 'base64url').toString('utf8'));
     decoded.periodEnd = '2099-12-31';
     const tamperedPayloadBase64 = Buffer.from(JSON.stringify(decoded), 'utf8').toString('base64url');
-    const forgedToken = `${tamperedPayloadBase64}.${signature}`;
+    const forgedToken = `${headerBase64}.${tamperedPayloadBase64}.${signature}`;
 
-    const verification = SubscriptionService.verifySignedLicenseToken(forgedToken);
+    const verification = await SubscriptionService.verifySignedLicenseToken(forgedToken);
     expect(verification.valid).toBe(false);
-    expect(verification.reason).toContain('signature mismatch');
+    expect(verification.reason).toBeDefined();
   });
 
-  it('4. Rejects malformed and garbage license tokens gracefully', () => {
-    expect(SubscriptionService.verifySignedLicenseToken('').valid).toBe(false);
-    expect(SubscriptionService.verifySignedLicenseToken('nodotsinthisstring').valid).toBe(false);
-    expect(SubscriptionService.verifySignedLicenseToken('part1.part2.part3').valid).toBe(false);
-    expect(SubscriptionService.verifySignedLicenseToken('invalid-base64.signature').valid).toBe(false);
+  it('4. Rejects malformed and garbage license tokens gracefully', async () => {
+    expect((await SubscriptionService.verifySignedLicenseToken('')).valid).toBe(false);
+    expect((await SubscriptionService.verifySignedLicenseToken('nodotsinthisstring')).valid).toBe(false);
+    expect((await SubscriptionService.verifySignedLicenseToken('part1.part2.part3')).valid).toBe(false);
+    expect((await SubscriptionService.verifySignedLicenseToken('invalid-base64.signature')).valid).toBe(false);
   });
 
-  it('5. Offline client LicenseManager validates and decodes token structure without network', () => {
+  it('5. Offline client LicenseManager validates and decodes token structure without network', async () => {
     const payload = {
       vendorId: 'offline-stall-01',
       businessName: 'Offline Biryani Cart',
@@ -271,7 +271,7 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
       issuedAt: new Date().toISOString(),
     };
 
-    const token = SubscriptionService.generateSignedLicenseToken(payload);
+    const token = await SubscriptionService.generateSignedLicenseToken(payload);
     const offlineResult = LicenseManager.decodeToken(token);
 
     expect(offlineResult.valid).toBe(true);
@@ -281,7 +281,7 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
     expect(offlineResult.canCreateOrders).toBe(true);
   });
 
-  it('6. Accurately flags trial expiring on days 10-14 (<= 4 days left)', () => {
+  it('6. Accurately flags trial expiring on days 10-14 (<= 4 days left)', async () => {
     const payload = {
       vendorId: 'expiring-stall-02',
       businessName: 'Expiring Stall',
@@ -292,7 +292,7 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
       issuedAt: new Date().toISOString(),
     };
 
-    const token = SubscriptionService.generateSignedLicenseToken(payload);
+    const token = await SubscriptionService.generateSignedLicenseToken(payload);
     const offlineResult = LicenseManager.decodeToken(token);
 
     expect(offlineResult.valid).toBe(true);

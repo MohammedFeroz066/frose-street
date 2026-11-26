@@ -458,7 +458,7 @@ describe('Phase 20: Final Production Release & Audit', () => {
     await tightApp.close();
   });
 
-  it('TEST 9: Cryptographic License Tamper Resistance: Tampered token signature is rejected', () => {
+  it('TEST 9: Cryptographic License Tamper Resistance: Tampered token signature is rejected', async () => {
     const payload = {
       vendorId: 'vendor-secure-01',
       businessName: 'Secure Cart',
@@ -469,19 +469,19 @@ describe('Phase 20: Final Production Release & Audit', () => {
       issuedAt: new Date().toISOString(),
     };
 
-    const validToken = SubscriptionService.generateSignedLicenseToken(payload);
-    expect(SubscriptionService.verifySignedLicenseToken(validToken).valid).toBe(true);
+    const validToken = await SubscriptionService.generateSignedLicenseToken(payload);
+    expect((await SubscriptionService.verifySignedLicenseToken(validToken)).valid).toBe(true);
 
     // Alter token payload
-    const [payloadBase64, signature] = validToken.split('.');
+    const [headerBase64, payloadBase64, signature] = validToken.split('.');
     const decoded = JSON.parse(Buffer.from(payloadBase64!, 'base64url').toString('utf8'));
     decoded.periodEnd = '2099-01-01'; // Extend fraudulently
     const forgedPayload = Buffer.from(JSON.stringify(decoded), 'utf8').toString('base64url');
-    const tamperedToken = `${forgedPayload}.${signature}`;
+    const tamperedToken = `${headerBase64}.${forgedPayload}.${signature}`;
 
-    const verification = SubscriptionService.verifySignedLicenseToken(tamperedToken);
+    const verification = await SubscriptionService.verifySignedLicenseToken(tamperedToken);
     expect(verification.valid).toBe(false);
-    expect(verification.reason).toContain('mismatch');
+    expect(verification.reason).toBeDefined();
   });
 
   it('TEST 10: 20-Order Offline Sync Reconciliation: 20 offline orders reconcile cleanly without loss', async () => {

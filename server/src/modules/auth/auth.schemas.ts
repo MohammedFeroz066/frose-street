@@ -35,6 +35,33 @@ export const LoginSchema = z
   })
   .strict();
 
+export const SetupPinSchema = z
+  .object({
+    pin: z.string().min(1, '4-digit PIN is required'),
+  })
+  .strict();
+
+export const VerifyPinSchema = z
+  .object({
+    vendorId: z.string().min(1).optional(),
+    pin: z.string().min(1, 'PIN is required'),
+  })
+  .strict();
+
+export const BiometricRegisterSchema = z
+  .object({
+    credentialId: z.string().min(1, 'credentialId is required'),
+    publicKey: z.string().min(1, 'publicKey is required'),
+    deviceName: z.string().max(100).optional(),
+  })
+  .strict();
+
+export const BiometricVerifySchema = z
+  .object({
+    credentialId: z.string().min(1, 'credentialId is required'),
+  })
+  .strict();
+
 export function validateSchema<T>(schema: z.ZodSchema<T>, data: unknown): T {
   const result = schema.safeParse(data);
   if (!result.success) {

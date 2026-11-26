@@ -1,8 +1,13 @@
-import crypto from 'node:crypto';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import { AppError } from '../../errors/app-error.js';
 import { loadConfig } from '../../config/env.js';
+import {
+  generateEd25519LicenseToken,
+  verifyEd25519LicenseToken,
+  getEd25519LicenseKeys,
+  getEd25519PublicKeyPem,
+} from '../auth/jwt-jose.js';
 
 export type SubscriptionPlan = 'cloud' | 'local';
 
@@ -40,60 +45,35 @@ export interface SubscriptionStatusResult {
 export class SubscriptionService {
   private static readonly GRACE_PERIOD_DAYS = 3;
 
-  private static getSigningSecret(): string {
-    const secret = process.env.SUBSCRIPTION_SECRET || loadConfig().JWT_SECRET;
-    if (!secret || secret.length < 32) {
-      throw new Error('SUBSCRIPTION_SECRET or JWT_SECRET (>= 32 chars) is required for license signing');
-    }
-    return secret;
+  /**
+   * Returns ONLY the Ed25519 public key (SPKI PEM) for offline client verification.
+   */
+  static async getLicensePublicKeyPem(): Promise<string> {
+    const config = loadConfig();
+    return getEd25519PublicKeyPem(config.NODE_ENV);
   }
 
   /**
-   * Generates a cryptographically signed HMAC-SHA256 license token
-   * Format: base64url(payload) + '.' + hexSignature
+   * Generates an Ed25519 (EdDSA) signed offline license JWT using server private key.
    */
-  static generateSignedLicenseToken(payload: LicensePayload): string {
-    const payloadStr = JSON.stringify(payload);
-    const encodedPayload = Buffer.from(payloadStr, 'utf8').toString('base64url');
-    const signature = crypto
-      .createHmac('sha256', this.getSigningSecret())
-      .update(encodedPayload)
-      .digest('hex');
-    return `${encodedPayload}.${signature}`;
+  static async generateSignedLicenseToken(payload: LicensePayload): Promise<string> {
+    const config = loadConfig();
+    const { privateKeyPem } = await getEd25519LicenseKeys(config.NODE_ENV);
+    return generateEd25519LicenseToken(payload, privateKeyPem);
   }
 
   /**
-   * Cryptographically verifies the license token's integrity and signature
+   * Cryptographically verifies an Ed25519 (EdDSA) license token using ONLY the public key.
    */
-  static verifySignedLicenseToken(token: string): { valid: boolean; payload?: LicensePayload; reason?: string } {
-    if (!token || !token.includes('.')) {
-      return { valid: false, reason: 'Malformed token structure' };
+  static async verifySignedLicenseToken(
+    token: string
+  ): Promise<{ valid: boolean; payload?: LicensePayload; reason?: string }> {
+    if (!token || typeof token !== 'string' || token.split('.').length !== 3) {
+      return { valid: false, reason: 'Malformed EdDSA JWT token structure' };
     }
-
-    const [encodedPayload, signature] = token.split('.');
-    if (!encodedPayload || !signature) {
-      return { valid: false, reason: 'Invalid token segments' };
-    }
-
-    const expectedSignature = crypto
-      .createHmac('sha256', this.getSigningSecret())
-      .update(encodedPayload)
-      .digest('hex');
-
-    const sigBuf = Buffer.from(signature, 'hex');
-    const expectedBuf = Buffer.from(expectedSignature, 'hex');
-
-    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
-      return { valid: false, reason: 'Cryptographic signature mismatch — token has been tampered with' };
-    }
-
-    try {
-      const payloadStr = Buffer.from(encodedPayload, 'base64url').toString('utf8');
-      const payload: LicensePayload = JSON.parse(payloadStr);
-      return { valid: true, payload };
-    } catch {
-      return { valid: false, reason: 'Invalid payload JSON' };
-    }
+    const publicKeyPem = await this.getLicensePublicKeyPem();
+    const res = await verifyEd25519LicenseToken(token, publicKeyPem);
+    return res as { valid: boolean; payload?: LicensePayload; reason?: string };
   }
 
   /**
@@ -126,7 +106,7 @@ export class SubscriptionService {
       .returningAll()
       .execute();
 
-    const licenseToken = this.generateSignedLicenseToken({
+    const licenseToken = await this.generateSignedLicenseToken({
       vendorId,
       businessName,
       plan,
@@ -250,7 +230,7 @@ export class SubscriptionService {
       }
     }
 
-    const licenseToken = this.generateSignedLicenseToken({
+    const licenseToken = await this.generateSignedLicenseToken({
       vendorId,
       businessName: vendor.business_name,
       plan: sub.plan,
@@ -332,7 +312,7 @@ export class SubscriptionService {
       .returningAll()
       .execute();
 
-    const licenseToken = this.generateSignedLicenseToken({
+    const licenseToken = await this.generateSignedLicenseToken({
       vendorId,
       businessName: vendor.business_name,
       plan,

@@ -1,5 +1,4 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import { verifyJwt } from '../modules/auth/jwt.js';
 import { verifyJoseAccessToken, getJwtKeyRotationConfig, AuthTokenPayload } from '../modules/auth/jwt-jose.js';
 import { readAccessTokenCookie } from '../modules/auth/session-cookies.js';
 import { AppError } from '../errors/app-error.js';
@@ -42,15 +41,8 @@ export async function requireAuth(request: FastifyRequest, _reply: FastifyReply)
       };
     }
 
-    try {
-      const payload = await verifyJoseAccessToken(token, rotationConfig);
-      request.user = payload;
-      return;
-    } catch {
-      // Legacy JWT fallback during migration window
-      const payload = verifyJwt(token, config.JWT_SECRET);
-      request.user = payload as any;
-    }
+    const payload = await verifyJoseAccessToken(token, rotationConfig);
+    request.user = payload;
   } catch (err: any) {
     throw AppError.unauthorized(err.message || 'Invalid or expired session token', 'INVALID_TOKEN');
   }

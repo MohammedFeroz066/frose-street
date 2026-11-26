@@ -61,8 +61,21 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
   });
 
   /**
+   * GET /api/v1/subscriptions/public-key
+   * Read-only endpoint exposing ONLY the Ed25519 public key for client offline verification
+   */
+  app.get('/public-key', async (_req, reply) => {
+    const publicKeyPem = await SubscriptionService.getLicensePublicKeyPem();
+    return reply.status(200).send({
+      algorithm: 'EdDSA',
+      crv: 'Ed25519',
+      publicKeyPem,
+    });
+  });
+
+  /**
    * POST /api/v1/subscriptions/verify-token
-   * Public/offline endpoint for validating cryptographic HMAC license tokens
+   * Public/offline endpoint for validating cryptographic Ed25519 license tokens
    */
   app.post<{
     Body: { token: string };
@@ -72,7 +85,7 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
       throw AppError.badRequest('License token is required');
     }
 
-    const verification = SubscriptionService.verifySignedLicenseToken(token);
+    const verification = await SubscriptionService.verifySignedLicenseToken(token);
     return reply.status(200).send(verification);
   });
 

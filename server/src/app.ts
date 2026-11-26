@@ -7,7 +7,7 @@ import fastifyWebsocket from '@fastify/websocket';
 import fastifyStatic from '@fastify/static';
 import path from 'node:path';
 import fs from 'node:fs';
-import { loadConfig, EnvironmentConfig } from './config/env.js';
+import { loadConfig, isOriginAllowed, EnvironmentConfig } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { createCsrfProtection } from './middleware/csrf.js';
 import { AppError } from './errors/app-error.js';
@@ -52,19 +52,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return payload;
   });
 
-  // CORS Configuration
+  // CORS Configuration (Strict exact-origin allowlist)
   await app.register(cors, {
     origin: (origin, cb) => {
       if (!origin) return cb(null, true);
-      if (
-        origin === 'https://street.frostech.com' ||
-        origin.startsWith('http://localhost:') ||
-        origin === 'http://localhost' ||
-        origin.startsWith('http://127.0.0.1:') ||
-        origin === 'http://127.0.0.1' ||
-        origin.startsWith('http://192.168.') ||
-        origin.startsWith('http://10.')
-      ) {
+      if (isOriginAllowed(origin, config)) {
         return cb(null, true);
       }
       return cb(null, false);

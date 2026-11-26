@@ -81,3 +81,51 @@ export function loadConfig(): EnvironmentConfig {
     CLIENT_DIR: clientDir,
   };
 }
+
+/**
+ * Validates an Origin header strictly against CORS_ORIGIN exact allowlist.
+ * Outside production, also permits exact http://localhost and http://127.0.0.1 origins.
+ * Never permits wildcard `*` or substring/prefix matches.
+ */
+export function isOriginAllowed(origin: string, config: EnvironmentConfig): boolean {
+  let parsedOrigin: URL;
+  try {
+    parsedOrigin = new URL(origin);
+  } catch {
+    return false;
+  }
+
+  if (parsedOrigin.protocol !== 'http:' && parsedOrigin.protocol !== 'https:') {
+    return false;
+  }
+  if (parsedOrigin.username || parsedOrigin.password) {
+    return false;
+  }
+
+  const normalizedOrigin = parsedOrigin.origin.toLowerCase();
+  const configuredOrigins = Array.isArray(config.CORS_ORIGIN)
+    ? config.CORS_ORIGIN
+    : String(config.CORS_ORIGIN || '').split(',');
+
+  for (const entry of configuredOrigins) {
+    const trimmed = entry.trim();
+    if (!trimmed || trimmed === '*') continue;
+    try {
+      const parsedAllowed = new URL(trimmed);
+      if (parsedAllowed.origin.toLowerCase() === normalizedOrigin) {
+        return true;
+      }
+    } catch {
+      // Ignore malformed configured entry
+    }
+  }
+
+  if (config.NODE_ENV !== 'production') {
+    const host = parsedOrigin.hostname.toLowerCase();
+    if (parsedOrigin.protocol === 'http:' && (host === 'localhost' || host === '127.0.0.1')) {
+      return true;
+    }
+  }
+
+  return false;
+}

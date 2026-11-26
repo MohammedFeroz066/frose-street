@@ -44,11 +44,15 @@
         await fetchDishes();
       }
 
-      function loadSavedCategories() {
+      async function loadSavedCategories() {
         try {
-          const saved = localStorage.getItem('frose_cats_' + getVendorKey()) || localStorage.getItem('frose_cats_active');
-          if (saved) {
-            vendorCategories = JSON.parse(saved);
+          if (window.FroseIdbStore) {
+            const catMeta = await window.FroseIdbStore.getMeta('categories');
+            if (catMeta && Array.isArray(catMeta.value) && (!catMeta.vendor_id || catMeta.vendor_id === getVendorKey())) {
+              vendorCategories = catMeta.value;
+            } else {
+              vendorCategories = [];
+            }
           } else {
             vendorCategories = [];
           }
@@ -58,10 +62,14 @@
         renderCategories();
       }
 
-      function saveCategories() {
+      async function saveCategories() {
         try {
-          localStorage.setItem('frose_cats_' + getVendorKey(), JSON.stringify(vendorCategories));
-          localStorage.setItem('frose_cats_active', JSON.stringify(vendorCategories));
+          if (window.FroseIdbStore) {
+            await window.FroseIdbStore.setMeta('categories', {
+              vendor_id: getVendorKey(),
+              value: vendorCategories,
+            });
+          }
         } catch (e) {}
         renderCategories();
       }
@@ -135,6 +143,10 @@
       };
 
       async function fetchDishes() {
+        const vKey = getVendorKey();
+        if (window.FroseIdbStore && vKey && vKey !== 'primary_vendor') {
+          await window.FroseIdbStore.ensureVendorScope(vKey);
+        }
         try {
           const fn = window.froseApiFetch || fetch;
           const res = await fn('/api/v1/menu', {
@@ -143,14 +155,16 @@
           if (res.ok) {
             const data = await res.json();
             vendorDishes = data.items || [];
-          } else {
-            // Local fallback
-            const local = localStorage.getItem('frose_dishes_' + getVendorKey()) || localStorage.getItem('frose_dishes_active');
-            if (local) vendorDishes = JSON.parse(local);
+            if (window.FroseIdbStore) {
+              await window.FroseIdbStore.putMenuItems(vKey, vendorDishes);
+            }
+          } else if (window.FroseIdbStore) {
+            vendorDishes = await window.FroseIdbStore.getMenuItems(vKey);
           }
         } catch (e) {
-          const local = localStorage.getItem('frose_dishes_' + getVendorKey()) || localStorage.getItem('frose_dishes_active');
-          if (local) vendorDishes = JSON.parse(local);
+          if (window.FroseIdbStore) {
+            vendorDishes = await window.FroseIdbStore.getMenuItems(vKey);
+          }
         }
 
         renderDishes();
@@ -368,10 +382,11 @@
           });
         }
 
-        // Cache update
+        // Cache update in IndexedDB
         try {
-          localStorage.setItem('frose_dishes_' + getVendorKey(), JSON.stringify(vendorDishes));
-        localStorage.setItem('frose_dishes_active', JSON.stringify(vendorDishes));
+          if (window.FroseIdbStore) {
+            await window.FroseIdbStore.putMenuItems(getVendorKey(), vendorDishes);
+          }
         } catch (e) {}
 
         // Reset form
@@ -402,8 +417,9 @@
 
         vendorDishes = vendorDishes.filter(d => d.id !== id);
         try {
-          localStorage.setItem('frose_dishes_' + getVendorKey(), JSON.stringify(vendorDishes));
-        localStorage.setItem('frose_dishes_active', JSON.stringify(vendorDishes));
+          if (window.FroseIdbStore) {
+            await window.FroseIdbStore.putMenuItems(getVendorKey(), vendorDishes);
+          }
         } catch (e) {}
 
         renderDishes();

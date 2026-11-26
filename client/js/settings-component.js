@@ -128,31 +128,23 @@
   }
 
   // Load Dishes for Quick Editor (Clean Slate: strictly vendor dishes, zero fake seeds)
-  function loadDishesList() {
+  async function loadDishesList() {
     const listContainer = document.getElementById('sett-dishes-list');
     if (!listContainer) return;
 
     try {
-      const vKey = currentVendor?.phone || currentVendor?.id || 'active';
-      const rawDishes = localStorage.getItem('frose_dishes_' + vKey) || localStorage.getItem('frose_dishes_active');
-      let dishes = rawDishes ? JSON.parse(rawDishes) : [];
-
-      const legacyDummyIds = new Set([
-        'dish-naan-01', 'dish-chole-02', 'dish-dalfry-03', 'dish-paneertikka-04',
-        'dish-mixveg-05', 'dish-punjabipaneer-06', 'dish-chickenbiryani-07',
-        'dish-muttonbiryani-08', 'dish-momos-09', 'dish-chai-10',
-        'def-1', 'def-2', 'def-3', 'def-4', 'def-5', 'def-6', 'def-7', 'def-8',
-        'd-1', 'd-2', 'd-3'
-      ]);
-
-      const legacyDummyNames = new Set([
-        'Chicken Shawarma Roll', 'Paneer Butter Biryani', 'French Fries Masala',
-        'Butter Naan', 'Chole Bhature', 'Dal Fry', 'Paneer Tikka', 'Mix Veg',
-        'Punjabi Paneer', 'Chicken Biryani Full', 'Mutton Biryani Full'
-      ]);
+      const vKey = currentVendor?.id || currentVendor?.phone || 'active';
+      let dishes = [];
+      if (window.FroseIdbStore) {
+        dishes = await window.FroseIdbStore.getMenuItems(vKey);
+      }
 
       if (Array.isArray(dishes)) {
-        dishes = dishes.filter(d => d.isUserCreated === true);
+        dishes = dishes.filter(d => d.isUserCreated !== false).map(d => ({
+          ...d,
+          price: d.price !== undefined ? d.price : Math.round(Number(d.pricePaise || 0) / 100),
+          inStock: d.isAvailable !== false && d.inStock !== false
+        }));
       } else {
         dishes = [];
       }
@@ -423,18 +415,25 @@
   };
 
   // Save Dish Prices & Availability
-  window.saveDishChanges = function () {
+  window.saveDishChanges = async function () {
     const inputs = document.querySelectorAll('.sett-dish-price-input');
     inputs.forEach(inp => {
       const idx = parseInt(inp.getAttribute('data-idx'), 10);
       if (activeDishes[idx]) {
-        activeDishes[idx].price = Math.max(0, parseInt(inp.value, 10) || 0);
+        const rupees = Math.max(0, parseInt(inp.value, 10) || 0);
+        activeDishes[idx].price = rupees;
+        activeDishes[idx].pricePaise = rupees * 100;
       }
     });
 
-    const vKey = currentVendor?.phone || 'active';
-    localStorage.setItem('frose_dishes_' + vKey, JSON.stringify(activeDishes));
-    localStorage.setItem('frose_dishes_active', JSON.stringify(activeDishes));
+    const vKey = currentVendor?.id || currentVendor?.phone || 'active';
+    if (window.FroseIdbStore) {
+      await window.FroseIdbStore.putMenuItems(vKey, activeDishes.map(d => ({
+        ...d,
+        pricePaise: Number.isSafeInteger(d.pricePaise) ? d.pricePaise : Math.round(Number(d.price || 0) * 100),
+        isAvailable: d.inStock !== false
+      })));
+    }
 
     showToast('🍽️ Dish prices and stock updated!');
   };

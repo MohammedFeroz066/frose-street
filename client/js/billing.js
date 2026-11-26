@@ -7,16 +7,31 @@
 (function () {
   'use strict';
 
-  // In-Memory & Persisted State (Clean Slate: strictly vendor-defined categories and items)
+  // In-Memory & IndexedDB State (Clean Slate: strictly vendor-defined categories and items)
   let menuCatalog = [];
   const cart = new Map(); // dishId -> { item, quantity }
   let activeCategory = '';
   let currentTokenNumber = 1;
   let currentOrderType = 'counter'; // 'counter' | 'dinein'
+  let activeVendorId = '';
 
   function getVendorKey() {
-    const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-    return v.id || v.phone || localStorage.getItem('frose_stall_phone') || 'primary_vendor';
+    if (activeVendorId) return activeVendorId;
+    try {
+      const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+      return v.id || v.phone || localStorage.getItem('frose_stall_phone') || 'primary_vendor';
+    } catch (_) {
+      return localStorage.getItem('frose_stall_phone') || 'primary_vendor';
+    }
+  }
+
+  function toSafeIntPaise(val) {
+    if (window.FroseIdbStore && typeof window.FroseIdbStore.toSafeIntegerPaise === 'function') {
+      return window.FroseIdbStore.toSafeIntegerPaise(val, 'pricePaise');
+    }
+    const n = typeof val === 'bigint' ? Number(val) : Number(val || 0);
+    if (!Number.isSafeInteger(n)) throw new Error('Invalid integer paise value');
+    return n;
   }
 
   // Format integer paise into exact Rupee string (e.g. ₹190.0)
@@ -27,48 +42,32 @@
     return `₹${rupees}${remainder === 0 ? '.0' : '.' + remainder.toString().padStart(2, '0')}`;
   }
 
-        // Clean Slate Legacy Dummy Items Purge & Filter
+  // Purge legacy localStorage catalog/order keys (one-time cleanup, never re-write to localStorage)
   const PURGE_KEY = 'frose_clean_slate_2026_v99_permanent_empty';
-  if (!localStorage.getItem(PURGE_KEY)) {
+  try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
-      if (k && (k.startsWith('frose_dishes') || k.startsWith('frose_cats') || k === 'frose_custom_menu_catalog')) {
+      if (k && (k.startsWith('frose_dishes') || k.startsWith('frose_cats') || k === 'frose_custom_menu_catalog' || k === 'frose_live_orders_queue' || k === 'frose_current_token')) {
         localStorage.removeItem(k);
       }
     }
-    localStorage.setItem(PURGE_KEY, 'true');
-  }
-
-  const LEGACY_DUMMY_IDS = new Set([
-    'dish-naan-01', 'dish-chole-02', 'dish-dalfry-03', 'dish-paneertikka-04',
-    'dish-mixveg-05', 'dish-punjabipaneer-06', 'dish-chickenbiryani-07',
-    'dish-muttonbiryani-08', 'dish-momos-09', 'dish-chai-10',
-    'def-1', 'def-2', 'def-3', 'def-4', 'def-5', 'def-6', 'def-7', 'def-8',
-    'd-1', 'd-2', 'd-3'
-  ]);
-
-  const LEGACY_DUMMY_NAMES = new Set([
-    'butter naan', 'chole bhature', 'dal fry', 'paneer tikka', 'mix veg',
-    'punjabi paneer', 'punjabi kadai', 'chicken biryani full', 'mutton biryani full',
-    'chicken shawarma roll', 'paneer butter biryani', 'french fries masala',
-    'dosa', 'idli', 'idly', 'plain dosa', 'masala dosa', 'kadai paneer'
-  ]);
+    if (!localStorage.getItem(PURGE_KEY)) {
+      localStorage.setItem(PURGE_KEY, 'true');
+    }
+  } catch (_) {}
 
   function isUserCustomDish(item) {
     if (!item || !item.name) return false;
-    // Strict requirement: Only dishes explicitly added by vendor in UI are allowed
-    if (item.isUserCreated === true) return true;
-    return false;
+    return item.isUserCreated !== false;
   }
 
   // Explicit helper to wipe menu to clean slate anytime
-  window.clearMenuCatalogToCleanSlate = function() {
+  window.clearMenuCatalogToCleanSlate = async function() {
     const vKey = getVendorKey();
-    localStorage.removeItem('frose_dishes_' + vKey);
-    localStorage.removeItem('frose_dishes_active');
-    localStorage.removeItem('frose_custom_menu_catalog');
-    localStorage.removeItem('frose_cats_' + vKey);
-    localStorage.removeItem('frose_cats_active');
+    if (window.FroseIdbStore) {
+      await window.FroseIdbStore.putMenuItems(vKey, []);
+      await window.FroseIdbStore.deleteMeta('categories');
+    }
     menuCatalog = [];
     cart.clear();
     renderDishesGrid();
@@ -76,22 +75,35 @@
     updateCartUI();
   };
 
-  // Load Menu Catalog with instant live sync
+  // Load Menu Catalog with instant live sync + IndexedDB durability
   async function loadCatalog() {
-    const vKey = getVendorKey();
+    const store = window.FroseIdbStore;
+    let vKey = getVendorKey();
+    if (store && vKey && vKey !== 'primary_vendor') {
+      await store.ensureVendorScope(vKey);
+    } else if (store) {
+      const storedVendorId = await store.getActiveVendorId();
+      if (storedVendorId) {
+        activeVendorId = storedVendorId;
+        vKey = storedVendorId;
+      }
+    }
+
     const sessionActive = localStorage.getItem('frose_session_active');
 
-    // 1. Load custom categories
+    // 1. Load custom categories from IndexedDB meta
     let cats = [];
-    try {
-      const savedCats = localStorage.getItem('frose_cats_' + vKey) || localStorage.getItem('frose_cats_active');
-      if (savedCats) {
-        cats = JSON.parse(savedCats);
-      }
-    } catch (e) {}
+    if (store) {
+      try {
+        const catMeta = await store.getMeta('categories');
+        if (catMeta && Array.isArray(catMeta.value) && (!catMeta.vendor_id || catMeta.vendor_id === vKey)) {
+          cats = catMeta.value;
+        }
+      } catch (_) {}
+    }
 
     // 2. Fetch live catalog from authenticated backend API first (PostgreSQL RLS-scoped)
-    if (sessionActive) {
+    if (sessionActive && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
       try {
         const fn = window.froseApiFetch || fetch;
         const res = await fn('/api/v1/menu', {
@@ -100,15 +112,27 @@
         if (res && res.ok) {
           const data = await res.json();
           if (Array.isArray(data.items)) {
-            menuCatalog = data.items.map(item => ({
-              ...item,
-              isUserCreated: true,
-              image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
-              pricePaise: BigInt(item.pricePaise || 5000)
-            }));
-            localStorage.setItem('frose_dishes_' + vKey, JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
+            menuCatalog = data.items.map(item => {
+              const intPaise = toSafeIntPaise(item.pricePaise !== undefined ? item.pricePaise : 5000);
+              return {
+                ...item,
+                vendor_id: vKey,
+                isUserCreated: true,
+                image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
+                pricePaise: BigInt(intPaise)
+              };
+            });
+            if (store) {
+              await store.putMenuItems(vKey, menuCatalog.map(d => ({
+                ...d,
+                pricePaise: Number(d.pricePaise)
+              })));
+            }
             if (cats.length === 0) {
               cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
+              if (store && cats.length > 0) {
+                await store.setMeta('categories', { vendor_id: vKey, value: cats });
+              }
             }
             renderSidebarCategories(cats);
             return;
@@ -117,16 +141,15 @@
       } catch (e) {}
     }
 
-    // 3. Offline fallback: vendor-specific dishes in local cache
-    try {
-      const localDishes = localStorage.getItem('frose_dishes_' + vKey);
-      if (localDishes) {
-        const parsed = JSON.parse(localDishes);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          menuCatalog = parsed.filter(isUserCustomDish).map(item => ({
+    // 3. Offline fallback: vendor-scoped dishes in durable IndexedDB
+    if (store) {
+      try {
+        const cachedItems = await store.getMenuItems(vKey);
+        if (Array.isArray(cachedItems) && cachedItems.length > 0) {
+          menuCatalog = cachedItems.filter(isUserCustomDish).map(item => ({
             ...item,
             image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
-            pricePaise: BigInt(item.pricePaise || 5000)
+            pricePaise: BigInt(toSafeIntPaise(item.pricePaise))
           }));
           if (menuCatalog.length > 0) {
             if (cats.length === 0) {
@@ -136,8 +159,8 @@
             return;
           }
         }
-      }
-    } catch (e) {}
+      } catch (e) {}
+    }
 
     // Clean slate: strictly 0 dishes so counter starts empty with + Add Dish
     menuCatalog = [];
@@ -211,17 +234,18 @@
     );
   }
 
-  function saveCatalog() {
+  async function saveCatalog() {
     try {
+      const store = window.FroseIdbStore;
+      if (!store) return;
       const vKey = getVendorKey();
       const serialized = menuCatalog.map(item => ({
         ...item,
+        vendor_id: vKey,
         isUserCreated: true,
-        pricePaise: item.pricePaise.toString()
+        pricePaise: Number(item.pricePaise)
       }));
-      localStorage.setItem('frose_dishes_' + vKey, JSON.stringify(serialized));
-      localStorage.setItem('frose_dishes_active', JSON.stringify(serialized));
-      localStorage.setItem('frose_custom_menu_catalog', JSON.stringify(serialized));
+      await store.putMenuItems(vKey, serialized);
     } catch {}
   }
 
@@ -649,7 +673,6 @@
 
     currentTokenNumber = serverOrder?.tokenNo ?? (currentTokenNumber + 1);
     const tokenStr = `TOKEN #${currentTokenNumber}`;
-    localStorage.setItem('frose_current_token', currentTokenNumber.toString());
 
     // Flash Token Modal
     const fToken = document.getElementById('flash-token-number');
@@ -658,27 +681,35 @@
     const fAmount = document.getElementById('flash-token-amount');
     if (fAmount) fAmount.textContent = `${formatRupees(totalPaise)} Paid (${method})`;
 
-    // Local P2P Instant Sync to Kitchen & Packaging Stations
+    // Persist order in durable IndexedDB + notify same-origin BroadcastChannel
     const orderData = serverOrder || {
       id: 'ord-' + Date.now(),
+      client_order_id: 'ord-' + Date.now(),
       tokenNo: currentTokenNumber,
       tokenNumber: currentTokenNumber,
       orderType: currentOrderType, // 'counter' | 'dinein'
-      items: itemsList,
-      totalPaise: totalPaise.toString(),
+      items: itemsList.map(it => ({ ...it, pricePaise: Number(it.pricePaise) })),
+      totalPaise: Number(totalPaise),
       paymentMethod: method,
       status: 'pending',
+      syncStatus: serverOrder ? 'synced' : 'pending',
       createdAt: new Date().toISOString()
     };
 
     try {
+      if (window.FroseIdbStore) {
+        await window.FroseIdbStore.saveOrder(getVendorKey(), {
+          ...orderData,
+          client_order_id: orderData.client_order_id || orderData.id,
+          totalPaise: Number(totalPaise),
+          items: itemsList.map(it => ({ ...it, pricePaise: Number(it.pricePaise) })),
+          syncStatus: serverOrder ? 'synced' : 'pending'
+        });
+      }
       if (typeof BroadcastChannel !== 'undefined') {
         const orderChannel = new BroadcastChannel('frose_orders');
         orderChannel.postMessage({ event: 'order:new', data: orderData });
       }
-      const existingQueue = JSON.parse(localStorage.getItem('frose_live_orders_queue') || '[]');
-      existingQueue.unshift(orderData);
-      localStorage.setItem('frose_live_orders_queue', JSON.stringify(existingQueue.slice(0, 50)));
     } catch (_) {}
 
     window.openModal('token-flash-modal');
@@ -731,7 +762,7 @@
   };
 
   // Dish Management (Add & Edit)
-  window.openAddDishModal = function() {
+  window.openAddDishModal = async function() {
     const nameEl = document.getElementById('input-dish-name');
     const priceEl = document.getElementById('input-dish-price');
     if (nameEl) nameEl.value = '';
@@ -739,17 +770,20 @@
 
     const vKey = getVendorKey();
     let cats = [];
-    try {
-      const savedCats = localStorage.getItem('frose_cats_' + vKey) || localStorage.getItem('frose_cats_active');
-      if (savedCats) cats = JSON.parse(savedCats);
-    } catch (e) {}
+    if (window.FroseIdbStore) {
+      try {
+        const catMeta = await window.FroseIdbStore.getMeta('categories');
+        if (catMeta && Array.isArray(catMeta.value)) cats = catMeta.value;
+      } catch (_) {}
+    }
 
     const select = document.getElementById('input-dish-category');
     if (select) {
       if (!cats || cats.length === 0) {
         cats = ['Special Items'];
-        localStorage.setItem('frose_cats_' + vKey, JSON.stringify(cats));
-        localStorage.setItem('frose_cats_active', JSON.stringify(cats));
+        if (window.FroseIdbStore) {
+          await window.FroseIdbStore.setMeta('categories', { vendor_id: vKey, value: cats });
+        }
         renderSidebarCategories(cats);
       }
       const { el, clear } = window.FroseSafeDom;
@@ -817,7 +851,7 @@
   };
 
   let activeEditingDishId = null;
-  window.openEditDishModal = function(dishId, e) {
+  window.openEditDishModal = async function(dishId, e) {
     if (e) e.stopPropagation();
     const dish = menuCatalog.find(i => i.id === dishId);
     if (!dish) return;
@@ -827,13 +861,13 @@
     document.getElementById('edit-dish-name').value = dish.name;
     document.getElementById('edit-dish-price').value = Number(dish.pricePaise / 100n);
 
-    const vendor = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-    const vendorId = vendor.id || 'default';
     let cats = [];
-    try {
-      const savedCats = localStorage.getItem('frose_cats_' + vendorId);
-      if (savedCats) cats = JSON.parse(savedCats);
-    } catch (e) {}
+    if (window.FroseIdbStore) {
+      try {
+        const catMeta = await window.FroseIdbStore.getMeta('categories');
+        if (catMeta && Array.isArray(catMeta.value)) cats = catMeta.value;
+      } catch (_) {}
+    }
 
     const select = document.getElementById('edit-dish-category');
     if (select) {
@@ -942,9 +976,9 @@
       localStorage.removeItem('frose_session_active');
       localStorage.removeItem('frose_vendors_directory');
       localStorage.removeItem('frose_current_vendor');
-      localStorage.removeItem('frose_dishes_active');
-      localStorage.removeItem('frose_cats_active');
-      localStorage.removeItem('frose_live_orders_queue');
+      if (window.FroseIdbStore) {
+        await window.FroseIdbStore.clearAllStores();
+      }
       window.location.href = '/login.html';
     }
   };
@@ -952,11 +986,6 @@
   // Immediate event bindings for back navigation / tab focus sync
   window.addEventListener('pageshow', refreshPOS);
   window.addEventListener('focus', refreshPOS);
-  window.addEventListener('storage', (e) => {
-    if (e.key && (e.key.startsWith('frose_dishes') || e.key.startsWith('frose_cats'))) {
-      refreshPOS();
-    }
-  });
 
   // First-Time Client Check & Initialization
   document.addEventListener('DOMContentLoaded', async () => {

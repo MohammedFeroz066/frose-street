@@ -282,6 +282,24 @@
       };
 
       await this.idb.put('orders', order);
+      const idbStore = globalThis.FroseIdbStore;
+      if (idbStore && typeof idbStore.saveOrder === 'function') {
+        try {
+          await idbStore.saveOrder(input.vendorId || 'local', {
+            client_order_id: order.id,
+            id: order.id,
+            tokenNo: order.tokenNo,
+            items: order.items,
+            totalPaise: order.totalPaise,
+            paymentMethod: order.paymentMethod,
+            paymentStatus: order.paymentStatus,
+            status: order.status,
+            syncStatus: 'synced',
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt
+          });
+        } catch (_) {}
+      }
       return { ok: true, order };
     }
 
@@ -299,6 +317,15 @@
       if (newStatus === 'delivered') order.deliveredAt = order.updatedAt;
 
       await this.idb.put('orders', order);
+      const idbStore = globalThis.FroseIdbStore;
+      if (idbStore && typeof idbStore.updateOrder === 'function') {
+        try {
+          await idbStore.updateOrder(order.id, {
+            status: order.status,
+            updatedAt: order.updatedAt
+          });
+        } catch (_) {}
+      }
       return { ok: true, order };
     }
 
@@ -459,7 +486,7 @@
   // =========================================================================
   class DataAdapterFactory {
     static getAdapter(forceMode = null) {
-      const mode = forceMode || (typeof localStorage !== 'undefined' ? localStorage.getItem('frose_network_mode') : null) || 'auto';
+      const mode = forceMode || 'auto';
 
       if (mode === 'local' || mode === 'p2p') {
         return new LocalIndexedDBAdapter();
@@ -532,12 +559,21 @@
     }
 
     /**
-     * Fetches and caches ONLY the Ed25519 SPKI public key from /api/v1/subscriptions/public-key.
+     * Fetches and caches ONLY the Ed25519 SPKI public key from /api/v1/subscriptions/public-key
+     * in IndexedDB meta store (with memory fallback in Node/tests).
      */
     static async getPublicKeyPem(baseUrl = '') {
-      if (typeof localStorage !== 'undefined') {
-        const cached = localStorage.getItem('frose_license_public_key_pem');
-        if (cached && cached.includes('BEGIN PUBLIC KEY')) return cached;
+      const idb = globalThis.FroseIdbStore;
+      if (idb && typeof idb.getMeta === 'function') {
+        try {
+          const cachedMeta = await idb.getMeta('public_key_pem');
+          if (cachedMeta && typeof cachedMeta.value === 'string' && cachedMeta.value.includes('BEGIN PUBLIC KEY')) {
+            return cachedMeta.value;
+          }
+        } catch (_) {}
+      }
+      if (LicenseManager._cachedPublicKeyPem && LicenseManager._cachedPublicKeyPem.includes('BEGIN PUBLIC KEY')) {
+        return LicenseManager._cachedPublicKeyPem;
       }
       const fetchFn = globalThis.froseApiFetch || (typeof fetch === 'function' ? fetch : null);
       if (!fetchFn) return null;
@@ -548,8 +584,11 @@
         if (!res || !res.ok) return null;
         const data = await res.json();
         if (data && typeof data.publicKeyPem === 'string' && data.publicKeyPem.includes('BEGIN PUBLIC KEY')) {
-          if (typeof localStorage !== 'undefined') {
-            localStorage.setItem('frose_license_public_key_pem', data.publicKeyPem);
+          LicenseManager._cachedPublicKeyPem = data.publicKeyPem;
+          if (idb && typeof idb.setMeta === 'function') {
+            try {
+              await idb.setMeta('public_key_pem', { value: data.publicKeyPem });
+            } catch (_) {}
           }
           return data.publicKeyPem;
         }
@@ -690,22 +729,55 @@
     }
 
     /**
-     * Stores active license token
+     * Stores active verified offline license token in IndexedDB meta store.
      */
-    static saveLicense(token) {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('frose_license_token', token);
+    static async saveLicense(token, extra = {}) {
+      LicenseManager._cachedLicenseToken = token;
+      const idb = globalThis.FroseIdbStore;
+      if (idb && typeof idb.setMeta === 'function') {
+        await idb.setMeta('offline_license', {
+          token,
+          vendor_id: extra.vendorId || null,
+          publicKeyPem: extra.publicKeyPem || LicenseManager._cachedPublicKeyPem || null,
+          cachedAt: new Date().toISOString()
+        });
       }
     }
 
     /**
-     * Retrieves cached license token
+     * Retrieves cached license token from IndexedDB meta store.
      */
-    static getCachedLicense() {
-      if (typeof localStorage !== 'undefined') {
-        return localStorage.getItem('frose_license_token') || null;
+    static async getCachedLicense() {
+      const idb = globalThis.FroseIdbStore;
+      if (idb && typeof idb.getMeta === 'function') {
+        try {
+          const rec = await idb.getMeta('offline_license');
+          if (rec && rec.token) return rec.token;
+        } catch (_) {}
       }
-      return null;
+      return LicenseManager._cachedLicenseToken || null;
+    }
+
+    static async getCachedLicenseBundle() {
+      const idb = globalThis.FroseIdbStore;
+      let token = LicenseManager._cachedLicenseToken || null;
+      let publicKeyPem = LicenseManager._cachedPublicKeyPem || null;
+      let vendorId = null;
+      if (idb && typeof idb.getMeta === 'function') {
+        try {
+          const licRec = await idb.getMeta('offline_license');
+          if (licRec) {
+            if (licRec.token) token = licRec.token;
+            if (licRec.publicKeyPem) publicKeyPem = licRec.publicKeyPem;
+            if (licRec.vendor_id) vendorId = licRec.vendor_id;
+          }
+          if (!publicKeyPem) {
+            const pkRec = await idb.getMeta('public_key_pem');
+            if (pkRec && pkRec.value) publicKeyPem = pkRec.value;
+          }
+        } catch (_) {}
+      }
+      return { token, publicKeyPem, vendorId };
     }
   }
 

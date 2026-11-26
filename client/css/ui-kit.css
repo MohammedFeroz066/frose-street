@@ -415,6 +415,7 @@ html.saas-modal-open {
 }
 
 .saas-dish-card {
+  min-width: 0;
   background: var(--bg-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -460,11 +461,12 @@ html.saas-modal-open {
 }
 
 .saas-dish-body {
-  padding: 12px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
   flex: 1;
+  min-width: 0;
 }
 
 .saas-dish-head {
@@ -490,14 +492,16 @@ html.saas-modal-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .saas-dish-price {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 900;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .saas-veg-badge {
@@ -531,7 +535,7 @@ html.saas-modal-open {
 .saas-add-btn {
   min-width: var(--tap-min);
   min-height: var(--tap-min);
-  padding: 0 14px;
+  padding: 0 12px;
   border-radius: var(--radius-md);
   border: none;
   background: var(--accent-primary-soft);
@@ -539,6 +543,8 @@ html.saas-modal-open {
   font-family: inherit;
   font-size: 13.5px;
   font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -548,15 +554,16 @@ html.saas-modal-open {
 .saas-stepper {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   background: var(--accent-primary);
   color: #FFFFFF;
   border-radius: var(--radius-md);
   padding: 2px;
+  flex-shrink: 0;
 }
 
 .saas-stepper-btn {
-  min-width: 38px;
+  min-width: 44px;
   min-height: 44px;
   border: none;
   border-radius: 10px;
@@ -568,6 +575,23 @@ html.saas-modal-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+@media (min-width: 1024px) and (max-width: 1380px) {
+  .saas-dish-card .saas-dish-body {
+    padding: 10px;
+  }
+  .saas-dish-card .saas-dish-price {
+    font-size: 13px;
+  }
+  .saas-dish-card .saas-stepper-btn {
+    min-width: 32px;
+    min-height: 44px;
+  }
+  .saas-dish-card .saas-stepper-qty {
+    min-width: 16px;
+    font-size: 13px;
+  }
 }
 
 .saas-stepper-qty {
@@ -610,7 +634,7 @@ html.saas-modal-open {
 }
 
 .saas-cart-island.is-empty {
-  opacity: 0.9;
+  display: none !important;
 }
 
 /* ==========================================================================
@@ -951,7 +975,7 @@ html.saas-modal-open {
 
 .saas-toast-stack {
   position: fixed;
-  top: 14px;
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-toast);
@@ -960,6 +984,22 @@ html.saas-modal-open {
   gap: 8px;
   width: min(92vw, 400px);
   pointer-events: none;
+}
+
+@media (max-width: 1023px) {
+  body.has-cart-items .saas-toast-stack {
+    bottom: calc(144px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 1024px) {
+  .saas-toast-stack {
+    bottom: 24px;
+    right: 24px;
+    left: auto;
+    transform: none;
+    width: 360px;
+  }
 }
 
 .saas-toast {

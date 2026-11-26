@@ -375,7 +375,8 @@
       type: 'number',
       id: 'zreport-counted-cash',
       class: 'saas-input tabular-nums',
-      value: String(Math.round(expectedPaise / 100)),
+      min: '0',
+      value: String(Math.max(0, Math.round(expectedPaise / 100))),
     });
     var varianceBox = el('div', { class: 'pos-change-banner', id: 'zreport-variance-box' }, [
       el('span', {}, 'Variance'),

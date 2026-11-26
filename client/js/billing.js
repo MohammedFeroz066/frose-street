@@ -229,9 +229,11 @@
     });
 
     const pill = document.getElementById('pos-floating-cart-pill');
+    const { totalItems } = getCartTotals();
     if (pill) {
-      pill.style.display = target === 'bill' ? 'flex' : 'none';
+      pill.style.display = (target === 'bill' && totalItems > 0) ? 'flex' : 'none';
     }
+    document.body.classList.toggle('has-cart-items', target === 'bill' && totalItems > 0);
 
     if (target === 'orders' && window.FroseOrdersPanel && typeof window.FroseOrdersPanel.mount === 'function') {
       window.FroseOrdersPanel.mount();
@@ -746,8 +748,10 @@
     const pillStats = document.getElementById('cart-pill-stats');
     if (pill && pillStats) {
       pill.classList.toggle('is-empty', totalItems === 0);
+      pill.style.display = (activeTab === 'bill' && totalItems > 0) ? 'flex' : 'none';
       pillStats.textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'items'} · ${totalFormatted}`;
     }
+    document.body.classList.toggle('has-cart-items', activeTab === 'bill' && totalItems > 0);
 
     const compatTotal = document.getElementById('cart-total-rupees');
     if (compatTotal) compatTotal.textContent = totalFormatted;

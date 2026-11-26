@@ -182,39 +182,45 @@
           : fmt(item.pricePaise);
 
         listEl.appendChild(
-          el('div', { class: 'pos-row-card', 'data-menu-id': item.id }, [
-            el('div', { style: 'display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1;' }, [
+          el('div', { class: 'pos-row-card pos-menu-row-card', 'data-menu-id': item.id }, [
+            el('div', { class: 'pos-menu-row-main' }, [
               thumb,
               el('div', { style: 'min-width: 0; flex: 1;' }, [
                 el('div', { style: 'display: flex; align-items: center; gap: 6px;' }, [
                   global.FroseUI ? global.FroseUI.createVegBadge(item.isVeg !== false) : null,
-                  el('span', { style: 'font-size: 14.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }, item.name),
+                  el('span', { class: 'pos-menu-row-title' }, item.name),
                 ]),
                 el('div', { class: 'tabular-nums', style: 'font-size: 12.5px; color: var(--text-muted); margin-top: 2px;' }, (item.category || 'General') + ' · ' + variantsDesc),
               ]),
             ]),
-            el('div', { style: 'display: flex; align-items: center; gap: 8px; flex-shrink: 0;' }, [
-              el('button', {
-                type: 'button',
-                class: 'saas-switch' + (isAvailable ? ' on' : ''),
-                'aria-label': isAvailable ? 'Mark Sold Out' : 'Mark Available',
-                title: isAvailable ? 'Available' : 'Sold Out',
-                on: { click: function () { toggleOptimisticAvailability(item); } },
-              }),
-              el('button', {
-                type: 'button',
-                class: 'saas-btn saas-btn-secondary',
-                style: 'min-height: 44px; padding: 0 10px;',
-                title: 'Edit Dish',
-                on: { click: function () { if (ws().openAddDishModal) ws().openAddDishModal(item); } },
-              }, '✏️'),
-              el('button', {
-                type: 'button',
-                class: 'saas-btn saas-btn-danger',
-                style: 'min-height: 44px; padding: 0 10px;',
-                title: 'Delete Dish',
-                on: { click: function () { if (ws().deleteDishById) ws().deleteDishById(item.id); } },
-              }, '🗑️'),
+            el('div', { class: 'pos-menu-row-actions' }, [
+              el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
+                el('span', { style: 'font-size: 12px; font-weight: 700; color: var(--text-secondary);' }, isAvailable ? 'In Stock' : 'Sold Out'),
+                el('button', {
+                  type: 'button',
+                  class: 'saas-switch' + (isAvailable ? ' on' : ''),
+                  style: 'min-width: 48px; min-height: 44px;',
+                  'aria-label': isAvailable ? 'Mark Sold Out' : 'Mark Available',
+                  title: isAvailable ? 'Available' : 'Sold Out',
+                  on: { click: function () { toggleOptimisticAvailability(item); } },
+                }),
+              ]),
+              el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
+                el('button', {
+                  type: 'button',
+                  class: 'saas-btn saas-btn-secondary',
+                  style: 'min-width: 44px; min-height: 44px; padding: 0 12px;',
+                  title: 'Edit Dish',
+                  on: { click: function () { if (ws().openAddDishModal) ws().openAddDishModal(item); } },
+                }, '✏️ Edit'),
+                el('button', {
+                  type: 'button',
+                  class: 'saas-btn saas-btn-danger',
+                  style: 'min-width: 44px; min-height: 44px; padding: 0 12px;',
+                  title: 'Delete Dish',
+                  on: { click: function () { if (ws().deleteDishById) ws().deleteDishById(item.id); } },
+                }, '🗑️'),
+              ]),
             ]),
           ])
         );

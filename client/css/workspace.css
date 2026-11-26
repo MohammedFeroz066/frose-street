@@ -366,3 +366,88 @@
     max-width: 80mm !important;
   }
 }
+
+/* UX-FIX-03: Mobile Scroll Padding Above Dynamic Island & Bottom Nav */
+@media (max-width: 1023px) {
+  body.has-cart-items #pos-dishes-grid {
+    padding-bottom: 148px;
+  }
+}
+
+/* UX-FIX-03: Mobile Header Stall Name Breathing Room */
+@media (max-width: 480px) {
+  .saas-topbar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  .saas-brand-mark {
+    width: 32px;
+    height: 32px;
+    font-size: 12.5px;
+    border-radius: 10px;
+  }
+  .saas-topbar-actions {
+    gap: 6px;
+  }
+  .pos-sync-pill {
+    padding: 0 8px;
+    font-size: 11px;
+    min-height: 32px;
+  }
+  .pos-avatar-pill {
+    min-height: 44px;
+    padding: 3px;
+  }
+}
+
+/* UX-FIX-03: Menu Manager 2-Row Card Layout */
+.pos-menu-row-card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.pos-menu-row-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pos-menu-row-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.pos-menu-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* UX-FIX-03: Compact Cash Checkout Sheet Ergonomics on Mobile */
+@media (max-width: 1023px) {
+  #checkout-drawer-modal .saas-sheet {
+    padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px)) 14px;
+  }
+  #checkout-drawer-modal .pos-cart-scroll {
+    max-height: 132px;
+  }
+  #checkout-drawer-modal .pos-summary-box {
+    padding: 8px 12px;
+  }
+  #checkout-drawer-modal .pos-tender-chip {
+    min-height: 44px;
+    padding: 0 11px;
+  }
+  #checkout-drawer-modal .saas-input {
+    min-height: 44px;
+  }
+}

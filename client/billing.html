@@ -226,27 +226,27 @@
   <div class="saas-sheet-backdrop modal-overlay" id="checkout-drawer-modal">
     <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Order Checkout">
       <div class="saas-sheet-handle"></div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <h3 style="margin: 0; font-size: 18px; font-weight: 800;">Checkout</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="checkout-drawer-modal" style="min-height: 44px; padding: 0 12px;" aria-label="Close Checkout">✕</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Checkout</h3>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="checkout-drawer-modal" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close Checkout">✕</button>
       </div>
 
       <!-- Order Type Segmented Toggle -->
-      <div class="saas-segmented" style="margin-bottom: 14px;">
+      <div class="saas-segmented" style="margin-bottom: 8px;">
         <button type="button" class="saas-seg-btn active" id="btn-type-dinein" data-click="setOrderType" data-arg="dinein">🍽️ Dine-In</button>
         <button type="button" class="saas-seg-btn" id="btn-type-counter" data-click="setOrderType" data-arg="counter">📦 Parcel</button>
       </div>
 
       <!-- Cart Items List -->
-      <div id="checkout-cart-items" class="pos-cart-scroll" style="margin-bottom: 12px;"></div>
+      <div id="checkout-cart-items" class="pos-cart-scroll" style="margin-bottom: 8px;"></div>
 
       <!-- Order Note -->
-      <div class="saas-field" style="margin-bottom: 12px;">
+      <div class="saas-field" style="margin-bottom: 8px;">
         <input type="text" id="checkout-order-note" class="saas-input" maxlength="240" placeholder="Order note (optional, e.g. Less spicy, extra chutney)">
       </div>
 
       <!-- Total & Tax Summary -->
-      <div class="pos-summary-box" style="margin-bottom: 14px;">
+      <div class="pos-summary-box" style="margin-bottom: 8px;">
         <div id="checkout-tax-breakdown" style="display: none;"></div>
         <div class="pos-summary-total">
           <span>Grand Total</span>
@@ -255,7 +255,7 @@
       </div>
 
       <!-- Payment Mode Selector -->
-      <div class="saas-segmented" style="margin-bottom: 14px;" id="checkout-payment-tabs">
+      <div class="saas-segmented" style="margin-bottom: 8px;" id="checkout-payment-tabs">
         <button type="button" class="saas-seg-btn active" data-pay-mode="cash" data-click="setCheckoutPaymentMode" data-arg="cash">💵 Cash</button>
         <button type="button" class="saas-seg-btn" data-pay-mode="upi" data-click="setCheckoutPaymentMode" data-arg="upi">📱 UPI</button>
         <button type="button" class="saas-seg-btn" data-pay-mode="split" data-click="setCheckoutPaymentMode" data-arg="split">⚡ Split</button>
@@ -303,7 +303,7 @@
             <div class="saas-input tabular-nums" id="split-upi-remainder" style="display: flex; align-items: center; background: var(--bg-subtle);">&#8377;0</div>
           </div>
         </div>
-        <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--radius-md); background: var(--accent-amber-soft); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer;">
+        <label style="display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--accent-amber-soft); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer;">
           <input type="checkbox" id="split-upi-confirm-check" style="width: 22px; height: 22px; flex-shrink: 0;">
           <span>Customer Paid UPI Remainder (Confirm on Soundbox/App)</span>
         </label>
@@ -329,7 +329,7 @@
           <h3 id="variant-picker-title" style="margin: 0; font-size: 18px; font-weight: 800;">Select Variant</h3>
           <p style="margin: 2px 0 0 0; font-size: 12.5px; color: var(--text-muted);">Choose portion size to add to order</p>
         </div>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="variant-picker-modal" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="variant-picker-modal" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <div id="variant-picker-list" class="pos-list-stack"></div>
     </div>
@@ -398,7 +398,7 @@
       <div class="saas-sheet-handle receipt-no-print"></div>
       <div class="receipt-no-print" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Customer Receipt</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="receipt-modal" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="receipt-modal" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
 
       <div class="receipt-no-print saas-segmented" style="margin-bottom: 12px;">
@@ -427,7 +427,7 @@
       <div class="saas-sheet-handle"></div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: var(--accent-rose);">Void / Cancel Order</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="void-order-modal" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="void-order-modal" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <form data-submit="submitVoidOrder" style="display: flex; flex-direction: column; gap: 12px;">
         <input type="hidden" id="void-order-id">
@@ -449,7 +449,7 @@
       <div class="saas-sheet-handle"></div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Add Category</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="modal-add-section" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="modal-add-section" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <form data-submit="submitAddSection" style="display: flex; flex-direction: column; gap: 12px;">
         <div class="saas-field">
@@ -466,7 +466,7 @@
       <div class="saas-sheet-handle"></div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 17px; font-weight: 800;" id="dish-modal-heading">Add Dish</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="modal-add-dish" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="modal-add-dish" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <form data-submit="submitAddDish" style="display: flex; flex-direction: column; gap: 12px;">
         <input type="hidden" id="dish-form-edit-id" value="">
@@ -494,7 +494,7 @@
         <div class="saas-field">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <label class="saas-label">Variants (Optional: Half / Full)</label>
-            <button type="button" class="saas-btn saas-btn-secondary" id="btn-add-variant-row" data-click="addDishVariantRow" style="min-height: 36px; padding: 0 10px; font-size: 12px;">+ Add Variant</button>
+            <button type="button" class="saas-btn saas-btn-secondary" id="btn-add-variant-row" data-click="addDishVariantRow" style="min-width: 44px; min-height: 44px; padding: 0 12px; font-size: 12px;">+ Add Variant</button>
           </div>
           <div id="dish-variants-rows" style="display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
@@ -526,7 +526,7 @@
       <div class="saas-sheet-handle"></div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Edit Dish</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="modal-edit-dish" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="modal-edit-dish" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <form data-submit="submitEditDish" style="display: flex; flex-direction: column; gap: 12px;">
         <input type="hidden" id="edit-dish-id">
@@ -555,7 +555,7 @@
     <div class="saas-drawer" role="dialog" aria-modal="true" aria-label="Order Details">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
         <h3 style="margin: 0; font-size: 18px; font-weight: 800;" id="drawer-order-title">Order Details</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeOrderDetailDrawer" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeOrderDetailDrawer" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <div id="order-detail-drawer-body"></div>
     </div>
@@ -567,7 +567,7 @@
       <div class="saas-sheet-handle"></div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 18px; font-weight: 800;" id="order-edit-title">Edit Order</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="order-edit-sheet" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="order-edit-sheet" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <div id="order-edit-sheet-body"></div>
     </div>
@@ -579,7 +579,7 @@
       <div class="saas-sheet-handle"></div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 18px; font-weight: 800;">Log Expense</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="expense-add-sheet" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="expense-add-sheet" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <div id="expense-add-sheet-body"></div>
     </div>
@@ -589,7 +589,7 @@
     <div class="saas-drawer" role="dialog" aria-modal="true" aria-label="Close Fiscal Day">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
         <h3 style="margin: 0; font-size: 18px; font-weight: 800;">Close Day / Z-Report</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeCloseDayDrawer" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeCloseDayDrawer" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <div id="close-day-drawer-body"></div>
     </div>
@@ -601,7 +601,7 @@
       <div class="saas-sheet-handle"></div>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="margin: 0; font-size: 18px; font-weight: 800;">Pair Station Device</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="device-pairing-sheet" style="min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="device-pairing-sheet" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
       </div>
       <div id="device-pairing-sheet-body"></div>
     </div>

@@ -329,7 +329,7 @@
 
     let message = '';
     if (status === 'OVERDUE' || status === 'DUE SOON' || status === 'TRIAL') {
-      message = `*FROSE Street POS — Subscription Payment Due*\n\nDear ${owner},\n\nYour monthly subscription for *${stall}* (${fee}/month) is due on *${due}*.\n\nPlease settle via UPI: *frosestall@okaxis* to ensure continuous uninterrupted billing counter operations.\n\nThank you,\n*FROSE Street POS Team*`;
+      message = `*FROSE Street POS — Subscription Payment Due*\n\nDear ${owner},\n\nYour monthly subscription for *${stall}* (${fee}/month) is due on *${due}*.\n\nPlease settle via your configured FROSE billing UPI ID to ensure continuous uninterrupted billing counter operations.\n\nThank you,\n*FROSE Street POS Team*`;
     } else {
       message = `*FROSE Street POS — Official Payment Confirmation*\n\nDear ${owner},\n\nThank you for your payment of *${fee}* for *${stall}*.\n\nYour subscription is active and valid until *${due}*.\nReceipt ID: #REC-${Math.random().toString(36).substring(2, 8).toUpperCase()}\n\nThank you for choosing FROSE Street!\n*FROSE Platform HQ*`;
     }
@@ -703,13 +703,13 @@
       businessName: document.getElementById('page-add-stall-name').value.trim(),
       ownerName: document.getElementById('page-add-owner-name').value.trim(),
       phone: document.getElementById('page-add-phone').value.trim(),
-      password: document.getElementById('page-add-password').value.trim() || 'Feroz@123',
+      password: document.getElementById('page-add-password').value.trim(),
       city: document.getElementById('page-add-city').value.trim() || 'Hyderabad',
       edition: document.getElementById('page-add-edition').value,
       monthlyFeeRupees: Number(document.getElementById('page-add-monthly-fee').value) || 499,
       billingCycle: document.getElementById('page-add-billing-cycle').value,
       initialPaymentStatus: document.getElementById('page-add-initial-status').value,
-      upiId: document.getElementById('page-add-upi').value.trim() || 'frosestall@okaxis'
+      upiId: document.getElementById('page-add-upi').value.trim()
     };
 
     let newStall = null;
@@ -879,7 +879,7 @@
           businessName: document.getElementById('add-stall-name').value.trim(),
           ownerName: document.getElementById('add-owner-name').value.trim(),
           phone: document.getElementById('add-phone').value.trim(),
-          password: document.getElementById('add-password').value.trim() || 'Feroz@123',
+          password: document.getElementById('add-password').value.trim(),
           city: document.getElementById('add-city').value.trim() || 'Hyderabad',
           edition: document.getElementById('add-edition').value,
           monthlyFeeRupees: Number(document.getElementById('add-monthly-fee').value) || 499,

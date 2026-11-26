@@ -167,7 +167,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
           subscriptionStatus: vendor.subscription_status,
           subscriptionExpiresAt: vendor.subscription_expires_at,
           hasQuickPin: !!vendor.quick_pin_hash,
-          upiId: PaymentService.getVendorVpa(vendor.id, body.upiId || 'street@upi'),
+          upiId: PaymentService.getVendorVpa(vendor.id),
         },
         token,
         seededItemsCount,

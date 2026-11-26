@@ -56,10 +56,10 @@ export class PaymentService {
   }
 
   /**
-   * Retrieves vendor's configured UPI VPA or fallback
+   * Retrieves vendor's configured UPI VPA (never returns a hardcoded default)
    */
-  static getVendorVpa(vendorId: string, defaultFallback: string = 'frose.street@okaxis'): string {
-    return vendorVpaStore.get(vendorId) || defaultFallback;
+  static getVendorVpa(vendorId: string): string | undefined {
+    return vendorVpaStore.get(vendorId);
   }
 
   /**

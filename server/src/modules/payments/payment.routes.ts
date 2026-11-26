@@ -20,6 +20,9 @@ export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
 
       const vendorId = request.user!.sub;
       const vpa = body.vpa || PaymentService.getVendorVpa(vendorId);
+      if (!vpa) {
+        throw AppError.badRequest('UPI VPA is not configured. Please set up your payment QR first.', 'INVALID_UPI_VPA');
+      }
       const payeeName = body.payeeName || request.user!.businessName || 'FROSE Street Vendor';
       const amountPaise = body.amountPaise;
       const tokenNo = body.tokenNo || 1;

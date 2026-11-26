@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import { AppError } from '../../errors/app-error.js';
+import { loadConfig } from '../../config/env.js';
 
 export type SubscriptionPlan = 'cloud' | 'local';
 
@@ -37,8 +38,15 @@ export interface SubscriptionStatusResult {
 }
 
 export class SubscriptionService {
-  private static readonly SECRET = process.env.SUBSCRIPTION_SECRET || process.env.JWT_SECRET || 'frose-street-secret-license-key-2026';
   private static readonly GRACE_PERIOD_DAYS = 3;
+
+  private static getSigningSecret(): string {
+    const secret = process.env.SUBSCRIPTION_SECRET || loadConfig().JWT_SECRET;
+    if (!secret || secret.length < 32) {
+      throw new Error('SUBSCRIPTION_SECRET or JWT_SECRET (>= 32 chars) is required for license signing');
+    }
+    return secret;
+  }
 
   /**
    * Generates a cryptographically signed HMAC-SHA256 license token
@@ -48,7 +56,7 @@ export class SubscriptionService {
     const payloadStr = JSON.stringify(payload);
     const encodedPayload = Buffer.from(payloadStr, 'utf8').toString('base64url');
     const signature = crypto
-      .createHmac('sha256', this.SECRET)
+      .createHmac('sha256', this.getSigningSecret())
       .update(encodedPayload)
       .digest('hex');
     return `${encodedPayload}.${signature}`;
@@ -68,7 +76,7 @@ export class SubscriptionService {
     }
 
     const expectedSignature = crypto
-      .createHmac('sha256', this.SECRET)
+      .createHmac('sha256', this.getSigningSecret())
       .update(encodedPayload)
       .digest('hex');
 

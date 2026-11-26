@@ -32,7 +32,16 @@ const OrderIdParamSchema = z.object({ id: z.string().min(1).max(100) }).strict()
 
 const UpdateOrderStatusSchema = z.object({
   status: z.enum(['pending', 'preparing', 'ready', 'served', 'cancelled']),
-}).strict();
+  reason: z.string().trim().min(3, 'Void/cancel reason must be at least 3 characters').max(200).optional(),
+}).strict().superRefine((val, ctx) => {
+  if (val.status === 'cancelled' && (!val.reason || val.reason.trim().length < 3)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['reason'],
+      message: 'A void/cancel reason of at least 3 characters is required when cancelling an order',
+    });
+  }
+});
 
 export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   /**
@@ -127,6 +136,7 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         params.id,
         body.status,
         request.user!.role,
+        body.reason,
       ),
     );
 

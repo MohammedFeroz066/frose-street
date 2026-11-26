@@ -4,7 +4,13 @@ import type { StaffRole } from '../../../../shared/types/index.js';
 import { AppError } from '../../errors/app-error.js';
 import { WebSocketHub } from '../websocket/websocket.hub.js';
 import { SubscriptionService } from '../subscriptions/subscription.service.js';
-import { getIstDateString, normalizeDateColumnString } from '../../utils/ist-date.js';
+import {
+  getIstDateString,
+  normalizeDateColumnString,
+  getIndianFinancialYearCode,
+  formatReceiptNumber,
+} from '../../utils/ist-date.js';
+import { calculateOrderTax, type VendorTaxMode } from '../../utils/tax-calculator.js';
 
 export interface CreateOrderItemInput {
   menuItemId: string;
@@ -90,6 +96,12 @@ export class OrderService {
           vendorId: existingOrder.vendor_id,
           tokenNo: existingOrder.token_no,
           tokenDisplay: `#${existingOrder.token_no}`,
+          receiptNumber: existingOrder.receipt_number ?? null,
+          subtotalPaise: Number(existingOrder.subtotal_paise ?? existingOrder.total_paise),
+          cgstPaise: Number(existingOrder.cgst_paise ?? 0),
+          sgstPaise: Number(existingOrder.sgst_paise ?? 0),
+          taxModeSnapshot: (existingOrder.tax_mode_snapshot as VendorTaxMode) || 'unregistered',
+          cancelReason: existingOrder.cancel_reason ?? null,
           totalPaise: Number(existingOrder.total_paise),
           totalRupees: Number(existingOrder.total_paise) / 100,
           paymentMethod: existingOrder.payment_method,
@@ -173,7 +185,7 @@ export class OrderService {
 
     const menuItemsMap = new Map(menuItems.map((m) => [m.id, m]));
 
-    let totalPaise = 0;
+    let subtotalPaise = 0;
     const computedLineItems: {
       menuItemId: string;
       itemName: string;
@@ -205,7 +217,7 @@ export class OrderService {
 
       const unitPricePaise = Number(menuItem.price_paise);
       const lineTotalPaise = unitPricePaise * itemInput.quantity;
-      totalPaise += lineTotalPaise;
+      subtotalPaise += lineTotalPaise;
 
       computedLineItems.push({
         menuItemId: menuItem.id,
@@ -217,6 +229,50 @@ export class OrderService {
       });
     }
 
+    // 2b. Compute integer-paise tax breakdown from vendor's tax profile
+    const vendorTaxMode: VendorTaxMode =
+      vendor.tax_mode === 'composition' || vendor.tax_mode === 'regular' ? vendor.tax_mode : 'unregistered';
+    const vendorGstRateBps =
+      vendorTaxMode === 'regular' ? Number(vendor.gst_rate_bps ?? 500) : 0;
+    const taxBreakdown = calculateOrderTax({
+      subtotalPaise,
+      taxMode: vendorTaxMode,
+      gstRateBps: vendorGstRateBps,
+    });
+
+    // 2c. Generate sequential Indian Financial Year receipt number atomically (under vendor FOR UPDATE lock)
+    const fyCode = getIndianFinancialYearCode(new Date());
+    const receiptPrefix = `FS-${fyCode}-`;
+    let nextReceiptSeq = 1;
+
+    if (isRealPg) {
+      const seqRes = await sql<{ max_seq: number }>`
+        SELECT COALESCE(MAX(CAST(SPLIT_PART(receipt_number, '-', 3) AS INTEGER)), 0) AS max_seq
+        FROM orders
+        WHERE vendor_id = ${vendorId}
+          AND receipt_number LIKE ${receiptPrefix + '%'}
+      `.execute(db);
+      nextReceiptSeq = Number(seqRes.rows[0]?.max_seq ?? 0) + 1;
+    } else {
+      const existingVendorOrders = await db
+        .selectFrom('orders')
+        .selectAll()
+        .where('vendor_id', '=', vendorId)
+        .execute();
+      let maxSeq = 0;
+      for (const ord of existingVendorOrders) {
+        const rn = typeof ord.receipt_number === 'string' ? ord.receipt_number : '';
+        if (rn.startsWith(receiptPrefix)) {
+          const seqPart = parseInt(rn.slice(receiptPrefix.length), 10);
+          if (Number.isInteger(seqPart) && seqPart > maxSeq) {
+            maxSeq = seqPart;
+          }
+        }
+      }
+      nextReceiptSeq = maxSeq + 1;
+    }
+    const receiptNumber = formatReceiptNumber(fyCode, nextReceiptSeq);
+
     // 3. Insert order record
     const paymentStatus = input.paymentStatus || 'paid';
     const initialStatus: OrderStatus = 'preparing';
@@ -226,9 +282,15 @@ export class OrderService {
       .values({
         vendor_id: vendorId,
         token_no: nextToken,
+        receipt_number: receiptNumber,
+        subtotal_paise: taxBreakdown.subtotalPaise,
+        cgst_paise: taxBreakdown.cgstPaise,
+        sgst_paise: taxBreakdown.sgstPaise,
+        tax_mode_snapshot: taxBreakdown.taxMode,
+        cancel_reason: null,
         customer_name: input.customerName?.trim() || null,
         customer_phone: input.customerPhone?.replace(/\D/g, '') || null,
-        total_paise: BigInt(totalPaise),
+        total_paise: BigInt(taxBreakdown.totalPaise),
         payment_method: input.paymentMethod,
         payment_status: paymentStatus,
         order_status: initialStatus,
@@ -273,6 +335,13 @@ export class OrderService {
       vendorId: order.vendor_id,
       tokenNo: order.token_no,
       tokenDisplay: `#${order.token_no}`,
+      receiptNumber: order.receipt_number ?? receiptNumber,
+      subtotalPaise: Number(order.subtotal_paise ?? taxBreakdown.subtotalPaise),
+      cgstPaise: Number(order.cgst_paise ?? taxBreakdown.cgstPaise),
+      sgstPaise: Number(order.sgst_paise ?? taxBreakdown.sgstPaise),
+      taxModeSnapshot: (order.tax_mode_snapshot as VendorTaxMode) || taxBreakdown.taxMode,
+      gstRateBps: taxBreakdown.gstRateBps,
+      cancelReason: order.cancel_reason ?? null,
       totalPaise: Number(order.total_paise),
       totalRupees: Number(order.total_paise) / 100,
       paymentMethod: order.payment_method,
@@ -303,6 +372,7 @@ export class OrderService {
     orderId: string,
     newStatus: OrderStatus,
     userRole: StaffRole,
+    reason?: string,
   ) {
     const order = await db
       .selectFrom('orders')
@@ -323,6 +393,7 @@ export class OrderService {
         tokenNo: order.token_no,
         previousStatus: currentStatus,
         newStatus,
+        cancelReason: order.cancel_reason ?? null,
         updatedAt: new Date().toISOString(),
       };
     }
@@ -330,6 +401,14 @@ export class OrderService {
     // Role-based state transition restrictions
     if (newStatus === 'cancelled' && !['owner', 'cashier'].includes(userRole)) {
       throw AppError.forbidden('Only cashier or owner can cancel an order', 'CANCEL_FORBIDDEN');
+    }
+
+    const cleanReason = typeof reason === 'string' ? reason.trim() : '';
+    if (newStatus === 'cancelled' && cleanReason.length < 3) {
+      throw AppError.badRequest(
+        'A cancellation/void reason of at least 3 characters is required',
+        'CANCEL_REASON_REQUIRED',
+      );
     }
 
     // Valid state transitions
@@ -349,12 +428,17 @@ export class OrderService {
       );
     }
 
+    const updateSet: Record<string, any> = {
+      order_status: newStatus,
+      updated_at: new Date(),
+    };
+    if (newStatus === 'cancelled') {
+      updateSet.cancel_reason = cleanReason;
+    }
+
     await db
       .updateTable('orders')
-      .set({
-        order_status: newStatus,
-        updated_at: new Date(),
-      })
+      .set(updateSet)
       .where('id', '=', orderId)
       .where('vendor_id', '=', vendorId)
       .execute();
@@ -364,6 +448,7 @@ export class OrderService {
       tokenNo: order.token_no,
       previousStatus: currentStatus,
       newStatus,
+      cancelReason: newStatus === 'cancelled' ? cleanReason : (order.cancel_reason ?? null),
       updatedAt: new Date().toISOString(),
     };
 
@@ -457,6 +542,12 @@ export class OrderService {
       vendorId: order.vendor_id,
       tokenNo: order.token_no,
       tokenDisplay: `#${order.token_no}`,
+      receiptNumber: order.receipt_number ?? null,
+      subtotalPaise: Number(order.subtotal_paise ?? order.total_paise),
+      cgstPaise: Number(order.cgst_paise ?? 0),
+      sgstPaise: Number(order.sgst_paise ?? 0),
+      taxModeSnapshot: (order.tax_mode_snapshot as VendorTaxMode) || 'unregistered',
+      cancelReason: order.cancel_reason ?? null,
       totalPaise: Number(order.total_paise),
       totalRupees: Number(order.total_paise) / 100,
       paymentMethod: order.payment_method,
@@ -516,6 +607,12 @@ export class OrderService {
         id: o.id,
         tokenNo: o.token_no,
         tokenDisplay: `#${o.token_no}`,
+        receiptNumber: o.receipt_number ?? null,
+        subtotalPaise: Number(o.subtotal_paise ?? o.total_paise),
+        cgstPaise: Number(o.cgst_paise ?? 0),
+        sgstPaise: Number(o.sgst_paise ?? 0),
+        taxModeSnapshot: (o.tax_mode_snapshot as VendorTaxMode) || 'unregistered',
+        cancelReason: o.cancel_reason ?? null,
         totalPaise: Number(o.total_paise),
         totalRupees: Number(o.total_paise) / 100,
         paymentMethod: o.payment_method,

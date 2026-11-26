@@ -106,6 +106,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
         '014_rls_roles_and_policies',
         '015_add_client_order_id_to_orders',
         '016_add_vendor_compliance_fields',
+        '017_add_order_tax_and_receipt_fields',
       ]);
     });
   });

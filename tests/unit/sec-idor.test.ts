@@ -168,7 +168,7 @@ describe('SEC-IDOR: Cross-Tenant Isolation & Role Enforcement Across All Routes'
       method: 'PATCH',
       url: `/api/v1/orders/${orderIdB}/status`,
       headers: { cookie: cookieA, 'X-FROSE-CSRF': '1', origin: 'http://localhost:3100' },
-      payload: { status: 'cancelled' },
+      payload: { status: 'cancelled', reason: 'Cross-tenant isolation check' },
     });
     expect(patchOrderA.statusCode).toBe(404);
 

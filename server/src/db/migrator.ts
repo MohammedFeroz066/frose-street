@@ -17,6 +17,7 @@ import * as m013 from './migrations/013_align_runtime_schema.js';
 import * as m014 from './migrations/014_rls_roles_and_policies.js';
 import * as m015 from './migrations/015_add_client_order_id_to_orders.js';
 import * as m016 from './migrations/016_add_vendor_compliance_fields.js';
+import * as m017 from './migrations/017_add_order_tax_and_receipt_fields.js';
 
 export const allMigrations: Record<string, Migration> = {
   '001_create_vendors': m001,
@@ -35,6 +36,7 @@ export const allMigrations: Record<string, Migration> = {
   '014_rls_roles_and_policies': m014,
   '015_add_client_order_id_to_orders': m015,
   '016_add_vendor_compliance_fields': m016,
+  '017_add_order_tax_and_receipt_fields': m017,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

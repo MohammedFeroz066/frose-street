@@ -25,3 +25,26 @@ export function normalizeDateColumnString(val: unknown): string {
   }
   return String(val).slice(0, 10);
 }
+
+/**
+ * Computes the 4-digit Indian Financial Year (April 1 - March 31 IST) code,
+ * e.g. '2627' for 2026-04-01 IST through 2027-03-31 IST.
+ */
+export function getIndianFinancialYearCode(dateInput?: Date | string | number): string {
+  const istDate = getIstDateString(dateInput);
+  const year = Number(istDate.slice(0, 4));
+  const month = Number(istDate.slice(5, 7));
+  const startYear = month >= 4 ? year : year - 1;
+  const endYear = startYear + 1;
+  const startShort = String(startYear % 100).padStart(2, '0');
+  const endShort = String(endYear % 100).padStart(2, '0');
+  return `${startShort}${endShort}`;
+}
+
+/**
+ * Formats a sequential Indian Financial Year receipt number (e.g. FS-2627-0001).
+ */
+export function formatReceiptNumber(fyCode: string, sequenceNumber: number): string {
+  const seqStr = String(sequenceNumber).padStart(4, '0');
+  return `FS-${fyCode}-${seqStr}`;
+}

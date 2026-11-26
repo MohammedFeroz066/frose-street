@@ -90,6 +90,12 @@ export interface OrdersTable {
   source: 'pos' | 'qr_customer' | 'online';
   client_order_id?: string | null;
   created_at_client?: Timestamp | null;
+  receipt_number?: string | null;
+  subtotal_paise?: number;
+  cgst_paise?: number;
+  sgst_paise?: number;
+  tax_mode_snapshot?: 'unregistered' | 'composition' | 'regular';
+  cancel_reason?: string | null;
   created_at: Generated<Timestamp>;
   updated_at: Generated<Timestamp>;
 }

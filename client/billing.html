@@ -500,12 +500,17 @@
         </div>
         <div class="saas-field">
           <label class="saas-label" for="input-dish-photo-select">Dish Image Preset or HTTPS URL</label>
-          <select id="input-dish-photo-select" class="saas-select">
+          <select id="input-dish-photo-select" class="saas-select" data-change-value="updateDishPhotoPreview">
             <option value="/images/dishes/chicken-biryani-full.webp">Biryani Plate</option>
             <option value="/images/dishes/chicken-handi-biryani.webp">Handi Pot</option>
             <option value="/images/dishes/mini-chicken-biryani.webp">Mini Bowl</option>
             <option value="/images/dishes/mutton-biryani-full.webp">Special Platter</option>
           </select>
+          <input type="url" id="input-dish-photo-url" class="saas-input" placeholder="Or paste https:// image URL (optional)">
+          <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+            <img id="dish-photo-preview-img" src="/images/dishes/chicken-biryani-full.webp" alt="Dish preview" style="width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: var(--bg-subtle);">
+            <span style="font-size: 12px; color: var(--text-muted);">Live safe-URL image preview</span>
+          </div>
         </div>
         <div style="display: flex; gap: 10px;">
           <button type="button" id="btn-delete-dish-in-modal" class="saas-btn saas-btn-danger" data-click="deleteActiveFormDish" style="display: none; flex: 1;">Delete</button>

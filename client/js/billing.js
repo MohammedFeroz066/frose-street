@@ -1331,12 +1331,23 @@
     container.appendChild(row);
   };
 
+  window.updateDishPhotoPreview = function (val) {
+    const { safeImageUrl } = window.FroseSafeDom;
+    const urlInput = document.getElementById('input-dish-photo-url');
+    const selectEl = document.getElementById('input-dish-photo-select');
+    const preview = document.getElementById('dish-photo-preview-img');
+    const raw = (val !== undefined ? val : (urlInput?.value.trim() || selectEl?.value || ''));
+    const safe = safeImageUrl(raw) || '/images/dishes/chicken-biryani-full.webp';
+    if (preview) preview.src = safe;
+  };
+
   window.openAddDishModal = async function (editDish) {
     const heading = document.getElementById('dish-modal-heading');
     const editIdEl = document.getElementById('dish-form-edit-id');
     const nameEl = document.getElementById('input-dish-name');
     const priceEl = document.getElementById('input-dish-price');
     const photoEl = document.getElementById('input-dish-photo-select');
+    const photoUrlEl = document.getElementById('input-dish-photo-url');
     const delBtn = document.getElementById('btn-delete-dish-in-modal');
     const varRows = document.getElementById('dish-variants-rows');
     if (varRows && window.FroseSafeDom) window.FroseSafeDom.clear(varRows);
@@ -1357,7 +1368,10 @@
       if (nameEl) nameEl.value = editDish.name || '';
       if (priceEl) priceEl.value = String(Math.round(Number(editDish.pricePaise || 0) / 100));
       if (select && editDish.category) select.value = editDish.category;
-      if (photoEl && editDish.imageUrl) photoEl.value = editDish.imageUrl;
+      const imgVal = editDish.imageUrl || editDish.image || '';
+      if (photoEl && imgVal.startsWith('/images/')) photoEl.value = imgVal;
+      if (photoUrlEl) photoUrlEl.value = imgVal && !imgVal.startsWith('/images/') ? imgVal : '';
+      window.updateDishPhotoPreview(imgVal || photoEl?.value);
       if (delBtn) delBtn.style.display = 'inline-flex';
       window.setDishVegFlag(editDish.isVeg === false ? 'nonveg' : 'veg');
       if (Array.isArray(editDish.variants)) {
@@ -1368,6 +1382,8 @@
       if (editIdEl) editIdEl.value = '';
       if (nameEl) nameEl.value = '';
       if (priceEl) priceEl.value = '';
+      if (photoUrlEl) photoUrlEl.value = '';
+      window.updateDishPhotoPreview(photoEl?.value);
       if (delBtn) delBtn.style.display = 'none';
       window.setDishVegFlag('veg');
     }
@@ -1382,7 +1398,12 @@
     const name = document.getElementById('input-dish-name')?.value.trim() || '';
     const category = document.getElementById('input-dish-category')?.value || 'General';
     const priceRupees = Number(document.getElementById('input-dish-price')?.value || 0);
-    const photo = safeImageUrl(document.getElementById('input-dish-photo-select')?.value) || '/images/dishes/chicken-biryani-full.webp';
+    const customUrlRaw = document.getElementById('input-dish-photo-url')?.value.trim() || '';
+    if (customUrlRaw && !safeImageUrl(customUrlRaw)) {
+      notify('Rejected unsafe image URL (use https:// or preset)', 'danger');
+      return;
+    }
+    const photo = safeImageUrl(customUrlRaw || document.getElementById('input-dish-photo-select')?.value) || '/images/dishes/chicken-biryani-full.webp';
 
     if (!name || !Number.isFinite(priceRupees) || priceRupees <= 0) {
       notify('Enter a valid dish name and price', 'warning');
@@ -1649,6 +1670,10 @@
     const splitCashInput = document.getElementById('split-cash-input');
     if (splitCashInput) {
       splitCashInput.addEventListener('input', updateSplitRemainder);
+    }
+    const photoUrlInput = document.getElementById('input-dish-photo-url');
+    if (photoUrlInput) {
+      photoUrlInput.addEventListener('input', () => window.updateDishPhotoPreview(photoUrlInput.value));
     }
 
     await refreshPOS();

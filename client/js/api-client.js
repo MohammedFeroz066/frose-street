@@ -39,6 +39,7 @@
     try {
       if (global.localStorage) {
         global.localStorage.removeItem('frose_session_active');
+        global.localStorage.removeItem('frose_vendors_directory');
       }
     } catch (_) {}
   }

@@ -7,6 +7,9 @@
   'use strict';
 
   // 1. Session & Auth Verification
+  try {
+    localStorage.removeItem('frose_vendors_directory');
+  } catch (e) {}
   const sessionActive = localStorage.getItem('frose_session_active');
   if (!sessionActive) {
     window.location.replace('/login');
@@ -51,54 +54,6 @@
   let currentFilter = 'all';
   let searchQuery = '';
 
-  // Persistence & Dynamic Directory Helpers (100% Real-time Clean Slate)
-  function getDynamicVendors() {
-    try {
-      const dir = JSON.parse(localStorage.getItem('frose_vendors_directory') || '{}');
-      return Object.values(dir);
-    } catch (e) {
-      return [];
-    }
-  }
-
-  function saveVendorToDirectory(stall) {
-    try {
-      const dir = JSON.parse(localStorage.getItem('frose_vendors_directory') || '{}');
-      dir[stall.phone] = stall;
-      localStorage.setItem('frose_vendors_directory', JSON.stringify(dir));
-    } catch (e) {}
-  }
-
-  // Initial runtime is 100% clean slate: zero fake vendors, zero dummy sales
-  // Cloud Baseline Stalls (Guarantees multi-device parity between Phone and Laptop PC)
-  const CLOUD_BASELINE_VENDORS = [
-    {
-      id: 'v-stall-9642230688',
-      phone: '9642230688',
-      businessName: 'Cloud Edge Kitchen',
-      ownerName: 'Stall Partner',
-      city: 'Hyderabad',
-      edition: 'cloud',
-      monthlyFeePaise: '89900',
-      subscriptionStatus: 'trial',
-      paymentStatus: 'trial',
-      subscriptionExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
-      nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
-      totalCollectedPaise: '0',
-      pendingDuePaise: '89900',
-      totalOrders: 0,
-      lifetimeSalesPaise: '0',
-      deviceCount: 1,
-      activeDevices: 1,
-      turnover: {
-        daily: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
-        weekly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
-        monthly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
-        yearly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' }
-      },
-      createdAt: '2026-11-19T10:00:00.000Z'
-    }
-  ];
   const FALLBACK_VENDORS = [];
 
   // Format integer paise into Indian Rupee format (e.g. ₹1,04,500)
@@ -196,7 +151,7 @@
       const res = await apiFetch('/api/v1/admin/overview');
       if (res && res.ok) {
         const json = await res.json();
-        if (json.data && allVendors.length > 0) {
+        if (json.data) {
           stats.totalVendors = json.data.totalVendors ?? stats.totalVendors;
           stats.activeVendors = json.data.activeVendors ?? stats.activeVendors;
           const serverGross = BigInt(json.data.grossSalesPaise || '0');
@@ -272,27 +227,18 @@
     if (cntOut) cntOut.textContent = stats.expiredVendors;
   }
 
-  // Load Vendors Directory
+  // Load Vendors Directory strictly in memory from authenticated admin API
   async function loadVendors() {
-    const localStalls = getDynamicVendors();
     const stallMap = new Map();
 
-    // 1. Seed Cloud Baseline so Laptop PC and Phone always see identical stalls
-    CLOUD_BASELINE_VENDORS.forEach(s => stallMap.set(s.phone, { ...s }));
-
-    // 2. Overlay any locally created/updated stalls
-    localStalls.forEach(s => stallMap.set(s.phone, { ...(stallMap.get(s.phone) || {}), ...s }));
-
-    // 3. Sync from backend API
     try {
       const res = await apiFetch('/api/v1/admin/vendors');
       if (res && res.ok) {
         const json = await res.json();
         if (Array.isArray(json.data)) {
-          const backendStalls = json.data.filter(v => !v.isSuperadmin && !v.is_superadmin && v.id !== 'v-admin-master' && v.phone !== '9999999999');
+          const backendStalls = json.data.filter(v => !v.isSuperadmin && !v.is_superadmin);
           backendStalls.forEach(s => {
-            stallMap.set(s.phone, { ...(stallMap.get(s.phone) || {}), ...s });
-            saveVendorToDirectory(stallMap.get(s.phone));
+            stallMap.set(s.id || s.phone, s);
           });
         }
       }
@@ -795,6 +741,7 @@
           .catch(() => {})
           .finally(() => {
             localStorage.removeItem('frose_session_active');
+            localStorage.removeItem('frose_vendors_directory');
             window.location.replace('/login.html');
           });
       }
@@ -1159,8 +1106,7 @@
       }
     } catch (err) {}
 
-    // 100% Guaranteed Live Auth Persistence across client storage
-    saveVendorToDirectory(newStall);
+    // In-memory state update only (never cache cross-tenant vendor PII in localStorage)
     allVendors.unshift(newStall);
 
     // Record notification
@@ -1283,6 +1229,7 @@
             .catch(() => {})
             .finally(() => {
               localStorage.removeItem('frose_session_active');
+              localStorage.removeItem('frose_vendors_directory');
               window.location.replace('/login.html');
             });
         }
@@ -1434,6 +1381,7 @@
       .finally(() => {
         localStorage.removeItem('frose_session_active');
         localStorage.removeItem('frose_current_vendor');
+        localStorage.removeItem('frose_vendors_directory');
         window.location.replace('/login.html');
       });
   };
@@ -1443,6 +1391,7 @@
         .catch(() => {})
         .finally(() => {
           localStorage.removeItem('frose_session_active');
+          localStorage.removeItem('frose_vendors_directory');
           window.location.replace('/login.html');
         });
     }
@@ -1549,8 +1498,7 @@
 
   window.openStallSetupQRByPhone = function(phone) {
     const clean = (phone || '').replace(/\D/g, '').slice(-10);
-    const stall = allVendors.find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === clean) ||
-      getDynamicVendors().find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === clean) || {
+    const stall = allVendors.find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === clean) || {
         phone: clean,
         businessName: 'Restaurant Stall',
         monthlyFeePaise: '89900',
@@ -1601,7 +1549,6 @@
           } else {
             stall.turnover.daily.upiPaise = (BigInt(stall.turnover.daily.upiPaise || '0') + BigInt(data.amountPaise || '0')).toString();
           }
-          saveVendorToDirectory(stall);
         }
         loadOverview();
         renderStallsTable();
@@ -1622,8 +1569,6 @@
     stall.subscriptionStatus = newStatus;
     stall.subscription_status = newStatus;
     stall.paymentStatus = newPaymentStatus;
-
-    saveVendorToDirectory(stall);
 
     // Broadcast Remote Kill-Switch frame over Telemetry & WebSockets
     if (telemetryChannel) {

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { SubscriptionService } from './subscription.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
-import { getDatabase } from '../../db/database.js';
+import { withTenantContext, withSuperadminContext } from '../../db/rls-context.js';
 
 const RenewSubscriptionSchema = z.object({
   plan: z.enum(['local', 'cloud']),
@@ -20,8 +20,9 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    * Returns current subscription status, days left, grace period, and signed token.
    */
   app.get('/status', { preHandler: [requireAuth] }, async (req, reply) => {
-    const db = getDatabase();
-    const status = await SubscriptionService.getSubscriptionStatus(db, req.user!.sub);
+    const status = await withTenantContext(req.user!.sub, (db) =>
+      SubscriptionService.getSubscriptionStatus(db, req.user!.sub),
+    );
     return reply.status(200).send(status);
   });
 
@@ -30,14 +31,15 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    * Renews or upgrades subscription plan via UPI
    */
   app.post('/renew', { preHandler: [requireAuth, requireRole('owner', 'cashier')] }, async (req, reply) => {
-    const db = getDatabase();
     const { plan, paymentReference } = validateSchema(RenewSubscriptionSchema, req.body);
 
-    const result = await SubscriptionService.renewSubscription(
-      db,
-      req.user!.sub,
-      plan,
-      paymentReference || 'UPI-' + Date.now()
+    const result = await withTenantContext(req.user!.sub, (db) =>
+      SubscriptionService.renewSubscription(
+        db,
+        req.user!.sub,
+        plan,
+        paymentReference || 'UPI-' + Date.now()
+      ),
     );
 
     return reply.status(200).send(result);
@@ -72,8 +74,9 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    * Super-Admin endpoint: lists all vendors with subscription metrics and revenue
    */
   app.get('/admin/vendors', { preHandler: [requireAuth, requireRole('superadmin')] }, async (_req, reply) => {
-    const db = getDatabase();
-    const adminData = await SubscriptionService.getAdminVendorsList(db);
+    const adminData = await withSuperadminContext((db) =>
+      SubscriptionService.getAdminVendorsList(db),
+    );
     return reply.status(200).send(adminData);
   });
 };

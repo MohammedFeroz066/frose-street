@@ -243,7 +243,7 @@ export class AdminService {
     const isPaid = input.initialPaymentStatus === 'paid';
     const expiryDate = new Date(Date.now() + subDays * 24 * 3600 * 1000).toISOString();
 
-    const vendorId = `v-${randomUUID().substring(0, 8)}`;
+    const vendorId = randomUUID();
 
     const newVendor = await db
       .insertInto('vendors')
@@ -283,7 +283,7 @@ export class AdminService {
     await db
       .insertInto('staff')
       .values({
-        id: `staff-${randomUUID().substring(0, 8)}`,
+        id: randomUUID(),
         vendor_id: newVendor.id,
         name: newVendor.owner_name || 'Counter Staff',
         role: 'cashier',
@@ -373,7 +373,7 @@ export class AdminService {
     const newItem = await db
       .insertInto('menu_items')
       .values({
-        id: `item-${randomUUID().substring(0, 8)}`,
+        id: randomUUID(),
         vendor_id: vendorId,
         name: input.name.trim(),
         price_paise: Math.round(input.pricePaise),

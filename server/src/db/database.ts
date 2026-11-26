@@ -1,4 +1,4 @@
-import { Kysely, PostgresDialect } from 'kysely';
+import { Kysely, PostgresDialect, sql } from 'kysely';
 import pg from 'pg';
 import type { Database } from './types.js';
 import { loadConfig } from '../config/env.js';
@@ -50,4 +50,57 @@ export async function closeDatabase(): Promise<void> {
     }
     dbInstance = null;
   }
+}
+
+export interface RuntimeDbRoleInfo {
+  currentUser: string;
+  rolsuper: boolean;
+  rolbypassrls: boolean;
+}
+
+/**
+ * Verifies the active PostgreSQL role is neither `postgres`, a superuser (`rolsuper`),
+ * nor a `BYPASSRLS` role (`rolbypassrls`). Fails startup in production; logs a hard warning otherwise.
+ */
+export async function verifyRuntimeDatabaseRole(
+  customDb?: Kysely<Database>,
+  nodeEnv: string = process.env.NODE_ENV || 'development',
+): Promise<RuntimeDbRoleInfo> {
+  if (process.env.USE_MEMORY_DB === 'true' && !customDb) {
+    return { currentUser: 'memory', rolsuper: false, rolbypassrls: false };
+  }
+
+  const db = customDb || getDatabase();
+  if (typeof (db as any)?.getExecutor !== 'function') {
+    return { currentUser: 'memory', rolsuper: false, rolbypassrls: false };
+  }
+
+  const result = await sql<{ current_user: string; rolsuper: boolean; rolbypassrls: boolean }>`
+    SELECT current_user, rolsuper, rolbypassrls
+    FROM pg_roles
+    WHERE rolname = current_user
+  `.execute(db);
+
+  const row = result.rows[0];
+  if (!row) {
+    throw new Error('FATAL SECURITY ERROR: Unable to verify current PostgreSQL role privileges');
+  }
+
+  const info: RuntimeDbRoleInfo = {
+    currentUser: String(row.current_user),
+    rolsuper: Boolean(row.rolsuper),
+    rolbypassrls: Boolean(row.rolbypassrls),
+  };
+
+  if (info.currentUser === 'postgres' || info.rolsuper || info.rolbypassrls) {
+    const message =
+      `Runtime database connection uses privileged role "${info.currentUser}" ` +
+      `(rolsuper=${info.rolsuper}, rolbypassrls=${info.rolbypassrls}). Connect as non-superuser app_user so RLS is enforced.`;
+    if (nodeEnv === 'production') {
+      throw new Error(`FATAL SECURITY ERROR: ${message}`);
+    }
+    console.error(`[SECURITY WARNING] ${message}`);
+  }
+
+  return info;
 }

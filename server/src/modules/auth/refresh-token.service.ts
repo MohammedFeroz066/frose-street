@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import { AppError } from '../../errors/app-error.js';
+import { withTenantContext, lookupRefreshTokenByHash } from '../../db/rls-context.js';
 
 export interface RefreshTokenResult {
   refreshToken: string;
@@ -65,52 +66,50 @@ export class RefreshTokenService {
 
     const tokenHash = this.hashToken(rawToken);
 
-    // Look up the token by hash
-    const record = await db
-      .selectFrom('refresh_tokens')
-      .selectAll()
-      .where('token_hash', '=', tokenHash)
-      .executeTakeFirst();
+    // Look up the token by hash via auth-bootstrap function
+    const record = await lookupRefreshTokenByHash(db, tokenHash);
 
     if (!record) {
       throw AppError.unauthorized('Invalid or expired refresh token', 'INVALID_REFRESH_TOKEN');
     }
 
-    // Reuse detection: If token was already revoked/used, someone is attempting to reuse it!
-    if (record.is_revoked === true) {
-      // REVOKE ENTIRE FAMILY
-      await db
-        .updateTable('refresh_tokens')
-        .set({ is_revoked: true })
-        .where('family_id', '=', record.family_id)
-        .execute();
+    return withTenantContext(record.vendor_id, async (trx) => {
+      // Reuse detection: If token was already revoked/used, someone is attempting to reuse it!
+      if (record.is_revoked === true) {
+        // REVOKE ENTIRE FAMILY
+        await trx
+          .updateTable('refresh_tokens')
+          .set({ is_revoked: true })
+          .where('family_id', '=', record.family_id)
+          .execute();
 
-      throw AppError.unauthorized(
-        'Invalid or reused refresh token. All active sessions have been revoked for security.',
-        'REFRESH_TOKEN_REUSE_DETECTED'
-      );
-    }
+        throw AppError.unauthorized(
+          'Invalid or reused refresh token. All active sessions have been revoked for security.',
+          'REFRESH_TOKEN_REUSE_DETECTED'
+        );
+      }
 
-    // Check expiration
-    const expiry = new Date(record.expires_at).getTime();
-    if (Date.now() > expiry) {
-      await db
+      // Check expiration
+      const expiry = new Date(record.expires_at).getTime();
+      if (Date.now() > expiry) {
+        await trx
+          .updateTable('refresh_tokens')
+          .set({ is_revoked: true })
+          .where('id', '=', record.id)
+          .execute();
+        throw AppError.unauthorized('Refresh token has expired', 'EXPIRED_REFRESH_TOKEN');
+      }
+
+      // Mark current token as revoked / consumed
+      await trx
         .updateTable('refresh_tokens')
         .set({ is_revoked: true })
         .where('id', '=', record.id)
         .execute();
-      throw AppError.unauthorized('Refresh token has expired', 'EXPIRED_REFRESH_TOKEN');
-    }
 
-    // Mark current token as revoked / consumed
-    await db
-      .updateTable('refresh_tokens')
-      .set({ is_revoked: true })
-      .where('id', '=', record.id)
-      .execute();
-
-    // Issue new token in the SAME family (rotation)
-    return this.createRefreshToken(db, record.vendor_id, record.family_id);
+      // Issue new token in the SAME family (rotation)
+      return this.createRefreshToken(trx, record.vendor_id, record.family_id);
+    }, db);
   }
 
   /**
@@ -123,18 +122,16 @@ export class RefreshTokenService {
     if (!rawToken) return;
 
     const tokenHash = this.hashToken(rawToken);
-    const record = await db
-      .selectFrom('refresh_tokens')
-      .select(['family_id'])
-      .where('token_hash', '=', tokenHash)
-      .executeTakeFirst();
+    const record = await lookupRefreshTokenByHash(db, tokenHash);
 
-    if (record && record.family_id) {
-      await db
-        .updateTable('refresh_tokens')
-        .set({ is_revoked: true })
-        .where('family_id', '=', record.family_id)
-        .execute();
+    if (record && record.family_id && record.vendor_id) {
+      await withTenantContext(record.vendor_id, async (trx) => {
+        await trx
+          .updateTable('refresh_tokens')
+          .set({ is_revoked: true })
+          .where('family_id', '=', record.family_id)
+          .execute();
+      }, db);
     }
   }
 }

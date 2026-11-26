@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { getDatabase } from '../../db/database.js';
+import { withSuperadminContext } from '../../db/rls-context.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
 import { AdminService } from './admin.service.js';
@@ -78,8 +78,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    * Platform KPIs: Stalls, Gross Volume in Paise, Renewals, Active Orders
    */
   app.get('/overview', async (_request, reply) => {
-    const db = getDatabase();
-    const overview = await AdminService.getOverview(db);
+    const overview = await withSuperadminContext((db) => AdminService.getOverview(db));
     return reply.status(200).send({
       status: 'success',
       data: serializeBigInt(overview),
@@ -91,8 +90,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    * Lists all onboarded stalls with subscription renewal status & lifetime volume
    */
   app.get('/vendors', async (_request, reply) => {
-    const db = getDatabase();
-    const vendors = await AdminService.listVendors(db);
+    const vendors = await withSuperadminContext((db) => AdminService.listVendors(db));
     return reply.status(200).send({
       status: 'success',
       data: serializeBigInt(vendors),
@@ -104,9 +102,8 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    * Onboards a new restaurant stall directly
    */
   app.post('/vendors', async (request, reply) => {
-    const db = getDatabase();
     const body = validateSchema(CreateVendorAdminSchema, request.body);
-    const result = await AdminService.createVendor(db, body);
+    const result = await withSuperadminContext((db) => AdminService.createVendor(db, body));
     return reply.status(201).send({
       status: 'success',
       message: 'Restaurant stall onboarded successfully',
@@ -119,10 +116,9 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    * Updates stall details, extends renewal date, or resets password
    */
   app.patch('/vendors/:id', async (request, reply) => {
-    const db = getDatabase();
     const { id } = validateSchema(VendorIdParamSchema, request.params);
     const body = validateSchema(UpdateVendorAdminSchema, request.body);
-    const updated = await AdminService.updateVendor(db, id, body);
+    const updated = await withSuperadminContext((db) => AdminService.updateVendor(db, id, body));
     return reply.status(200).send({
       status: 'success',
       message: 'Restaurant stall updated successfully',
@@ -135,9 +131,8 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    * Retrieves menu items for a specific stall
    */
   app.get('/vendors/:id/menu', async (request, reply) => {
-    const db = getDatabase();
     const { id } = validateSchema(VendorIdParamSchema, request.params);
-    const menu = await AdminService.getVendorMenu(db, id);
+    const menu = await withSuperadminContext((db) => AdminService.getVendorMenu(db, id));
     return reply.status(200).send({
       status: 'success',
       data: serializeBigInt(menu),
@@ -149,10 +144,9 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    * Adds a menu item to a specific stall
    */
   app.post('/vendors/:id/menu', async (request, reply) => {
-    const db = getDatabase();
     const { id } = validateSchema(VendorIdParamSchema, request.params);
     const body = validateSchema(CreateMenuItemAdminSchema, request.body);
-    const item = await AdminService.createVendorMenuItem(db, id, body);
+    const item = await withSuperadminContext((db) => AdminService.createVendorMenuItem(db, id, body));
     return reply.status(201).send({
       status: 'success',
       message: 'Menu item created successfully',
@@ -165,10 +159,9 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    * Edits or toggles a menu item
    */
   app.patch('/vendors/:id/menu/:itemId', async (request, reply) => {
-    const db = getDatabase();
     const { id, itemId } = validateSchema(VendorMenuParamSchema, request.params);
     const body = validateSchema(UpdateMenuItemAdminSchema, request.body);
-    const updated = await AdminService.updateVendorMenuItem(db, id, itemId, body);
+    const updated = await withSuperadminContext((db) => AdminService.updateVendorMenuItem(db, id, itemId, body));
     return reply.status(200).send({
       status: 'success',
       message: 'Menu item updated successfully',
@@ -181,8 +174,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    * Lists all staff and platform users
    */
   app.get('/users', async (_request, reply) => {
-    const db = getDatabase();
-    const users = await AdminService.listUsers(db);
+    const users = await withSuperadminContext((db) => AdminService.listUsers(db));
     return reply.status(200).send({
       status: 'success',
       data: serializeBigInt(users),
@@ -194,8 +186,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    * Deep Platform Sales & Leaderboard Analytics
    */
   app.get('/analytics', async (_request, reply) => {
-    const db = getDatabase();
-    const analytics = await AdminService.getAnalytics(db);
+    const analytics = await withSuperadminContext((db) => AdminService.getAnalytics(db));
     return reply.status(200).send({
       status: 'success',
       data: serializeBigInt(analytics),

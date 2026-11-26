@@ -71,14 +71,9 @@ export class DeviceService {
   }
 
   /**
-   * Verifies pairing token, creates device record, and issues scoped role JWT
+   * Verifies pairing token HMAC signature and expiry before entering tenant transaction.
    */
-  static async pairDevice(
-    db: Kysely<Database>,
-    pairingToken: string,
-    secret: string,
-    customDeviceName?: string,
-  ) {
+  static verifyPairingTokenSignature(pairingToken: string, secret: string): PairingPayload {
     const parts = pairingToken.split('.');
     if (parts.length !== 2) {
       throw AppError.badRequest('Invalid pairing token format', 'MALFORMED_TOKEN');
@@ -105,6 +100,20 @@ export class DeviceService {
     if (now > payload.exp) {
       throw AppError.badRequest('Pairing QR code has expired (5-minute limit). Please generate a fresh QR code.', 'TOKEN_EXPIRED');
     }
+
+    return payload;
+  }
+
+  /**
+   * Verifies pairing token, creates device record, and issues scoped role JWT
+   */
+  static async pairDevice(
+    db: Kysely<Database>,
+    pairingToken: string,
+    secret: string,
+    customDeviceName?: string,
+  ) {
+    const payload = this.verifyPairingTokenSignature(pairingToken, secret);
 
     if (consumedPairingTokens.has(payload.jti)) {
       throw AppError.conflict('This pairing QR code has already been scanned and redeemed.', 'TOKEN_ALREADY_USED');

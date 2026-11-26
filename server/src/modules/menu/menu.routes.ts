@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { MenuService } from './menu.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
-import { getDatabase } from '../../db/database.js';
+import { withTenantContext } from '../../db/rls-context.js';
 
 const MenuListQuerySchema = z.object({
   availableOnly: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
@@ -33,11 +33,12 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    * Retrieves active menu items for stall
    */
   app.get('/', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
     const query = validateSchema(MenuListQuerySchema, request.query || {});
     const availableOnly = query.availableOnly === 'true' || query.availableOnly === true;
 
-    const items = await MenuService.getMenuItems(db, request.user!.sub, { availableOnly });
+    const items = await withTenantContext(request.user!.sub, (db) =>
+      MenuService.getMenuItems(db, request.user!.sub, { availableOnly }),
+    );
 
     return reply.status(200).send({
       status: 'success',
@@ -66,10 +67,11 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/presets/seed',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const body = validateSchema(SeedPresetSchema, request.body);
 
-      const result = await MenuService.seedPresets(db, request.user!.sub, body.presetKey);
+      const result = await withTenantContext(request.user!.sub, (db) =>
+        MenuService.seedPresets(db, request.user!.sub, body.presetKey),
+      );
 
       return reply.status(201).send({
         status: 'success',
@@ -87,10 +89,11 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const body = validateSchema(CreateMenuSchema, request.body);
 
-      const item = await MenuService.createMenuItem(db, request.user!.sub, body);
+      const item = await withTenantContext(request.user!.sub, (db) =>
+        MenuService.createMenuItem(db, request.user!.sub, body),
+      );
 
       return reply.status(201).send({
         status: 'success',
@@ -108,11 +111,12 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/:id',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const params = validateSchema(MenuIdParamSchema, request.params);
       const body = validateSchema(UpdateMenuSchema, request.body || {});
 
-      const item = await MenuService.updateMenuItem(db, request.user!.sub, params.id, body);
+      const item = await withTenantContext(request.user!.sub, (db) =>
+        MenuService.updateMenuItem(db, request.user!.sub, params.id, body),
+      );
 
       return reply.status(200).send({
         status: 'success',
@@ -131,10 +135,11 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/:id/toggle-available',
     { preHandler: [requireAuth, requireRole('owner', 'cashier', 'cook')] },
     async (request, reply) => {
-      const db = getDatabase();
       const params = validateSchema(MenuIdParamSchema, request.params);
 
-      const result = await MenuService.toggleAvailability(db, request.user!.sub, params.id);
+      const result = await withTenantContext(request.user!.sub, (db) =>
+        MenuService.toggleAvailability(db, request.user!.sub, params.id),
+      );
 
       return reply.status(200).send({
         status: 'success',
@@ -151,10 +156,11 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/:id',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const params = validateSchema(MenuIdParamSchema, request.params);
 
-      const result = await MenuService.deleteMenuItem(db, request.user!.sub, params.id);
+      const result = await withTenantContext(request.user!.sub, (db) =>
+        MenuService.deleteMenuItem(db, request.user!.sub, params.id),
+      );
 
       return reply.status(200).send({
         status: 'success',

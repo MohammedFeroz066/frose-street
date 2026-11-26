@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import { hashPassword, verifyPassword, hashPin, verifyPin } from '../../utils/crypto.js';
@@ -6,6 +7,11 @@ import { AppError } from '../../errors/app-error.js';
 import { STREET_MENU_PRESETS } from '../menu/menu.presets.js';
 import { SubscriptionService } from '../subscriptions/subscription.service.js';
 import { LoginSecurityService } from './login-security.service.js';
+import {
+  withTenantContext,
+  lookupVendorByPhone,
+  lookupBiometricByCredentialId,
+} from '../../db/rls-context.js';
 
 export interface RegisterVendorInput {
   phone: string;
@@ -52,12 +58,8 @@ export class AuthService {
       // Redundant with validateStrongPassword
     }
 
-    // Check if phone already registered
-    const existing = await db
-      .selectFrom('vendors')
-      .select('id')
-      .where('phone', '=', cleanedPhone)
-      .executeTakeFirst();
+    // Check if phone already registered (auth-bootstrap lookup)
+    const existing = await lookupVendorByPhone(db, cleanedPhone);
 
     if (existing) {
       throw AppError.conflict('A stall with this mobile number is already registered', 'PHONE_EXISTS');
@@ -70,78 +72,83 @@ export class AuthService {
     const trialExpiry = new Date();
     trialExpiry.setDate(trialExpiry.getDate() + 14);
 
-    // Insert vendor
-    const vendor = await db
-      .insertInto('vendors')
-      .values({
-        phone: cleanedPhone,
-        business_name: input.businessName.trim(),
-        owner_name: (input.ownerName || 'Stall Owner').trim(),
-        business_type: input.businessType || 'street_food',
-        city: input.city || 'Hyderabad',
-        edition: input.edition || 'cloud',
-        subscription_status: 'trial',
-        subscription_expires_at: trialExpiry,
-        daily_token_counter: 0,
-        token_reset_date: new Date().toISOString().split('T')[0],
-        password_hash: passwordHash,
-        quick_pin_hash: pinHash,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    const newVendorId = randomUUID();
 
-    // Create primary owner staff account
-    const staff = await db
-      .insertInto('staff')
-      .values({
-        vendor_id: vendor.id,
-        name: (input.ownerName || 'Stall Owner').trim(),
-        role: 'owner',
-        phone: vendor.phone,
-        is_active: true,
-        password_hash: passwordHash,
-        quick_pin_hash: pinHash,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+    return withTenantContext(newVendorId, async (trx) => {
+      // Insert vendor within its own tenant context
+      const vendor = await trx
+        .insertInto('vendors')
+        .values({
+          id: newVendorId,
+          phone: cleanedPhone,
+          business_name: input.businessName.trim(),
+          owner_name: (input.ownerName || 'Stall Owner').trim(),
+          business_type: input.businessType || 'street_food',
+          city: input.city || 'Hyderabad',
+          edition: input.edition || 'cloud',
+          subscription_status: 'trial',
+          subscription_expires_at: trialExpiry,
+          daily_token_counter: 0,
+          token_reset_date: new Date().toISOString().split('T')[0],
+          password_hash: passwordHash,
+          quick_pin_hash: pinHash,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
 
-    // Seed preset menu items if presetKey is valid
-    let seededItemsCount = 0;
-    if (input.presetKey && STREET_MENU_PRESETS[input.presetKey]) {
-      const preset = STREET_MENU_PRESETS[input.presetKey];
-      for (let i = 0; i < preset.items.length; i++) {
-        const item = preset.items[i];
-        await db
-          .insertInto('menu_items')
-          .values({
-            vendor_id: vendor.id,
-            name: item.name,
-            price_paise: BigInt(item.pricePaise) as any,
-            category: item.category,
-            emoji_icon: item.emojiIcon,
-            color_hex: item.colorHex,
-            is_available: true,
-            is_active: true,
-            display_order: i + 1,
-          })
-          .execute();
-        seededItemsCount++;
+      // Create primary owner staff account
+      const staff = await trx
+        .insertInto('staff')
+        .values({
+          vendor_id: vendor.id,
+          name: (input.ownerName || 'Stall Owner').trim(),
+          role: 'owner',
+          phone: vendor.phone,
+          is_active: true,
+          password_hash: passwordHash,
+          quick_pin_hash: pinHash,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      // Seed preset menu items if presetKey is valid
+      let seededItemsCount = 0;
+      if (input.presetKey && STREET_MENU_PRESETS[input.presetKey]) {
+        const preset = STREET_MENU_PRESETS[input.presetKey];
+        for (let i = 0; i < preset.items.length; i++) {
+          const item = preset.items[i];
+          await trx
+            .insertInto('menu_items')
+            .values({
+              vendor_id: vendor.id,
+              name: item.name,
+              price_paise: BigInt(item.pricePaise) as any,
+              category: item.category,
+              emoji_icon: item.emojiIcon,
+              color_hex: item.colorHex,
+              is_available: true,
+              is_active: true,
+              display_order: i + 1,
+            })
+            .execute();
+          seededItemsCount++;
+        }
       }
-    }
 
-    // Auto-provision 14-day free trial subscription and generate signed license token
-    try {
-      await SubscriptionService.createTrialSubscription(
-        db,
-        vendor.id,
-        vendor.business_name,
-        (vendor.edition as any) || 'cloud'
-      );
-    } catch {
-      // In case subscription record already exists or non-fatal
-    }
+      // Auto-provision 14-day free trial subscription and generate signed license token
+      try {
+        await SubscriptionService.createTrialSubscription(
+          trx,
+          vendor.id,
+          vendor.business_name,
+          (vendor.edition as any) || 'cloud'
+        );
+      } catch {
+        // In case subscription record already exists or non-fatal
+      }
 
-    return { vendor, staff, seededItemsCount };
+      return { vendor, staff, seededItemsCount };
+    }, db);
   }
 
   /**
@@ -164,12 +171,8 @@ export class AuthService {
       );
     }
 
-    // 2. Validate phone existence
-    const vendor = await db
-      .selectFrom('vendors')
-      .selectAll()
-      .where('phone', '=', cleanedPhone)
-      .executeTakeFirst();
+    // 2. Validate phone existence (auth-bootstrap lookup)
+    const vendor = await lookupVendorByPhone(db, cleanedPhone);
 
     if (!vendor || !vendor.password_hash) {
       throw AppError.notFound('Account does not exist with this mobile number', 'ACCOUNT_NOT_FOUND');
@@ -388,19 +391,7 @@ export class AuthService {
    * Verifies biometric assertion and authenticates vendor
    */
   static async verifyBiometric(db: Kysely<Database>, credentialId: string) {
-    const cred = await db
-      .selectFrom('biometric_credentials')
-      .innerJoin('vendors', 'vendors.id', 'biometric_credentials.vendor_id')
-      .select([
-        'vendors.id',
-        'vendors.phone',
-        'vendors.business_name',
-        'vendors.edition',
-        'vendors.subscription_status',
-        'biometric_credentials.id as biometric_id',
-      ])
-      .where('biometric_credentials.credential_id', '=', credentialId)
-      .executeTakeFirst();
+    const cred = await lookupBiometricByCredentialId(db, credentialId);
 
     if (!cred) {
       throw AppError.unauthorized('Unrecognized biometric credential', 'BIOMETRIC_UNRECOGNIZED');

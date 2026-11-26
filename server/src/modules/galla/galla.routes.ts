@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { GallaService } from './galla.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
-import { getDatabase } from '../../db/database.js';
+import { withTenantContext } from '../../db/rls-context.js';
 import { AppError } from '../../errors/app-error.js';
 
 const LogExpenseSchema = z.object({
@@ -43,7 +43,6 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/expenses',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const body = validateSchema(LogExpenseSchema, request.body);
 
       const amountPaise = body.amountPaise ?? body.amount_paise;
@@ -51,13 +50,15 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         throw AppError.badRequest('Expense amount must be a valid integer in paise', 'INVALID_INTEGER_PAISE');
       }
 
-      const expense = await GallaService.logExpense(db, request.user!.sub, {
-        amountPaise,
-        description: body.description ?? body.title,
-        category: body.category,
-        paymentMethod: body.paymentMethod ?? body.payment_method,
-        expenseDate: body.expenseDate ?? body.expense_date,
-      });
+      const expense = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.logExpense(db, request.user!.sub, {
+          amountPaise,
+          description: body.description ?? body.title,
+          category: body.category,
+          paymentMethod: body.paymentMethod ?? body.payment_method,
+          expenseDate: body.expenseDate ?? body.expense_date,
+        }),
+      );
 
       return reply.status(201).send({
         status: 'success',
@@ -75,10 +76,11 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/expenses',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const query = validateSchema(DateQuerySchema, request.query || {});
 
-      const result = await GallaService.getExpenses(db, request.user!.sub, query.date);
+      const result = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.getExpenses(db, request.user!.sub, query.date),
+      );
 
       return reply.status(200).send({
         status: 'success',
@@ -95,10 +97,11 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/expenses/:id',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const params = validateSchema(ExpenseIdParamSchema, request.params);
 
-      const result = await GallaService.deleteExpense(db, request.user!.sub, params.id);
+      const result = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.deleteExpense(db, request.user!.sub, params.id),
+      );
 
       return reply.status(200).send({
         status: 'success',
@@ -115,10 +118,11 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/summary',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const query = validateSchema(DateQuerySchema, request.query || {});
 
-      const summary = await GallaService.getGallaSummary(db, request.user!.sub, query.date);
+      const summary = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.getGallaSummary(db, request.user!.sub, query.date),
+      );
 
       return reply.status(200).send({
         status: 'success',
@@ -135,10 +139,11 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/close-day',
     { preHandler: [requireAuth, requireRole('owner')] },
     async (request, reply) => {
-      const db = getDatabase();
       const body = validateSchema(CloseDayBodySchema, request.body || {});
 
-      const result = await GallaService.closeFiscalDay(db, request.user!.sub, body);
+      const result = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.closeFiscalDay(db, request.user!.sub, body),
+      );
 
       return reply.status(200).send({
         status: 'success',
@@ -156,10 +161,11 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/z-report',
     { preHandler: [requireAuth, requireRole('owner')] },
     async (request, reply) => {
-      const db = getDatabase();
       const body = validateSchema(CloseDayBodySchema, request.body || {});
 
-      const result = await GallaService.closeFiscalDay(db, request.user!.sub, body);
+      const result = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.closeFiscalDay(db, request.user!.sub, body),
+      );
 
       return reply.status(200).send({
         status: 'success',
@@ -177,16 +183,17 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/z-reports',
     { preHandler: [requireAuth, requireRole('owner')] },
     async (request, reply) => {
-      const db = getDatabase();
       const query = validateSchema(PaginationQuerySchema, request.query || {});
 
       const limit = query.limit ? parseInt(query.limit, 10) : 30;
       const offset = query.offset ? parseInt(query.offset, 10) : 0;
 
-      const summaries = await GallaService.getHistoricalSummaries(db, request.user!.sub, {
-        limit,
-        offset,
-      });
+      const summaries = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.getHistoricalSummaries(db, request.user!.sub, {
+          limit,
+          offset,
+        }),
+      );
 
       return reply.status(200).send({
         status: 'success',
@@ -203,16 +210,17 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/history',
     { preHandler: [requireAuth, requireRole('owner')] },
     async (request, reply) => {
-      const db = getDatabase();
       const query = validateSchema(PaginationQuerySchema, request.query || {});
 
       const limit = query.limit ? parseInt(query.limit, 10) : 30;
       const offset = query.offset ? parseInt(query.offset, 10) : 0;
 
-      const summaries = await GallaService.getHistoricalSummaries(db, request.user!.sub, {
-        limit,
-        offset,
-      });
+      const summaries = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.getHistoricalSummaries(db, request.user!.sub, {
+          limit,
+          offset,
+        }),
+      );
 
       return reply.status(200).send({
         status: 'success',

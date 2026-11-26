@@ -3,6 +3,7 @@ import { AuthService } from './auth.service.js';
 import type { StaffRole } from '../../../../shared/types/index.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { getDatabase } from '../../db/database.js';
+import { withTenantContext } from '../../db/rls-context.js';
 import { loadConfig } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
 import { PaymentService } from '../payments/payment.service.js';
@@ -69,7 +70,10 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       900
     );
 
-    const refreshResult = await RefreshTokenService.createRefreshToken(db, vendor.id);
+    const refreshResult = await withTenantContext(vendor.id, (trx) =>
+      RefreshTokenService.createRefreshToken(trx, vendor.id),
+      db,
+    );
     setSessionCookies(reply, config.NODE_ENV, token, refreshResult.refreshToken);
 
     return reply.status(201).send({
@@ -131,7 +135,10 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         900
       );
 
-      const refreshResult = await RefreshTokenService.createRefreshToken(db, vendor.id);
+      const refreshResult = await withTenantContext(vendor.id, (trx) =>
+      RefreshTokenService.createRefreshToken(trx, vendor.id),
+      db,
+    );
       setSessionCookies(reply, config.NODE_ENV, token, refreshResult.refreshToken);
 
       return reply.status(201).send({
@@ -192,7 +199,10 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       900
     );
 
-    const refreshResult = await RefreshTokenService.createRefreshToken(db, vendor.id);
+    const refreshResult = await withTenantContext(vendor.id, (trx) =>
+      RefreshTokenService.createRefreshToken(trx, vendor.id),
+      db,
+    );
     setSessionCookies(reply, config.NODE_ENV, token, refreshResult.refreshToken);
 
     return reply.status(200).send({
@@ -231,11 +241,14 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
     const rotated = await RefreshTokenService.rotateRefreshToken(db, rawRefreshToken);
 
-    const vendor = await db
-      .selectFrom('vendors')
-      .selectAll()
-      .where('id', '=', rotated.vendorId)
-      .executeTakeFirst();
+    const vendor = await withTenantContext(rotated.vendorId, (trx) =>
+      trx
+        .selectFrom('vendors')
+        .selectAll()
+        .where('id', '=', rotated.vendorId)
+        .executeTakeFirst(),
+      db,
+    );
 
     if (!vendor) {
       throw AppError.unauthorized('Vendor account not found for session', 'VENDOR_NOT_FOUND');
@@ -289,10 +302,11 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    * Sets up 4-digit quick PIN for the authenticated vendor
    */
   app.post('/setup-pin', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
     const body = validateSchema(SetupPinSchema, request.body);
 
-    await AuthService.setupQuickPin(db, request.user!.sub, body.pin);
+    await withTenantContext(request.user!.sub, (db) =>
+      AuthService.setupQuickPin(db, request.user!.sub, body.pin),
+    );
 
     return reply.status(200).send({
       status: 'success',
@@ -305,10 +319,13 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    * Verifies 4-digit quick PIN for the authenticated vendor session with lockout protection
    */
   app.post('/verify-pin', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
     const body = validateSchema(VerifyPinSchema, request.body);
 
-    const vendor = await AuthService.verifyQuickPin(db, request.user!.sub, body.pin, request.ip);
+    const { vendor, refreshToken } = await withTenantContext(request.user!.sub, async (db) => {
+      const v = await AuthService.verifyQuickPin(db, request.user!.sub, body.pin, request.ip);
+      const rt = await RefreshTokenService.createRefreshToken(db, v.id);
+      return { vendor: v, refreshToken: rt };
+    });
 
     const accessToken = await signJoseAccessToken(
       {
@@ -321,7 +338,6 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       jwtConfig,
     );
 
-    const refreshToken = await RefreshTokenService.createRefreshToken(db, vendor.id);
     setSessionCookies(reply, config.NODE_ENV, accessToken, refreshToken.refreshToken);
 
     return reply.status(200).send({
@@ -351,14 +367,15 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    * Registers a fingerprint / FaceID WebAuthn passkey credential
    */
   app.post('/biometric/register', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
     const body = validateSchema(BiometricRegisterSchema, request.body);
 
-    const credential = await AuthService.registerBiometric(db, request.user!.sub, {
-      credentialId: body.credentialId,
-      publicKey: body.publicKey,
-      deviceName: body.deviceName,
-    });
+    const credential = await withTenantContext(request.user!.sub, (db) =>
+      AuthService.registerBiometric(db, request.user!.sub, {
+        credentialId: body.credentialId,
+        publicKey: body.publicKey,
+        deviceName: body.deviceName,
+      }),
+    );
 
     return reply.status(201).send({
       status: 'success',
@@ -388,7 +405,10 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       jwtConfig,
     );
 
-    const refreshToken = await RefreshTokenService.createRefreshToken(db, cred.id);
+    const refreshToken = await withTenantContext(cred.id, (trx) =>
+      RefreshTokenService.createRefreshToken(trx, cred.id),
+      db,
+    );
     setSessionCookies(reply, config.NODE_ENV, accessToken, refreshToken.refreshToken);
 
     return reply.status(200).send({
@@ -407,12 +427,13 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    * Retrieves active profile of the authenticated session
    */
   app.get('/me', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
-    const vendor = await db
-      .selectFrom('vendors')
-      .selectAll()
-      .where('id', '=', request.user!.sub)
-      .executeTakeFirst();
+    const vendor = await withTenantContext(request.user!.sub, (db) =>
+      db
+        .selectFrom('vendors')
+        .selectAll()
+        .where('id', '=', request.user!.sub)
+        .executeTakeFirst(),
+    );
 
     if (!vendor) {
       throw AppError.notFound('Vendor profile not found', 'VENDOR_NOT_FOUND');

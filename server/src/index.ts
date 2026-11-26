@@ -1,9 +1,10 @@
 import { buildApp } from './app.js';
 import { loadConfig } from './config/env.js';
-import { closeDatabase } from './db/database.js';
+import { closeDatabase, verifyRuntimeDatabaseRole } from './db/database.js';
 
 async function main() {
   const config = loadConfig();
+  await verifyRuntimeDatabaseRole(undefined, config.NODE_ENV);
   const app = await buildApp({ logger: true });
 
   const shutdown = async (signal: string) => {

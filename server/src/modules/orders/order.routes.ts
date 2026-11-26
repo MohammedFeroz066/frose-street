@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { OrderService } from './order.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
-import { getDatabase } from '../../db/database.js';
+import { withTenantContext } from '../../db/rls-context.js';
 
 const CreateOrderSchema = z.object({
   items: z.array(z.object({
@@ -41,10 +41,11 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     '/',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const body = validateSchema(CreateOrderSchema, request.body);
 
-      const order = await OrderService.createOrder(db, request.user!.sub, body);
+      const order = await withTenantContext(request.user!.sub, (db) =>
+        OrderService.createOrder(db, request.user!.sub, body),
+      );
 
       return reply.status(201).send({
         status: 'success',
@@ -59,8 +60,9 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    * Returns active queues for Kitchen KDS and Packaging display
    */
   app.get('/live', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
-    const queues = await OrderService.getLiveOrders(db, request.user!.sub);
+    const queues = await withTenantContext(request.user!.sub, (db) =>
+      OrderService.getLiveOrders(db, request.user!.sub),
+    );
 
     return reply.status(200).send({
       status: 'success',
@@ -73,15 +75,16 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    * Retrieves order history with optional filtering
    */
   app.get('/history', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
     const query = validateSchema(OrderHistoryQuerySchema, request.query || {});
 
-    const result = await OrderService.getOrderHistory(db, request.user!.sub, {
-      limit: query.limit ? parseInt(query.limit, 10) : undefined,
-      offset: query.offset ? parseInt(query.offset, 10) : undefined,
-      status: query.status,
-      paymentMethod: query.paymentMethod,
-    });
+    const result = await withTenantContext(request.user!.sub, (db) =>
+      OrderService.getOrderHistory(db, request.user!.sub, {
+        limit: query.limit ? parseInt(query.limit, 10) : undefined,
+        offset: query.offset ? parseInt(query.offset, 10) : undefined,
+        status: query.status,
+        paymentMethod: query.paymentMethod,
+      }),
+    );
 
     return reply.status(200).send({
       status: 'success',
@@ -94,10 +97,11 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    * Retrieves order details with item breakdown
    */
   app.get('/:id', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
     const params = validateSchema(OrderIdParamSchema, request.params);
 
-    const order = await OrderService.getOrderById(db, request.user!.sub, params.id);
+    const order = await withTenantContext(request.user!.sub, (db) =>
+      OrderService.getOrderById(db, request.user!.sub, params.id),
+    );
 
     return reply.status(200).send({
       status: 'success',
@@ -110,16 +114,17 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    * Advances order through state machine (preparing -> ready -> served)
    */
   app.patch('/:id/status', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
     const params = validateSchema(OrderIdParamSchema, request.params);
     const body = validateSchema(UpdateOrderStatusSchema, request.body);
 
-    const result = await OrderService.updateOrderStatus(
-      db,
-      request.user!.sub,
-      params.id,
-      body.status,
-      request.user!.role,
+    const result = await withTenantContext(request.user!.sub, (db) =>
+      OrderService.updateOrderStatus(
+        db,
+        request.user!.sub,
+        params.id,
+        body.status,
+        request.user!.role,
+      ),
     );
 
     return reply.status(200).send({

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { DeviceService } from './device.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
-import { getDatabase } from '../../db/database.js';
+import { withTenantContext } from '../../db/rls-context.js';
 import { loadConfig } from '../../config/env.js';
 
 import { setAccessCookie } from '../auth/session-cookies.js';
@@ -61,14 +61,16 @@ export const deviceRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
    * Helper mobile phone scans the QR code and redeems pairing token to connect to stall
    */
   app.post('/pair', async (request, reply) => {
-    const db = getDatabase();
     const body = validateSchema(PairDeviceSchema, request.body);
+    const payload = DeviceService.verifyPairingTokenSignature(body.pairingToken, config.JWT_SECRET);
 
-    const { device, token, portalUrl } = await DeviceService.pairDevice(
-      db,
-      body.pairingToken,
-      config.JWT_SECRET,
-      body.deviceName,
+    const { device, token, portalUrl } = await withTenantContext(payload.v, (db) =>
+      DeviceService.pairDevice(
+        db,
+        body.pairingToken,
+        config.JWT_SECRET,
+        body.deviceName,
+      ),
     );
 
     setAuthCookie(reply, token);
@@ -87,8 +89,9 @@ export const deviceRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
    * Lists all active paired devices for the current stall
    */
   app.get('/', { preHandler: [requireAuth] }, async (request, reply) => {
-    const db = getDatabase();
-    const devices = await DeviceService.listDevices(db, request.user!.sub);
+    const devices = await withTenantContext(request.user!.sub, (db) =>
+      DeviceService.listDevices(db, request.user!.sub),
+    );
 
     return reply.status(200).send({
       status: 'success',
@@ -104,10 +107,11 @@ export const deviceRoutes: FastifyPluginAsync = async (app: FastifyInstance) => 
     '/:id',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const db = getDatabase();
       const params = validateSchema(DeviceIdParamSchema, request.params);
 
-      const result = await DeviceService.revokeDevice(db, request.user!.sub, params.id);
+      const result = await withTenantContext(request.user!.sub, (db) =>
+        DeviceService.revokeDevice(db, request.user!.sub, params.id),
+      );
 
       return reply.status(200).send({
         status: 'success',

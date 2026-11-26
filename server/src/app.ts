@@ -8,6 +8,7 @@ import fastifyStatic from '@fastify/static';
 import path from 'node:path';
 import fs from 'node:fs';
 import { loadConfig, isOriginAllowed, EnvironmentConfig } from './config/env.js';
+import { verifyRuntimeDatabaseRole } from './db/database.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { createCsrfProtection } from './middleware/csrf.js';
 import { AppError } from './errors/app-error.js';
@@ -36,6 +37,10 @@ declare module 'fastify' {
 
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const config = options.config || loadConfig();
+
+  if (process.env.USE_MEMORY_DB !== 'true' && config.NODE_ENV !== 'test') {
+    await verifyRuntimeDatabaseRole(undefined, config.NODE_ENV);
+  }
 
   const app = fastify({
     logger: options.logger ?? false,

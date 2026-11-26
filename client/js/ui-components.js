@@ -1,0 +1,203 @@
+/**
+ * FROSE Street — CSP-Safe UI Kit Components (Phase 4 UX-02)
+ * Strictly uses FroseSafeDom (createElement/textContent/addEventListener).
+ * Zero unsafe HTML string sinks or inline attributes.
+ */
+(function (global) {
+  'use strict';
+
+  function getSafeDom() {
+    if (global.FroseSafeDom) return global.FroseSafeDom;
+    if (typeof require === 'function') {
+      try { return require('./safe-dom.js'); } catch (_) {}
+    }
+    return null;
+  }
+
+  function formatINR(paiseInput, opts) {
+    var options = opts || {};
+    var p = typeof paiseInput === 'bigint' ? paiseInput : BigInt(Math.round(Number(paiseInput || 0)));
+    var negative = p < 0n;
+    var abs = negative ? -p : p;
+    var rupees = Number(abs / 100n);
+    var rem = Number(abs % 100n);
+    var prefix = negative ? '-₹' : '₹';
+    var rupeeStr = rupees.toLocaleString('en-IN');
+    if (options.alwaysDecimals || rem !== 0) {
+      return prefix + rupeeStr + '.' + String(rem).padStart(2, '0');
+    }
+    return prefix + rupeeStr;
+  }
+
+  function showToast(message, variant, durationMs) {
+    if (!global.document || !global.document.body) return null;
+    var dom = getSafeDom();
+    if (!dom) return null;
+    var stack = global.document.getElementById('frose-toast-stack');
+    if (!stack) {
+      stack = dom.el('div', { id: 'frose-toast-stack', class: 'saas-toast-stack', role: 'status', 'aria-live': 'polite' });
+      global.document.body.appendChild(stack);
+    }
+    var cls = 'saas-toast';
+    if (variant === 'success') cls += ' toast-success';
+    else if (variant === 'warning') cls += ' toast-warning';
+    else if (variant === 'danger') cls += ' toast-danger';
+
+    var toast = dom.el('div', { class: cls }, [
+      dom.el('span', {}, String(message || '')),
+    ]);
+    stack.appendChild(toast);
+    var ms = typeof durationMs === 'number' && durationMs > 0 ? durationMs : 2600;
+    setTimeout(function () {
+      if (toast && toast.parentNode) toast.parentNode.removeChild(toast);
+    }, ms);
+    return toast;
+  }
+
+  function openSheet(id) {
+    if (!global.document) return;
+    var node = global.document.getElementById(id);
+    if (!node) return;
+    node.classList.add('active');
+    global.document.body.classList.add('saas-modal-open');
+    global.document.documentElement.classList.add('saas-modal-open');
+  }
+
+  function closeSheet(id) {
+    if (!global.document) return;
+    var node = global.document.getElementById(id);
+    if (node) node.classList.remove('active');
+    var remaining = global.document.querySelectorAll('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active');
+    if (remaining.length === 0) {
+      global.document.body.classList.remove('saas-modal-open');
+      global.document.documentElement.classList.remove('saas-modal-open');
+    }
+  }
+
+  function confirmModal(opts) {
+    var options = opts || {};
+    var dom = getSafeDom();
+    if (!dom || !global.document || !global.document.body) {
+      return Promise.resolve(false);
+    }
+    return new Promise(function (resolve) {
+      var existing = global.document.getElementById('frose-confirm-modal');
+      if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+      var settled = false;
+      function finish(result) {
+        if (settled) return;
+        settled = true;
+        if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+        var remaining = global.document.querySelectorAll('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active');
+        if (remaining.length === 0) {
+          global.document.body.classList.remove('saas-modal-open');
+          global.document.documentElement.classList.remove('saas-modal-open');
+        }
+        resolve(result);
+      }
+
+      var backdrop = dom.el('div', {
+        id: 'frose-confirm-modal',
+        class: 'saas-sheet-backdrop active',
+        on: {
+          click: function (e) {
+            if (e.target === backdrop) finish(false);
+          },
+        },
+      }, [
+        dom.el('div', { class: 'saas-sheet', role: 'dialog', 'aria-modal': 'true' }, [
+          dom.el('div', { class: 'saas-sheet-handle' }),
+          dom.el('h3', { style: 'margin: 0 0 8px 0; font-size: 17px; font-weight: 800;' }, options.title || 'Confirm Action'),
+          dom.el('p', { style: 'margin: 0 0 18px 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;' }, options.message || 'Are you sure?'),
+          dom.el('div', { style: 'display: grid; grid-template-columns: 1fr 1fr; gap: 10px;' }, [
+            dom.el('button', {
+              type: 'button',
+              class: 'saas-btn saas-btn-secondary',
+              on: { click: function () { finish(false); } },
+            }, options.cancelLabel || 'Cancel'),
+            dom.el('button', {
+              type: 'button',
+              class: options.danger ? 'saas-btn saas-btn-danger' : 'saas-btn saas-btn-primary',
+              on: { click: function () { finish(true); } },
+            }, options.confirmLabel || 'Confirm'),
+          ]),
+        ]),
+      ]);
+
+      global.document.body.classList.add('saas-modal-open');
+      global.document.body.appendChild(backdrop);
+    });
+  }
+
+  function renderSkeletonList(container, count) {
+    var dom = getSafeDom();
+    if (!container || !dom) return;
+    dom.clear(container);
+    var n = typeof count === 'number' && count > 0 ? count : 4;
+    for (var i = 0; i < n; i++) {
+      container.appendChild(dom.el('div', { class: 'saas-skeleton', style: 'margin-bottom: 10px;' }));
+    }
+  }
+
+  function createStatusPill(label, variant) {
+    var dom = getSafeDom();
+    if (!dom) return null;
+    var map = {
+      emerald: 'saas-pill-emerald',
+      amber: 'saas-pill-amber',
+      rose: 'saas-pill-rose',
+      blue: 'saas-pill-blue',
+      slate: 'saas-pill-slate',
+    };
+    var vClass = map[variant] || 'saas-pill-slate';
+    return dom.el('span', { class: 'saas-pill ' + vClass }, String(label || ''));
+  }
+
+  function createVegBadge(isVeg) {
+    var dom = getSafeDom();
+    if (!dom) return null;
+    return dom.el('span', {
+      class: 'saas-veg-badge' + (isVeg === false ? ' nonveg' : ''),
+      title: isVeg === false ? 'Non-Veg' : 'Veg',
+      'aria-label': isVeg === false ? 'Non-Veg' : 'Veg',
+    });
+  }
+
+  function renderSegmentedControl(container, options, activeValue, handleSelect) {
+    var dom = getSafeDom();
+    if (!container || !dom) return;
+    dom.clear(container);
+    var wrap = dom.el('div', { class: 'saas-segmented' });
+    (options || []).forEach(function (opt) {
+      var btn = dom.el('button', {
+        type: 'button',
+        class: 'saas-seg-btn' + (opt.value === activeValue ? ' active' : ''),
+        on: {
+          click: function () {
+            if (typeof handleSelect === 'function') handleSelect(opt.value);
+          },
+        },
+      }, opt.label);
+      wrap.appendChild(btn);
+    });
+    container.appendChild(wrap);
+  }
+
+  var api = {
+    formatINR: formatINR,
+    showToast: showToast,
+    openSheet: openSheet,
+    closeSheet: closeSheet,
+    confirmModal: confirmModal,
+    renderSkeletonList: renderSkeletonList,
+    createStatusPill: createStatusPill,
+    createVegBadge: createVegBadge,
+    renderSegmentedControl: renderSegmentedControl,
+  };
+
+  global.FroseUI = api;
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : window);

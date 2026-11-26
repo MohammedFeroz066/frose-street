@@ -20,6 +20,10 @@
     }
   };
   window.handleLogout = async function () {
+    if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {
+      await window.FroseIdbStore.safeLogout({ confirmMessage: 'Sign out of Stall Client session?' });
+      return;
+    }
     if (confirm('Sign out of Stall Client session?')) {
       try {
         const fn = window.froseApiFetch || fetch;

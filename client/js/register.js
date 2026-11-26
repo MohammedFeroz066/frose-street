@@ -380,6 +380,14 @@
 
         // Store active stall info & enforce vendor-scoped IndexedDB isolation (wipe any prior tenant)
         try {
+          if (window.FroseIdbStore && data.vendor && data.vendor.id) {
+            const prevVendorId = await window.FroseIdbStore.getActiveVendorId();
+            if (prevVendorId && prevVendorId !== data.vendor.id) {
+              window.FroseIdbStore.clearSessionStorageKeys();
+            }
+            await window.FroseIdbStore.ensureVendorScope(data.vendor.id);
+            await window.FroseIdbStore.setMeta('vendor_profile', { vendor_id: data.vendor.id, value: data.vendor });
+          }
           localStorage.removeItem('frose_vendors_directory');
           localStorage.removeItem('frose_dishes_active');
           localStorage.removeItem('frose_cats_active');
@@ -388,10 +396,6 @@
           localStorage.setItem('frose_stall_name', data.vendor.businessName);
           localStorage.setItem('frose_stall_phone', data.vendor.phone);
           localStorage.setItem('frose_session_active', '1');
-          if (window.FroseIdbStore && data.vendor && data.vendor.id) {
-            await window.FroseIdbStore.ensureVendorScope(data.vendor.id);
-            await window.FroseIdbStore.setMeta('vendor_profile', { vendor_id: data.vendor.id, value: data.vendor });
-          }
         } catch {
           // LocalStorage fallback
         }

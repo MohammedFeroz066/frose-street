@@ -37,6 +37,14 @@
 
   function defaultClearSession() {
     try {
+      if (global.FroseIdbStore) {
+        if (typeof global.FroseIdbStore.clearSessionStorageKeys === 'function') {
+          global.FroseIdbStore.clearSessionStorageKeys();
+        }
+        if (typeof global.FroseIdbStore.clearAllStores === 'function') {
+          global.FroseIdbStore.clearAllStores().catch(function () {});
+        }
+      }
       if (global.localStorage) {
         global.localStorage.removeItem('frose_session_active');
         global.localStorage.removeItem('frose_vendors_directory');

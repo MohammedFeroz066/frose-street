@@ -66,6 +66,17 @@
   }
 
   async function handleAuthSuccess(data) {
+    if (window.FroseIdbStore) {
+      try {
+        if (data.vendor && data.vendor.id) {
+          const prevVendorId = await window.FroseIdbStore.getActiveVendorId();
+          if (prevVendorId && prevVendorId !== data.vendor.id) {
+            window.FroseIdbStore.clearSessionStorageKeys();
+          }
+          await window.FroseIdbStore.ensureVendorScope(data.vendor.id);
+        }
+      } catch (_) {}
+    }
     localStorage.removeItem('frose_auth_token');
     localStorage.removeItem('frose_vendors_directory');
     localStorage.removeItem('frose_dishes_active');
@@ -79,7 +90,6 @@
       if (data.vendor.upiId) localStorage.setItem('frose_vendor_vpa', data.vendor.upiId);
       if (window.FroseIdbStore && data.vendor.id) {
         try {
-          await window.FroseIdbStore.ensureVendorScope(data.vendor.id);
           await window.FroseIdbStore.setMeta('vendor_profile', { vendor_id: data.vendor.id, value: data.vendor });
         } catch (_) {}
       }

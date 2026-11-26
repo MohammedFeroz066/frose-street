@@ -454,6 +454,94 @@
       return counts;
     }
 
+    function clearSessionStorageKeys() {
+      try {
+        if (typeof global.localStorage === 'undefined') return;
+        var staticKeys = [
+          'frose_session_active',
+          'frose_vendors_directory',
+          'frose_current_vendor',
+          'frose_stall_name',
+          'frose_stall_phone',
+          'frose_vendor_vpa',
+          'frose_custom_upi_id',
+          'frose_custom_payee_name',
+          'frose_custom_scanner_qr',
+          'frose_first_login_done',
+          'frose_auth_token',
+          'frose_license_token',
+          'frose_license_public_key_pem',
+          'frose_live_orders_queue',
+          'frose_current_token',
+          'frose_custom_menu_catalog',
+          'frose_dishes_active',
+          'frose_cats_active',
+        ];
+        for (var i = 0; i < staticKeys.length; i++) {
+          global.localStorage.removeItem(staticKeys[i]);
+        }
+        for (var j = global.localStorage.length - 1; j >= 0; j--) {
+          var k = global.localStorage.key(j);
+          if (k && (k.indexOf('frose_dishes_') === 0 || k.indexOf('frose_cats_') === 0)) {
+            global.localStorage.removeItem(k);
+          }
+        }
+      } catch (_) {}
+    }
+
+    async function getUnsyncedOutboxCount(vendorId) {
+      var all = await getOutbox(vendorId || '', ['pending', 'syncing']);
+      return all.length;
+    }
+
+    async function safeLogout(options) {
+      var opts = options || {};
+      var unsyncedCount = await getUnsyncedOutboxCount(opts.vendorId);
+      var promptMsg = unsyncedCount > 0
+        ? ('WARNING: You have ' + unsyncedCount + ' unsynced offline order' + (unsyncedCount === 1 ? '' : 's') +
+           ' waiting to sync! Signing out will permanently delete unsynced local orders. Continue and wipe local data?')
+        : (opts.confirmMessage || 'Sign out of Stall Account?');
+
+      var confirmFn = typeof opts.confirmImpl === 'function'
+        ? opts.confirmImpl
+        : (typeof global.confirm === 'function' ? global.confirm.bind(global) : function () { return true; });
+
+      if (!confirmFn(promptMsg)) {
+        return { cancelled: true, wiped: false, unsyncedCount: unsyncedCount };
+      }
+
+      var fetchFn = opts.fetchImpl || global.froseApiFetch || (typeof global.fetch === 'function' ? global.fetch.bind(global) : null);
+      if (fetchFn) {
+        try {
+          await fetchFn('/api/v1/auth/logout', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-FROSE-CSRF': '1' },
+          });
+        } catch (_) {}
+      }
+
+      await clearAllStores();
+      clearSessionStorageKeys();
+
+      if (!opts.skipRedirect) {
+        var redirectFn = typeof opts.redirectImpl === 'function'
+          ? opts.redirectImpl
+          : function (target) {
+              if (global.window && global.window.location) {
+                if (typeof global.window.location.replace === 'function') {
+                  global.window.location.replace(target);
+                } else {
+                  global.window.location.href = target;
+                }
+              }
+            };
+        redirectFn(opts.redirectTo || '/login.html');
+      }
+
+      return { cancelled: false, wiped: true, unsyncedCount: unsyncedCount };
+    }
+
     return {
       DB_NAME: DB_NAME,
       DB_VERSION: DB_VERSION,
@@ -462,6 +550,9 @@
       getIstDateString: getIstDateString,
       openDb: openDb,
       clearAllStores: clearAllStores,
+      clearSessionStorageKeys: clearSessionStorageKeys,
+      getUnsyncedOutboxCount: getUnsyncedOutboxCount,
+      safeLogout: safeLogout,
       getMeta: getMeta,
       setMeta: setMeta,
       deleteMeta: deleteMeta,

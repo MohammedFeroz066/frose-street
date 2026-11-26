@@ -1089,6 +1089,13 @@
   };
 
   window.handleLogout = async function () {
+    if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {
+      await window.FroseIdbStore.safeLogout({
+        vendorId: getVendorKey(),
+        confirmMessage: 'Sign out of Stall Account?'
+      });
+      return;
+    }
     if (confirm('Sign out of Stall Account?')) {
       try {
         const fn = window.froseApiFetch || fetch;
@@ -1101,9 +1108,6 @@
       localStorage.removeItem('frose_session_active');
       localStorage.removeItem('frose_vendors_directory');
       localStorage.removeItem('frose_current_vendor');
-      if (window.FroseIdbStore) {
-        await window.FroseIdbStore.clearAllStores();
-      }
       window.location.href = '/login.html';
     }
   };

@@ -16,14 +16,13 @@
     if (fnName === 'logoutFallback') {
       if (typeof window.handleLogout === 'function') {
         window.handleLogout();
+      } else if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {
+        window.FroseIdbStore.safeLogout({ redirectTo: '/login.html' });
       } else {
         localStorage.removeItem('frose_session_active');
         localStorage.removeItem('frose_vendors_directory');
         localStorage.removeItem('frose_current_vendor');
-        localStorage.removeItem('frose_dishes_active');
-        localStorage.removeItem('frose_cats_active');
-        localStorage.removeItem('frose_live_orders_queue');
-        window.location.href = '/login';
+        window.location.href = '/login.html';
       }
       return;
     }

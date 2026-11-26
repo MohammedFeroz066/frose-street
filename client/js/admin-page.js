@@ -736,6 +736,10 @@
 
     const bLogout = e.target.closest('#btn-bottom-logout, #btn-menu-logout');
     if (bLogout) {
+      if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {
+        window.FroseIdbStore.safeLogout({ confirmMessage: 'Sign out of Super Admin Console?' });
+        return;
+      }
       if (confirm('Sign out of Super Admin Console?')) {
         (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
           .catch(() => {})

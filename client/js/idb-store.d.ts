@@ -84,6 +84,17 @@ export interface FroseIdbStoreInstance {
   ): Promise<{ order: IdbOrderRecord; outbox: IdbOutboxEntry }>;
   getNextOfflineToken(vendorId: string, istDateStr?: string): Promise<number>;
   inspectStoreCounts(): Promise<Record<string, number>>;
+  clearSessionStorageKeys(): void;
+  getUnsyncedOutboxCount(vendorId?: string): Promise<number>;
+  safeLogout(options?: {
+    vendorId?: string;
+    confirmMessage?: string;
+    confirmImpl?: (msg: string) => boolean;
+    fetchImpl?: typeof fetch;
+    redirectImpl?: (url: string) => void;
+    redirectTo?: string;
+    skipRedirect?: boolean;
+  }): Promise<{ cancelled: boolean; wiped: boolean; unsyncedCount: number }>;
 }
 
 declare const FroseIdbStore: FroseIdbStoreInstance & {

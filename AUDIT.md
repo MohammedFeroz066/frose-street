@@ -312,5 +312,10 @@ All Step 1E PostgreSQL 16 Row-Level Security (RLS), least-privilege `app_user` i
 | `login_lockouts` | Global / Auth-bootstrap | No | No | Pre-auth account/IP brute-force lockout counters (`id`, `key_type`, `key_value`). No tenant business data or PII; `app_user` granted `SELECT, INSERT, UPDATE, DELETE`. |
 | `kysely_migration` / `_lock` | Internal DDL metadata | No | No | Owned by migration owner role; zero grants to `app_user`. |
 
-- **Phase 1 Status:** **COMPLETE** (Steps 1A–1E complete). Remaining pre-pilot dependency item: **Fastify 5 upgrade** (and Phase 2 offline IndexedDB/Dexie + reliability work).
-- **Next Permitted Step:** Stop and await Project Head approval before Fastify 5 upgrade / Phase 2.
+- **Phase 1 Status:** **COMPLETE** (Steps 1A–1E complete).
+- **Pre-Pilot Hard Gate — Fastify 5 Upgrade (COMPLETE):**
+  - Upgraded `fastify` (`4.29.1` -> `5.12.8`), `@fastify/cookie` (`9.4.0` -> `11.1.5`), `@fastify/cors` (`9.0.1` -> `11.4.3`), `@fastify/helmet` (`11.1.1` -> `13.2.0`), `@fastify/jwt` (`8.0.1` -> `10.2.9`), `@fastify/rate-limit` (`9.1.0` -> `11.3.0`), `@fastify/static` (`6.12.0` -> `10.1.12`), and `@fastify/websocket` (`8.3.1` -> `11.3.7`).
+  - Updated `server/src/modules/websocket/websocket.routes.ts` (`handleWsConnection` signature `(socket: WebSocket, req: FastifyRequest)` removing `connection.socket`), `server/src/app.ts` (`@fastify/static` `setHeaders` using `res.header(...)`, and removed deprecated `disableRequestLogging`).
+  - `pnpm audit --prod`: **0** advisories on `fastify` or any `@fastify/*` packages (3 pre-existing high advisories on `kysely` 0.27.3 noted).
+  - Verified: `pnpm exec tsc --noEmit` (exit 0), `pnpm vitest run tests/unit` (47 files / 366 tests passed), `pnpm vitest run tests/integration/sec-04-rls-pg.test.ts` (1 file / 7 tests passed against PG16 `frose_street_test` as `app_user`), and live Playwright Chromium smoke test against PG16 `frose_street` (`app_user`, port `55433`): register -> `/menu-setup.html` -> `/billing.html` order -> `/kitchen.html` live WebSocket update -> `/admin.html` superadmin load (0 CSP violations, 0 HTTP >=400 errors, 0 server log errors).
+- **Next Permitted Step:** Stop and await Project Head approval before starting **Phase 2 (Offline Safety)**.

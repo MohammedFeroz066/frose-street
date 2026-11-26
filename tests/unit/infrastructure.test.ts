@@ -109,4 +109,17 @@ describe('Phase 2 Acceptance: Domain & Infrastructure Configuration', () => {
       expect(compose).toContain('CORS_ORIGIN=https://street.frostech.com');
     });
   });
+
+  describe('TEST 5: Security — No Toxic Cloudflare Mock Auth Handlers', () => {
+    it('must NOT contain functions/api/[[path]].js or client/functions/api/[[path]].js mock handlers', () => {
+      expect(fs.existsSync(path.join(rootDir, 'functions/api/[[path]].js'))).toBe(false);
+      expect(fs.existsSync(path.join(rootDir, 'client/functions/api/[[path]].js'))).toBe(false);
+    });
+
+    it('client/login.html must NOT contain handleClientAuthFallback or spoofed client tokens', () => {
+      const loginHtml = fs.readFileSync(path.join(rootDir, 'client/login.html'), 'utf8');
+      expect(loginHtml).not.toContain('handleClientAuthFallback');
+      expect(loginHtml).not.toContain('frose_jwt_live_');
+    });
+  });
 });

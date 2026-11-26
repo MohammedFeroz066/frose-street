@@ -300,76 +300,7 @@
         }
       }
 
-      // 4. Standalone & Live Directory Authentication (Static CDN, Cloudflare Pages & Local Offline PWA)
-      function handleClientAuthFallback(phone, password) {
-        // Built-in authentic Super Admin Master Account
-        const masterDirectory = {};
-
-        // Live dynamic directory created via Super Admin console
-        let dynamicDirectory = {};
-        try {
-          dynamicDirectory = JSON.parse(localStorage.getItem('frose_vendors_directory') || '{}');
-        } catch (e) {
-          dynamicDirectory = {};
-        }
-
-        let userAccount = null;
-        if (masterDirectory[phone]) {
-          userAccount = masterDirectory[phone];
-        } else if (dynamicDirectory[phone]) {
-          userAccount = dynamicDirectory[phone];
-        }
-
-        if (!userAccount) {
-          showAlert('❌ Account does not exist with this mobile number');
-          return;
-        }
-
-        const lockKey = 'frose_lock_' + phone;
-        const lockUntil = parseInt(localStorage.getItem(lockKey) || '0', 10);
-        const now = Date.now();
-        if (now < lockUntil) {
-          const remaining = Math.ceil((lockUntil - now) / 1000);
-          startLockoutCountdown(remaining);
-          return;
-        }
-
-        const expectedPassword = userAccount.password;
-        if (password !== expectedPassword) {
-          const failKey = 'frose_fails_' + phone;
-          const fails = parseInt(localStorage.getItem(failKey) || '0', 10) + 1;
-          localStorage.setItem(failKey, String(fails));
-
-          if (fails >= 3) {
-            const lockDuration = fails === 3 ? 60 : (fails === 4 ? 300 : 900);
-            localStorage.setItem(lockKey, String(now + lockDuration * 1000));
-            startLockoutCountdown(lockDuration);
-          } else {
-            const rem = 3 - fails;
-            showAlert('❌ Password incorrect. Please check and try again (' + rem + ' attempt' + (rem === 1 ? '' : 's') + ' remaining)');
-          }
-          return;
-        }
-
-        localStorage.removeItem('frose_fails_' + phone);
-        localStorage.removeItem('frose_lock_' + phone);
-        const token = 'frose_jwt_live_' + btoa(JSON.stringify({
-          sub: userAccount.id,
-          phone: userAccount.phone,
-          role: userAccount.role || (userAccount.isSuperadmin ? 'superadmin' : 'owner'),
-          isSuperadmin: !!userAccount.isSuperadmin,
-          ts: Date.now()
-        }));
-
-        handleAuthSuccess({
-          token,
-          vendor: userAccount,
-          role: userAccount.role || (userAccount.isSuperadmin ? 'superadmin' : 'owner'),
-          isSuperadmin: !!userAccount.isSuperadmin
-        });
-      }
-
-      // 5. Submit Credentials
+      // 4. Submit Credentials (Server Cookie Auth Only)
       formPwd.addEventListener('submit', async (e) => {
         e.preventDefault();
         hideAlert();
@@ -403,9 +334,8 @@
           data = null;
         }
 
-        // If server responded with standard API payload (Fastify or Cloudflare Pages Function)
         if (res && data) {
-          if (res.ok && data.token) {
+          if (res.ok && data.status === 'success') {
             handleAuthSuccess(data);
           } else if (res.status === 429 || data.code === 'ACCOUNT_LOCKED') {
             startLockoutCountdown(data.retryAfter || 60);
@@ -418,9 +348,9 @@
           return;
         }
 
-        // Resilient fallback for Cloudflare Pages static CDN / offline PWA
-        handleClientAuthFallback(phone, password);
+        showAlert('❌ Unable to reach FROSE server. Please check your connection and try again.');
       });
+
       // 6. Deep-Link Auto-Login & QR Pairing Support
       (function checkDeepLinkParams() {
         try {

@@ -19,6 +19,7 @@ import * as m015 from './migrations/015_add_client_order_id_to_orders.js';
 import * as m016 from './migrations/016_add_vendor_compliance_fields.js';
 import * as m017 from './migrations/017_add_order_tax_and_receipt_fields.js';
 import * as m018 from './migrations/018_phase4_orders_menu_enhancements.js';
+import * as m019 from './migrations/019_add_order_type_to_orders.js';
 
 export const allMigrations: Record<string, Migration> = {
   '001_create_vendors': m001,
@@ -39,6 +40,7 @@ export const allMigrations: Record<string, Migration> = {
   '016_add_vendor_compliance_fields': m016,
   '017_add_order_tax_and_receipt_fields': m017,
   '018_phase4_orders_menu_enhancements': m018,
+  '019_add_order_type_to_orders': m019,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

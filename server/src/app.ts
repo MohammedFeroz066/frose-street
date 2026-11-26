@@ -45,6 +45,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   const app = fastify({
     logger: options.logger ?? false,
+    trustProxy: ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
   });
 
   app.decorate('froseConfig', config);

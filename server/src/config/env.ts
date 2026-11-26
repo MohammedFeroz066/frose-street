@@ -64,7 +64,7 @@ export function loadConfig(): EnvironmentConfig {
   const jwtSecret = process.env.JWT_SECRET || DEFAULT_DEV_JWT_SECRET;
   const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '30d';
 
-  const corsOrigin = (process.env.CORS_ORIGIN || 'https://street.frostech.com,http://localhost:3100')
+  const corsOrigin = (process.env.CORS_ORIGIN || 'https://street.frosetech.com,http://localhost:3100')
     .split(',')
     .map((s) => s.trim());
 

@@ -85,12 +85,12 @@ describe('Phase 4 Acceptance: Fastify Server Core, Health & Middleware', () => {
         method: 'GET',
         url: '/health',
         headers: {
-          origin: 'https://street.frostech.com',
+          origin: 'https://street.frosetech.com',
         },
       });
 
       expect(res.statusCode).toBe(200);
-      expect(res.headers['access-control-allow-origin']).toBe('https://street.frostech.com');
+      expect(res.headers['access-control-allow-origin']).toBe('https://street.frosetech.com');
       expect(res.headers['access-control-allow-credentials']).toBe('true');
     });
   });

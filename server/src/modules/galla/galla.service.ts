@@ -475,7 +475,7 @@ export class GallaService {
       `🏆 *Top Dish:*      ${live.topSellingItem || 'None'}`,
       `❌ *Cancelled:*     ${live.cancelledOrders}`,
       `───────────────────────────────`,
-      `⚡ *FROSE Street Micro-POS* (street.frostech.com)`,
+      `⚡ *FROSE Street Micro-POS* (street.frosetech.com)`,
     ].join('\n');
 
     // Broadcast day close event to terminals

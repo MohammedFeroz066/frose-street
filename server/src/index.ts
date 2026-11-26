@@ -27,7 +27,7 @@ async function main() {
   try {
     await app.listen({ port: config.PORT, host: config.HOST });
     console.log(`🚀 FROSE Street server running at http://${config.HOST}:${config.PORT}`);
-    console.log(`🌐 Public domain: https://street.frostech.com`);
+    console.log(`🌐 Public domain: https://street.frosetech.com`);
     console.log(`🧾 Billing Portal: http://localhost:${config.PORT}/billing`);
     console.log(`📦 Packaging Portal: http://localhost:${config.PORT}/packaging`);
     console.log(`🍳 Kitchen Portal: http://localhost:${config.PORT}/kitchen`);

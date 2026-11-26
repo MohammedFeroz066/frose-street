@@ -1,6 +1,6 @@
 /**
  * FROSE Street Shared Types & Interfaces
- * Domain: street.frostech.com
+ * Domain: street.frosetech.com
  * All financial amounts are stored as INTEGER PAISE (bigint or number).
  */
 

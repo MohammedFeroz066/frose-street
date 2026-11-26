@@ -180,7 +180,8 @@ describe('Login Security & Lockout System Tests', () => {
 
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body);
-      expect(body.token).toBeDefined();
+      expect(body.token).toBeUndefined();
+      expect(res.cookies.find((c) => c.name === 'frose_access_token')).toBeDefined();
       expect(body.vendor).toBeDefined();
       expect(body.vendor.phone).toBe('9177177475');
 

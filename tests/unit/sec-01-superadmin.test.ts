@@ -58,12 +58,13 @@ describe('SEC-01: Superadmin Authorization & Seed Removal', () => {
     expect(body.role).not.toBe('superadmin');
     expect(body.vendor.isSuperadmin).toBe(false);
 
-    // Verify token does not grant admin access
+    // Verify session cookie does not grant admin access
+    const accessCookie = loginRes.cookies.find((c) => c.name === 'frose_access_token')!.value;
     const adminRes = await app.inject({
       method: 'GET',
       url: '/api/v1/admin/overview',
-      headers: {
-        authorization: `Bearer ${body.token}`,
+      cookies: {
+        frose_access_token: accessCookie,
       },
     });
     expect(adminRes.statusCode).toBe(403);
@@ -103,11 +104,12 @@ describe('SEC-01: Superadmin Authorization & Seed Removal', () => {
     expect(body.role).toBe('superadmin');
     expect(body.vendor.isSuperadmin).toBe(true);
 
+    const accessCookie = loginRes.cookies.find((c) => c.name === 'frose_access_token')!.value;
     const adminRes = await app.inject({
       method: 'GET',
       url: '/api/v1/admin/overview',
-      headers: {
-        authorization: `Bearer ${body.token}`,
+      cookies: {
+        frose_access_token: accessCookie,
       },
     });
     expect(adminRes.statusCode).toBe(200);

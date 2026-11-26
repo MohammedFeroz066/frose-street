@@ -18,6 +18,11 @@
         window.handleLogout();
       } else {
         localStorage.removeItem('frose_session_active');
+        localStorage.removeItem('frose_vendors_directory');
+        localStorage.removeItem('frose_current_vendor');
+        localStorage.removeItem('frose_dishes_active');
+        localStorage.removeItem('frose_cats_active');
+        localStorage.removeItem('frose_live_orders_queue');
         window.location.href = '/login';
       }
       return;

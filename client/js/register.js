@@ -378,8 +378,12 @@
           return;
         }
 
-        // Store active stall info in local storage for instant offline access
+        // Store active stall info in local storage for instant offline access (wipe any prior tenant cache)
         try {
+          localStorage.removeItem('frose_vendors_directory');
+          localStorage.removeItem('frose_dishes_active');
+          localStorage.removeItem('frose_cats_active');
+          localStorage.removeItem('frose_live_orders_queue');
           localStorage.setItem('frose_current_vendor', JSON.stringify(data.vendor));
           localStorage.setItem('frose_stall_name', data.vendor.businessName);
           localStorage.setItem('frose_stall_phone', data.vendor.phone);

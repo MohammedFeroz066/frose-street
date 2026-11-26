@@ -90,63 +90,54 @@
       }
     } catch (e) {}
 
-    // 2. Check vendor-specific dishes in local cache first (instant response, zero lag)
-    try {
-      const localDishes = localStorage.getItem('frose_dishes_' + vKey) || localStorage.getItem('frose_dishes_active');
-      if (localDishes) {
-        const parsed = JSON.parse(localDishes);
-        if (Array.isArray(parsed)) {
-          const userDishes = parsed.filter(isUserCustomDish);
-          if (userDishes.length > 0) {
-            menuCatalog = userDishes.map(item => ({
-              ...item,
-              image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
-              pricePaise: BigInt(item.pricePaise || 5000)
-            }));
-            if (cats.length === 0) {
-              cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
-            }
-            renderSidebarCategories(cats);
-            return;
-          } else {
-            // Local cache only contained legacy dummy dishes: purge them completely!
-            localStorage.removeItem('frose_dishes_' + vKey);
-            localStorage.removeItem('frose_dishes_active');
-            localStorage.removeItem('frose_custom_menu_catalog');
-          }
-        }
-      }
-    } catch (e) {}
-
-    // 3. Try fetching from backend API
+    // 2. Fetch live catalog from authenticated backend API first (PostgreSQL RLS-scoped)
     if (sessionActive) {
       try {
         const fn = window.froseApiFetch || fetch;
         const res = await fn('/api/v1/menu', {
           headers: { 'X-FROSE-CSRF': '1' }, credentials: 'same-origin'
         });
-        if (res.ok) {
+        if (res && res.ok) {
           const data = await res.json();
           if (Array.isArray(data.items)) {
-            const userDishes = data.items.filter(isUserCustomDish);
-            if (userDishes.length > 0) {
-              menuCatalog = userDishes.map(item => ({
-                ...item,
-                image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
-                pricePaise: BigInt(item.pricePaise || 5000)
-              }));
-              localStorage.setItem('frose_dishes_' + vKey, JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
-              localStorage.setItem('frose_dishes_active', JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
-              if (cats.length === 0) {
-                cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
-              }
-              renderSidebarCategories(cats);
-              return;
+            menuCatalog = data.items.map(item => ({
+              ...item,
+              isUserCreated: true,
+              image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
+              pricePaise: BigInt(item.pricePaise || 5000)
+            }));
+            localStorage.setItem('frose_dishes_' + vKey, JSON.stringify(menuCatalog.map(d => ({ ...d, pricePaise: d.pricePaise.toString() }))));
+            if (cats.length === 0) {
+              cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
             }
+            renderSidebarCategories(cats);
+            return;
           }
         }
       } catch (e) {}
     }
+
+    // 3. Offline fallback: vendor-specific dishes in local cache
+    try {
+      const localDishes = localStorage.getItem('frose_dishes_' + vKey);
+      if (localDishes) {
+        const parsed = JSON.parse(localDishes);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          menuCatalog = parsed.filter(isUserCustomDish).map(item => ({
+            ...item,
+            image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
+            pricePaise: BigInt(item.pricePaise || 5000)
+          }));
+          if (menuCatalog.length > 0) {
+            if (cats.length === 0) {
+              cats = Array.from(new Set(menuCatalog.map(d => d.category).filter(Boolean)));
+            }
+            renderSidebarCategories(cats);
+            return;
+          }
+        }
+      }
+    } catch (e) {}
 
     // Clean slate: strictly 0 dishes so counter starts empty with + Add Dish
     menuCatalog = [];
@@ -610,20 +601,13 @@
     executeOrderSuccess('UPI');
   };
 
-  function executeOrderSuccess(method) {
+  async function executeOrderSuccess(method) {
     window.closeModal('checkout-drawer-modal');
     window.closeModal('upi-qr-modal');
 
-    currentTokenNumber += 1;
-    const tokenStr = `TOKEN #${currentTokenNumber}`;
-    localStorage.setItem('frose_current_token', currentTokenNumber.toString());
-
-    // Flash Token Modal
-    const fToken = document.getElementById('flash-token-number');
-    if (fToken) fToken.textContent = tokenStr;
-
     let totalPaise = 0n;
     const itemsList = [];
+    const apiItems = [];
     cart.forEach(({ item, quantity }) => {
       totalPaise += item.pricePaise * BigInt(quantity);
       itemsList.push({
@@ -632,12 +616,50 @@
         quantity,
         pricePaise: item.pricePaise.toString()
       });
+      apiItems.push({
+        menuItemId: item.id,
+        quantity
+      });
     });
+
+    let serverOrder = null;
+    if (localStorage.getItem('frose_session_active') && apiItems.length > 0) {
+      try {
+        const fn = window.froseApiFetch || fetch;
+        const res = await fn('/api/v1/orders', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-FROSE-CSRF': '1'
+          },
+          body: JSON.stringify({
+            items: apiItems,
+            paymentMethod: String(method || 'cash').toLowerCase() === 'upi' ? 'upi' : 'cash',
+            paymentStatus: 'paid',
+            source: 'pos'
+          })
+        });
+        if (res && res.ok) {
+          const json = await res.json();
+          if (json && json.order) serverOrder = json.order;
+        }
+      } catch (_) {}
+    }
+
+    currentTokenNumber = serverOrder?.tokenNo ?? (currentTokenNumber + 1);
+    const tokenStr = `TOKEN #${currentTokenNumber}`;
+    localStorage.setItem('frose_current_token', currentTokenNumber.toString());
+
+    // Flash Token Modal
+    const fToken = document.getElementById('flash-token-number');
+    if (fToken) fToken.textContent = tokenStr;
+
     const fAmount = document.getElementById('flash-token-amount');
     if (fAmount) fAmount.textContent = `${formatRupees(totalPaise)} Paid (${method})`;
 
     // Local P2P Instant Sync to Kitchen & Packaging Stations
-    const orderData = {
+    const orderData = serverOrder || {
       id: 'ord-' + Date.now(),
       tokenNo: currentTokenNumber,
       tokenNumber: currentTokenNumber,
@@ -740,22 +762,51 @@
     window.openModal('modal-add-dish');
   };
 
-  window.submitAddDish = function(e) {
+  window.submitAddDish = async function(e) {
     e.preventDefault();
     const { safeImageUrl } = window.FroseSafeDom;
     const name = document.getElementById('input-dish-name').value.trim();
     const category = document.getElementById('input-dish-category').value;
     const priceRupees = Number(document.getElementById('input-dish-price').value) || 100;
     const photo = safeImageUrl(document.getElementById('input-dish-photo-select').value) || '/images/dishes/chicken-biryani-full.webp';
+    const pricePaiseNum = Math.round(priceRupees * 100);
 
-    const newDish = {
+    let newDish = {
       id: 'dish-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
       name,
-      pricePaise: BigInt(priceRupees * 100),
+      pricePaise: BigInt(pricePaiseNum),
       category: category || 'special-items',
       isBestSeller: false,
       image: photo
     };
+
+    if (localStorage.getItem('frose_session_active')) {
+      try {
+        const fn = window.froseApiFetch || fetch;
+        const res = await fn('/api/v1/menu', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+          body: JSON.stringify({
+            name,
+            category: category || 'special-items',
+            pricePaise: pricePaiseNum,
+            imageUrl: photo,
+            isAvailable: true
+          })
+        });
+        if (res && res.ok) {
+          const json = await res.json();
+          if (json && json.item) {
+            newDish = {
+              ...json.item,
+              pricePaise: BigInt(json.item.pricePaise || pricePaiseNum),
+              image: json.item.imageUrl || photo
+            };
+          }
+        }
+      } catch (_) {}
+    }
 
     menuCatalog.push(newDish);
     saveCatalog();

@@ -67,6 +67,10 @@
 
   function handleAuthSuccess(data) {
     localStorage.removeItem('frose_auth_token');
+    localStorage.removeItem('frose_vendors_directory');
+    localStorage.removeItem('frose_dishes_active');
+    localStorage.removeItem('frose_cats_active');
+    localStorage.removeItem('frose_live_orders_queue');
     localStorage.setItem('frose_session_active', '1');
     if (data.vendor) {
       localStorage.setItem('frose_current_vendor', JSON.stringify(data.vendor));

@@ -90,11 +90,11 @@ describe('Phase 2 Acceptance: Domain & Infrastructure Configuration', () => {
       expect(fs.existsSync(dockerfilePath)).toBe(true);
 
       const dockerfile = fs.readFileSync(dockerfilePath, 'utf8');
-      expect(dockerfile).toContain('FROM node:20-alpine AS builder');
-      expect(dockerfile).toContain('FROM node:20-alpine AS runner');
-      expect(dockerfile).toContain('EXPOSE 3100');
+      expect(dockerfile).toContain('FROM node:22-slim AS builder');
+      expect(dockerfile).toContain('FROM node:22-slim AS runner');
+      expect(dockerfile).toContain('EXPOSE 3000');
       expect(dockerfile).toContain('HEALTHCHECK');
-      expect(dockerfile).toContain('/health');
+      expect(dockerfile).toContain('/health/ready');
     });
 
     it('docker-compose.yml should configure API, PostgreSQL 16, and Redis 7', () => {

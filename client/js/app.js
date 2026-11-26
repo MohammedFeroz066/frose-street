@@ -60,7 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!pairingQrCanvas) return;
     const hash = uri.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
     const seed = Math.abs(hash);
-    let rects = '';
+    const { svgEl, clear } = window.FroseSafeDom;
+    const svgChildren = [];
     const size = 21;
     for (let r = 0; r < size; r++) {
       for (let c = 0; c < size; c++) {
@@ -81,15 +82,19 @@ document.addEventListener('DOMContentLoaded', () => {
           isDark = ((seed * (r + 1) * (c + 1) + (r * 11) + (c * 7)) % 3) === 0;
         }
         if (isDark) {
-          rects += `<rect x="${c * 8}" y="${r * 8}" width="8" height="8" fill="#0F172A"/>`;
+          svgChildren.push(svgEl('rect', { x: c * 8, y: r * 8, width: 8, height: 8, fill: '#0F172A' }));
         }
       }
     }
-    pairingQrCanvas.innerHTML = `
-      <svg viewBox="0 0 168 168" width="168" height="168" xmlns="http://www.w3.org/2000/svg" style="background:#FFF; padding: 8px; border-radius: 8px;">
-        ${rects}
-      </svg>
-    `;
+    clear(pairingQrCanvas);
+    pairingQrCanvas.appendChild(
+      svgEl('svg', {
+        viewBox: '0 0 168 168',
+        width: 168,
+        height: 168,
+        style: 'background:#FFF; padding: 8px; border-radius: 8px;',
+      }, svgChildren)
+    );
   }
 
   function updatePairingDisplay() {

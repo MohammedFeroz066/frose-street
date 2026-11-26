@@ -167,16 +167,21 @@
       }
     }
 
+    const { el, clear } = window.FroseSafeDom;
+    clear(sidebar);
+
     if (categories.length === 0) {
-      sidebar.innerHTML = `
-        <div style="padding: 14px 4px; text-align: center; color: #8C1D2F; font-size: 11px; font-weight: 800; line-height: 1.3;">
-          No Categories
-        </div>
-        <button type="button" class="btn-add-section" onclick="window.location.href='/menu-setup'" title="Add Custom Menu Section">
-          <span>+ Add</span>
-          <span>Category</span>
-        </button>
-      `;
+      sidebar.appendChild(
+        el('div', { style: 'padding: 14px 4px; text-align: center; color: #8C1D2F; font-size: 11px; font-weight: 800; line-height: 1.3;' }, 'No Categories')
+      );
+      sidebar.appendChild(
+        el('button', {
+          type: 'button',
+          class: 'btn-add-section',
+          title: 'Add Custom Menu Section',
+          on: { click: () => { window.location.href = '/menu-setup'; } },
+        }, [el('span', {}, '+ Add'), el('span', {}, 'Category')])
+      );
       return;
     }
 
@@ -186,22 +191,33 @@
       activeCategory = validSlugs[0];
     }
 
-    const html = categories.map((cat) => {
+    categories.forEach((cat) => {
       const slug = cat.toLowerCase().replace(/\s+/g, '-');
       const isActive = activeCategory === slug || activeCategory === cat.toLowerCase();
-      return `
-        <button type="button" class="category-sidebar-pill ${isActive ? 'active' : ''}" data-category="${slug}" onclick="window.selectCategory('${slug}')">
-          ${cat.replace(' ', '<br>')}
-        </button>
-      `;
-    }).join('') + `
-      <button type="button" class="btn-add-section" onclick="window.location.href='/menu-setup'" title="Add Custom Menu Section">
-        <span>+ Add</span>
-        <span>Category</span>
-      </button>
-    `;
+      const words = String(cat).split(' ');
+      const children = [];
+      words.forEach((w, idx) => {
+        if (idx > 0) children.push(el('br'));
+        children.push(w);
+      });
+      sidebar.appendChild(
+        el('button', {
+          type: 'button',
+          class: `category-sidebar-pill ${isActive ? 'active' : ''}`,
+          'data-category': slug,
+          on: { click: () => window.selectCategory(slug) },
+        }, children)
+      );
+    });
 
-    sidebar.innerHTML = html;
+    sidebar.appendChild(
+      el('button', {
+        type: 'button',
+        class: 'btn-add-section',
+        title: 'Add Custom Menu Section',
+        on: { click: () => { window.location.href = '/menu-setup'; } },
+      }, [el('span', {}, '+ Add'), el('span', {}, 'Category')])
+    );
   }
 
   function saveCatalog() {
@@ -232,78 +248,105 @@
       filtered = menuCatalog;
     }
 
+    const { el, clear, safeImageUrl } = window.FroseSafeDom;
+    clear(grid);
+
     if (menuCatalog.length === 0) {
-      grid.innerHTML = `
-        <div class="pos-first-time-onboarding" id="onboarding-menu-banner" style="grid-column: 1 / -1; background: #FFFFFF; border: 2px dashed #700A18; border-radius: 20px; padding: 36px 18px; text-align: center; margin: 12px 6px; box-shadow: 0 4px 18px rgba(112, 10, 24, 0.06);">
-          <div style="font-size: 46px; margin-bottom: 8px;">🍽️</div>
-          <h3 style="margin: 0 0 6px 0; font-size: 17px; font-weight: 900; color: #5B0612;">Menu is Clean &amp; Empty</h3>
-          <p style="margin: 0 0 18px 0; font-size: 12.5px; color: #64748B; line-height: 1.5; max-width: 320px; margin-left: auto; margin-right: auto;">
-            Zero dummy dishes. Tap below to create your dishes, set prices in ₹, and start instant billing.
-          </p>
-          <div style="display: flex; flex-direction: column; gap: 10px; max-width: 260px; margin: 0 auto;">
-            <button type="button" id="btn-onboarding-add-dish" onclick="window.openAddDishModal()" style="background: linear-gradient(135deg, #700A18 0%, #5B0612 100%); color: #FFF; border: none; padding: 13px 18px; border-radius: 12px; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(112, 10, 24, 0.28); cursor: pointer;">
-              ➕ Add Dish
-            </button>
-            <a href="/menu-setup" id="btn-onboarding-create-menu" style="background: #F8FAFC; color: #334155; text-decoration: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 12px; border: 1.5px solid #CBD5E1; display: flex; align-items: center; justify-content: center; gap: 6px;">
-              📋 Open Menu Studio →
-            </a>
-          </div>
-        </div>
-      `;
+      grid.appendChild(
+        el('div', {
+          class: 'pos-first-time-onboarding',
+          id: 'onboarding-menu-banner',
+          style: 'grid-column: 1 / -1; background: #FFFFFF; border: 2px dashed #700A18; border-radius: 20px; padding: 36px 18px; text-align: center; margin: 12px 6px; box-shadow: 0 4px 18px rgba(112, 10, 24, 0.06);',
+        }, [
+          el('div', { style: 'font-size: 46px; margin-bottom: 8px;' }, '🍽️'),
+          el('h3', { style: 'margin: 0 0 6px 0; font-size: 17px; font-weight: 900; color: #5B0612;' }, 'Menu is Clean & Empty'),
+          el('p', { style: 'margin: 0 0 18px 0; font-size: 12.5px; color: #64748B; line-height: 1.5; max-width: 320px; margin-left: auto; margin-right: auto;' },
+            'Zero dummy dishes. Tap below to create your dishes, set prices in ₹, and start instant billing.'
+          ),
+          el('div', { style: 'display: flex; flex-direction: column; gap: 10px; max-width: 260px; margin: 0 auto;' }, [
+            el('button', {
+              type: 'button',
+              id: 'btn-onboarding-add-dish',
+              style: 'background: linear-gradient(135deg, #700A18 0%, #5B0612 100%); color: #FFF; border: none; padding: 13px 18px; border-radius: 12px; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(112, 10, 24, 0.28); cursor: pointer;',
+              on: { click: () => window.openAddDishModal() },
+            }, '➕ Add Dish'),
+            el('a', {
+              href: '/menu-setup',
+              id: 'btn-onboarding-create-menu',
+              style: 'background: #F8FAFC; color: #334155; text-decoration: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 12px; border: 1.5px solid #CBD5E1; display: flex; align-items: center; justify-content: center; gap: 6px;',
+            }, '📋 Open Menu Studio →'),
+          ]),
+        ])
+      );
       return;
     }
 
     if (filtered.length === 0) {
-      grid.innerHTML = `
-        <div style="grid-column: 1 / -1; padding: 40px 16px; text-align: center; color: #6B7280; font-size: 13px;">
-          <div style="font-size: 28px; margin-bottom: 8px;">🍽️</div>
-          <div>No dishes in this category yet.</div>
-          <a href="/menu-setup" style="display: inline-block; margin-top: 10px; background: #5B0612; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 800;">
-            + Add Dish to This Section
-          </a>
-        </div>
-      `;
+      grid.appendChild(
+        el('div', { style: 'grid-column: 1 / -1; padding: 40px 16px; text-align: center; color: #6B7280; font-size: 13px;' }, [
+          el('div', { style: 'font-size: 28px; margin-bottom: 8px;' }, '🍽️'),
+          el('div', {}, 'No dishes in this category yet.'),
+          el('a', {
+            href: '/menu-setup',
+            style: 'display: inline-block; margin-top: 10px; background: #5B0612; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 800;',
+          }, '+ Add Dish to This Section'),
+        ])
+      );
       return;
     }
 
-    grid.innerHTML = filtered.map(item => {
+    filtered.forEach(item => {
       const inCart = cart.get(item.id);
       const qty = inCart ? inCart.quantity : 0;
       const priceText = formatRupees(item.pricePaise);
+      const imgSrc = safeImageUrl(item.image) || '/images/dishes/chicken-biryani-full.webp';
 
-      return `
-        <div class="pos-dish-card" data-id="${item.id}">
-          <div class="dish-photo-container">
-            <img class="dish-photo-img" src="${item.image || 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400'}" alt="${item.name}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=400'">
-            
-            <!-- Floating Price Tag (Bottom Left of Photo) -->
-            <div class="dish-floating-price">${priceText}</div>
+      const actionNode = qty === 0
+        ? el('button', {
+            type: 'button',
+            class: 'btn-dish-add-circle',
+            title: 'Add to Order',
+            on: { click: (e) => window.addItemToCart(item.id, e) },
+          }, '+')
+        : el('div', { class: 'dish-stepper-pill' }, [
+            el('button', {
+              type: 'button',
+              class: 'btn-stepper-action',
+              on: { click: (e) => window.decrementCartItem(item.id, e) },
+            }, '-'),
+            el('span', { class: 'stepper-quantity-num' }, String(qty)),
+            el('button', {
+              type: 'button',
+              class: 'btn-stepper-action',
+              on: { click: (e) => window.addItemToCart(item.id, e) },
+            }, '+'),
+          ]);
 
-            <!-- Floating Action Button / Stepper (Bottom Right of Photo) -->
-            <div class="dish-floating-action">
-              ${qty === 0 ? `
-                <button type="button" class="btn-dish-add-circle" onclick="window.addItemToCart('${item.id}', event)" title="Add to Order">
-                  +
-                </button>
-              ` : `
-                <div class="dish-stepper-pill">
-                  <button type="button" class="btn-stepper-action" onclick="window.decrementCartItem('${item.id}', event)">-</button>
-                  <span class="stepper-quantity-num">${qty}</span>
-                  <button type="button" class="btn-stepper-action" onclick="window.addItemToCart('${item.id}', event)">+</button>
-                </div>
-              `}
-            </div>
-          </div>
-
-          <div class="dish-info-row">
-            <div class="dish-title" title="${item.name}">${item.name}</div>
-            <button type="button" class="dish-edit-icon" onclick="window.openEditDishModal('${item.id}', event)" title="Edit Price / Details">
-              ✏️
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
+      grid.appendChild(
+        el('div', { class: 'pos-dish-card', 'data-id': item.id }, [
+          el('div', { class: 'dish-photo-container' }, [
+            el('img', {
+              class: 'dish-photo-img',
+              src: imgSrc,
+              alt: item.name,
+              loading: 'lazy',
+              on: { error: (e) => { e.target.src = '/images/dishes/chicken-biryani-full.webp'; } },
+            }),
+            el('div', { class: 'dish-floating-price' }, priceText),
+            el('div', { class: 'dish-floating-action' }, actionNode),
+          ]),
+          el('div', { class: 'dish-info-row' }, [
+            el('div', { class: 'dish-title', title: item.name }, item.name),
+            el('button', {
+              type: 'button',
+              class: 'dish-edit-icon',
+              title: 'Edit Price / Details',
+              on: { click: (e) => window.openEditDishModal(item.id, e) },
+            }, '✏️'),
+          ]),
+        ])
+      );
+    });
   }
 
   // Update Floating Cart Pill & Totals
@@ -404,28 +447,41 @@
     const list = document.getElementById('checkout-cart-items');
     if (!list) return;
 
+    const { el, clear } = window.FroseSafeDom;
+    clear(list);
+
     if (cart.size === 0) {
-      list.innerHTML = `<div style="text-align: center; color: #6B7280; padding: 20px 0; font-size: 13px;">Your cart is currently empty. Add dishes to order.</div>`;
+      list.appendChild(
+        el('div', { style: 'text-align: center; color: #6B7280; padding: 20px 0; font-size: 13px;' },
+          'Your cart is currently empty. Add dishes to order.'
+        )
+      );
     } else {
-      let html = '';
       cart.forEach(({ item, quantity }, id) => {
         const lineTotal = formatRupees(item.pricePaise * BigInt(quantity));
-        html += `
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #F9FAFB; border-radius: 10px; border: 1px solid #E5E7EB;">
-            <div>
-              <div style="font-size: 13px; font-weight: 800; color: #111827;">${item.name}</div>
-              <div style="font-size: 11.5px; color: #6B7280;">${formatRupees(item.pricePaise)} each</div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <button onclick="window.decrementCartItem('${id}'); window.openCheckoutDrawer();" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #D1D5DB; background: #fff; cursor: pointer; font-weight: 800;">-</button>
-              <span style="font-size: 13px; font-weight: 900; min-width: 16px; text-align: center;">${quantity}</span>
-              <button onclick="window.addItemToCart('${id}'); window.openCheckoutDrawer();" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #D1D5DB; background: #fff; cursor: pointer; font-weight: 800;">+</button>
-              <span style="font-size: 13px; font-weight: 900; color: #5B0612; margin-left: 6px;">${lineTotal}</span>
-            </div>
-          </div>
-        `;
+        list.appendChild(
+          el('div', { style: 'display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #F9FAFB; border-radius: 10px; border: 1px solid #E5E7EB;' }, [
+            el('div', {}, [
+              el('div', { style: 'font-size: 13px; font-weight: 800; color: #111827;' }, item.name),
+              el('div', { style: 'font-size: 11.5px; color: #6B7280;' }, `${formatRupees(item.pricePaise)} each`),
+            ]),
+            el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
+              el('button', {
+                type: 'button',
+                style: 'width: 24px; height: 24px; border-radius: 50%; border: 1px solid #D1D5DB; background: #fff; cursor: pointer; font-weight: 800;',
+                on: { click: () => { window.decrementCartItem(id); window.openCheckoutDrawer(); } },
+              }, '-'),
+              el('span', { style: 'font-size: 13px; font-weight: 900; min-width: 16px; text-align: center;' }, String(quantity)),
+              el('button', {
+                type: 'button',
+                style: 'width: 24px; height: 24px; border-radius: 50%; border: 1px solid #D1D5DB; background: #fff; cursor: pointer; font-weight: 800;',
+                on: { click: () => { window.addItemToCart(id); window.openCheckoutDrawer(); } },
+              }, '+'),
+              el('span', { style: 'font-size: 13px; font-weight: 900; color: #5B0612; margin-left: 6px;' }, lineTotal),
+            ]),
+          ])
+        );
       });
-      list.innerHTML = html;
     }
 
     window.openModal('checkout-drawer-modal');
@@ -496,40 +552,53 @@
 
     const qrCanvas = document.getElementById('upi-qr-code-canvas');
     if (qrCanvas) {
-      if (customQr) {
-        // Render the stall's uploaded custom scanner QR code photo
-        qrCanvas.innerHTML = `
-          <div style="background: #FFFFFF; padding: 10px; border-radius: 14px; display: inline-block; box-shadow: 0 4px 14px rgba(0,0,0,0.06); border: 1.5px solid #E2E8F0;">
-            <img src="${customQr}" alt="Counter UPI Scanner" id="cart-upi-scanner-img" style="max-width: 220px; max-height: 220px; width: 200px; height: 200px; object-fit: contain; border-radius: 8px; display: block; margin: 0 auto;" />
-            <div style="margin-top: 6px; font-size: 11px; font-weight: 800; color: #059669; display: flex; align-items: center; justify-content: center; gap: 4px;">
-              <span>✅ Counter Scanner Active</span>
-            </div>
-          </div>
-        `;
+      const { el, svgEl, clear, safeImageUrl } = window.FroseSafeDom;
+      clear(qrCanvas);
+      const safeQr = safeImageUrl(customQr);
+      if (safeQr) {
+        qrCanvas.appendChild(
+          el('div', { style: 'background: #FFFFFF; padding: 10px; border-radius: 14px; display: inline-block; box-shadow: 0 4px 14px rgba(0,0,0,0.06); border: 1.5px solid #E2E8F0;' }, [
+            el('img', {
+              src: safeQr,
+              alt: 'Counter UPI Scanner',
+              id: 'cart-upi-scanner-img',
+              style: 'max-width: 220px; max-height: 220px; width: 200px; height: 200px; object-fit: contain; border-radius: 8px; display: block; margin: 0 auto;',
+            }),
+            el('div', { style: 'margin-top: 6px; font-size: 11px; font-weight: 800; color: #059669; display: flex; align-items: center; justify-content: center; gap: 4px;' }, [
+              el('span', {}, '✅ Counter Scanner Active'),
+            ]),
+          ])
+        );
       } else {
         if (!upiId) {
-          qrCanvas.innerHTML = '<div style="background:#FFF;padding:24px;border-radius:14px;text-align:center;border:1.5px dashed #CBD5E1;color:#64748B;"><div style="font-size:32px;margin-bottom:6px;">📷</div><div style="font-size:13px;font-weight:800;color:#0F172A;margin-bottom:4px;">Set up payment QR</div><div style="font-size:11px;">Configure UPI VPA or scanner in settings.</div></div>';
+          qrCanvas.appendChild(
+            el('div', { style: 'background:#FFF;padding:24px;border-radius:14px;text-align:center;border:1.5px dashed #CBD5E1;color:#64748B;' }, [
+              el('div', { style: 'font-size:32px;margin-bottom:6px;' }, '📷'),
+              el('div', { style: 'font-size:13px;font-weight:800;color:#0F172A;margin-bottom:4px;' }, 'Set up payment QR'),
+              el('div', { style: 'font-size:11px;' }, 'Configure UPI VPA or scanner in settings.'),
+            ])
+          );
           window.openModal('upi-qr-modal');
           return;
         }
-        qrCanvas.innerHTML = `
-          <svg viewBox="0 0 160 160" width="160" height="160">
-            <rect width="160" height="160" fill="#fff" rx="8"/>
-            <rect x="20" y="20" width="40" height="40" fill="#111827"/>
-            <rect x="26" y="26" width="28" height="28" fill="#fff"/>
-            <rect x="32" y="32" width="16" height="16" fill="#111827"/>
-            <rect x="100" y="20" width="40" height="40" fill="#111827"/>
-            <rect x="106" y="26" width="28" height="28" fill="#fff"/>
-            <rect x="112" y="32" width="16" height="16" fill="#111827"/>
-            <rect x="20" y="100" width="40" height="40" fill="#111827"/>
-            <rect x="26" y="106" width="28" height="28" fill="#fff"/>
-            <rect x="32" y="112" width="16" height="16" fill="#111827"/>
-            <rect x="70" y="30" width="15" height="15" fill="#111827"/>
-            <rect x="75" y="60" width="20" height="20" fill="#111827"/>
-            <rect x="105" y="75" width="25" height="15" fill="#111827"/>
-            <rect x="65" y="105" width="30" height="25" fill="#111827"/>
-          </svg>
-        `;
+        qrCanvas.appendChild(
+          svgEl('svg', { viewBox: '0 0 160 160', width: 160, height: 160 }, [
+            svgEl('rect', { width: 160, height: 160, fill: '#fff', rx: 8 }),
+            svgEl('rect', { x: 20, y: 20, width: 40, height: 40, fill: '#111827' }),
+            svgEl('rect', { x: 26, y: 26, width: 28, height: 28, fill: '#fff' }),
+            svgEl('rect', { x: 32, y: 32, width: 16, height: 16, fill: '#111827' }),
+            svgEl('rect', { x: 100, y: 20, width: 40, height: 40, fill: '#111827' }),
+            svgEl('rect', { x: 106, y: 26, width: 28, height: 28, fill: '#fff' }),
+            svgEl('rect', { x: 112, y: 32, width: 16, height: 16, fill: '#111827' }),
+            svgEl('rect', { x: 20, y: 100, width: 40, height: 40, fill: '#111827' }),
+            svgEl('rect', { x: 26, y: 106, width: 28, height: 28, fill: '#fff' }),
+            svgEl('rect', { x: 32, y: 112, width: 16, height: 16, fill: '#111827' }),
+            svgEl('rect', { x: 70, y: 30, width: 15, height: 15, fill: '#111827' }),
+            svgEl('rect', { x: 75, y: 60, width: 20, height: 20, fill: '#111827' }),
+            svgEl('rect', { x: 105, y: 75, width: 25, height: 15, fill: '#111827' }),
+            svgEl('rect', { x: 65, y: 105, width: 30, height: 25, fill: '#111827' }),
+          ])
+        );
       }
     }
 
@@ -661,7 +730,11 @@
         localStorage.setItem('frose_cats_active', JSON.stringify(cats));
         renderSidebarCategories(cats);
       }
-      select.innerHTML = cats.map(c => `<option value="${c.toLowerCase().replace(/\s+/g, '-')}">${c}</option>`).join('');
+      const { el, clear } = window.FroseSafeDom;
+      clear(select);
+      cats.forEach(c => {
+        select.appendChild(el('option', { value: c.toLowerCase().replace(/\s+/g, '-') }, c));
+      });
     }
 
     window.openModal('modal-add-dish');
@@ -669,10 +742,11 @@
 
   window.submitAddDish = function(e) {
     e.preventDefault();
+    const { safeImageUrl } = window.FroseSafeDom;
     const name = document.getElementById('input-dish-name').value.trim();
     const category = document.getElementById('input-dish-category').value;
     const priceRupees = Number(document.getElementById('input-dish-price').value) || 100;
-    const photo = document.getElementById('input-dish-photo-select').value;
+    const photo = safeImageUrl(document.getElementById('input-dish-photo-select').value) || '/images/dishes/chicken-biryani-full.webp';
 
     const newDish = {
       id: 'dish-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
@@ -712,10 +786,14 @@
 
     const select = document.getElementById('edit-dish-category');
     if (select) {
+      const { el, clear } = window.FroseSafeDom;
+      clear(select);
       if (cats.length === 0) {
-        select.innerHTML = `<option value="${dish.category}">${dish.category}</option>`;
+        select.appendChild(el('option', { value: dish.category }, dish.category));
       } else {
-        select.innerHTML = cats.map(c => `<option value="${c.toLowerCase().replace(/\s+/g, '-')}">${c}</option>`).join('');
+        cats.forEach(c => {
+          select.appendChild(el('option', { value: c.toLowerCase().replace(/\s+/g, '-') }, c));
+        });
       }
       select.value = (dish.category || '').toLowerCase().replace(/\s+/g, '-');
     }

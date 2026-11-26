@@ -85,33 +85,41 @@
       }
 
       if (previewEl) {
-        if (customQr) {
-          previewEl.innerHTML = `<img src="${customQr}" alt="Custom UPI QR" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" />`;
+        const { el, svgEl, clear, safeImageUrl } = window.FroseSafeDom;
+        clear(previewEl);
+        const safeQr = safeImageUrl(customQr);
+        if (safeQr) {
+          previewEl.appendChild(
+            el('img', {
+              src: safeQr,
+              alt: 'Custom UPI QR',
+              style: 'width: 100%; height: 100%; object-fit: contain; border-radius: 8px;',
+            })
+          );
         } else {
-          // Sharp, professional BharatQR vector icon preview
-          previewEl.innerHTML = `
-            <svg viewBox="0 0 100 100" width="62" height="62">
-              <rect width="100" height="100" fill="#FFFFFF" rx="8"/>
-              <rect x="12" y="12" width="24" height="24" fill="#0F172A" rx="3"/>
-              <rect x="16" y="16" width="16" height="16" fill="#FFFFFF" rx="1"/>
-              <rect x="20" y="20" width="8" height="8" fill="#0F172A" rx="1"/>
-              <rect x="64" y="12" width="24" height="24" fill="#0F172A" rx="3"/>
-              <rect x="68" y="16" width="16" height="16" fill="#FFFFFF" rx="1"/>
-              <rect x="72" y="20" width="8" height="8" fill="#0F172A" rx="1"/>
-              <rect x="12" y="64" width="24" height="24" fill="#0F172A" rx="3"/>
-              <rect x="16" y="68" width="16" height="16" fill="#FFFFFF" rx="1"/>
-              <rect x="20" y="72" width="8" height="8" fill="#0F172A" rx="1"/>
-              <rect x="42" y="14" width="6" height="14" fill="#0F172A" rx="1"/>
-              <rect x="52" y="22" width="6" height="8" fill="#0F172A" rx="1"/>
-              <rect x="42" y="42" width="16" height="16" fill="#700A18" rx="2"/>
-              <rect x="14" y="44" width="18" height="6" fill="#0F172A" rx="1"/>
-              <rect x="64" y="44" width="8" height="14" fill="#0F172A" rx="1"/>
-              <rect x="78" y="44" width="8" height="8" fill="#0F172A" rx="1"/>
-              <rect x="44" y="68" width="14" height="6" fill="#0F172A" rx="1"/>
-              <rect x="64" y="68" width="22" height="6" fill="#0F172A" rx="1"/>
-              <rect x="70" y="80" width="16" height="6" fill="#0F172A" rx="1"/>
-            </svg>
-          `;
+          previewEl.appendChild(
+            svgEl('svg', { viewBox: '0 0 100 100', width: 62, height: 62 }, [
+              svgEl('rect', { width: 100, height: 100, fill: '#FFFFFF', rx: 8 }),
+              svgEl('rect', { x: 12, y: 12, width: 24, height: 24, fill: '#0F172A', rx: 3 }),
+              svgEl('rect', { x: 16, y: 16, width: 16, height: 16, fill: '#FFFFFF', rx: 1 }),
+              svgEl('rect', { x: 20, y: 20, width: 8, height: 8, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 64, y: 12, width: 24, height: 24, fill: '#0F172A', rx: 3 }),
+              svgEl('rect', { x: 68, y: 16, width: 16, height: 16, fill: '#FFFFFF', rx: 1 }),
+              svgEl('rect', { x: 72, y: 20, width: 8, height: 8, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 12, y: 64, width: 24, height: 24, fill: '#0F172A', rx: 3 }),
+              svgEl('rect', { x: 16, y: 68, width: 16, height: 16, fill: '#FFFFFF', rx: 1 }),
+              svgEl('rect', { x: 20, y: 72, width: 8, height: 8, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 42, y: 14, width: 6, height: 14, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 52, y: 22, width: 6, height: 8, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 42, y: 42, width: 16, height: 16, fill: '#700A18', rx: 2 }),
+              svgEl('rect', { x: 14, y: 44, width: 18, height: 6, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 64, y: 44, width: 8, height: 14, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 78, y: 44, width: 8, height: 8, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 44, y: 68, width: 14, height: 6, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 64, y: 68, width: 22, height: 6, fill: '#0F172A', rx: 1 }),
+              svgEl('rect', { x: 70, y: 80, width: 16, height: 6, fill: '#0F172A', rx: 1 }),
+            ])
+          );
         }
       }
     } catch (e) {
@@ -159,40 +167,80 @@
   function renderDishesList() {
     const listContainer = document.getElementById('sett-dishes-list');
     if (!listContainer) return;
+    const { el, clear } = window.FroseSafeDom;
+    clear(listContainer);
 
     if (activeDishes.length === 0) {
-      listContainer.innerHTML = `
-        <div style="text-align: center; padding: 22px 10px; color: #64748B;">
-          <div style="font-size: 32px; margin-bottom: 6px;">🍽️</div>
-          <div style="font-weight: 800; font-size: 13.5px; color: #0F172A;">Your Menu is Empty</div>
-          <div style="font-size: 11.5px; margin-top: 2px; color: #64748B;">Zero dummy dishes. Ready for your stall items.</div>
-          <a href="/menu-setup" class="sett-btn-primary" style="display: inline-flex; width: auto; margin-top: 10px; padding: 7px 16px; font-size: 11.5px; text-decoration: none;">+ Add First Dish</a>
-        </div>
-      `;
+      listContainer.appendChild(
+        el('div', { style: 'text-align: center; padding: 22px 10px; color: #64748B;' }, [
+          el('div', { style: 'font-size: 32px; margin-bottom: 6px;' }, '🍽️'),
+          el('div', { style: 'font-weight: 800; font-size: 13.5px; color: #0F172A;' }, 'Your Menu is Empty'),
+          el('div', { style: 'font-size: 11.5px; margin-top: 2px; color: #64748B;' }, 'Zero dummy dishes. Ready for your stall items.'),
+          el('a', {
+            href: '/menu-setup',
+            class: 'sett-btn-primary',
+            style: 'display: inline-flex; width: auto; margin-top: 10px; padding: 7px 16px; font-size: 11.5px; text-decoration: none;',
+          }, '+ Add First Dish'),
+        ])
+      );
       return;
     }
 
-    listContainer.innerHTML = activeDishes.map((dish, idx) => `
-      <div class="sett-dish-row" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F1F5F9; gap: 10px;">
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 13.5px; font-weight: 800; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${dish.name}</div>
-          <div style="font-size: 11px; color: #64748B; font-weight: 600; margin-top: 1px;">${dish.category || 'General'}</div>
-        </div>
-        <div style="display: flex; align-items: center; background: #F8FAFC; border: 1.5px solid #CBD5E1; border-radius: 8px; overflow: hidden; height: 34px;">
-          <span style="padding: 0 8px; font-size: 12.5px; font-weight: 800; color: #700A18; background: #F1F5F9; border-right: 1px solid #CBD5E1; line-height: 34px;">₹</span>
-          <input type="number" class="sett-dish-price-input" data-idx="${idx}" value="${dish.price || 0}" style="width: 58px; height: 34px; border: none; padding: 0 8px; font-size: 13px; font-weight: 800; color: #0F172A; text-align: right; background: #FFFFFF; outline: none;" />
-        </div>
-        <div class="sett-toggle-switch ${dish.inStock !== false ? '' : 'off'}" data-dish-idx="${idx}" onclick="window.toggleDishStock(${idx})" title="Toggle In-Stock / Sold-Out">
-          <div class="toggle-thumb"></div>
-        </div>
-      </div>
-    `).join('') + `
-      <div style="margin-top: 14px; text-align: center;">
-        <button type="button" onclick="if(confirm('Reset menu to 0 items?')){if(window.clearMenuCatalogToCleanSlate){window.clearMenuCatalogToCleanSlate();} activeDishes=[]; renderDishesList();}" style="background: #FEF2F2; border: 1px dashed #EF4444; color: #B91C1C; font-size: 11px; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer;">
-          🧹 Wipe Menu to Clean Slate (0 Items)
-        </button>
-      </div>
-    `;
+    activeDishes.forEach((dish, idx) => {
+      listContainer.appendChild(
+        el('div', {
+          class: 'sett-dish-row',
+          style: 'display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F1F5F9; gap: 10px;',
+        }, [
+          el('div', { style: 'flex: 1; min-width: 0;' }, [
+            el('div', {
+              style: 'font-size: 13.5px; font-weight: 800; color: #0F172A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;',
+            }, dish.name),
+            el('div', {
+              style: 'font-size: 11px; color: #64748B; font-weight: 600; margin-top: 1px;',
+            }, dish.category || 'General'),
+          ]),
+          el('div', {
+            style: 'display: flex; align-items: center; background: #F8FAFC; border: 1.5px solid #CBD5E1; border-radius: 8px; overflow: hidden; height: 34px;',
+          }, [
+            el('span', {
+              style: 'padding: 0 8px; font-size: 12.5px; font-weight: 800; color: #700A18; background: #F1F5F9; border-right: 1px solid #CBD5E1; line-height: 34px;',
+            }, '₹'),
+            el('input', {
+              type: 'number',
+              class: 'sett-dish-price-input',
+              'data-idx': idx,
+              value: dish.price || 0,
+              style: 'width: 58px; height: 34px; border: none; padding: 0 8px; font-size: 13px; font-weight: 800; color: #0F172A; text-align: right; background: #FFFFFF; outline: none;',
+            }),
+          ]),
+          el('div', {
+            class: `sett-toggle-switch ${dish.inStock !== false ? '' : 'off'}`,
+            'data-dish-idx': idx,
+            title: 'Toggle In-Stock / Sold-Out',
+            on: { click: () => window.toggleDishStock && window.toggleDishStock(idx) },
+          }, [el('div', { class: 'toggle-thumb' })]),
+        ])
+      );
+    });
+
+    listContainer.appendChild(
+      el('div', { style: 'margin-top: 14px; text-align: center;' }, [
+        el('button', {
+          type: 'button',
+          style: 'background: #FEF2F2; border: 1px dashed #EF4444; color: #B91C1C; font-size: 11px; font-weight: 800; padding: 6px 14px; border-radius: 8px; cursor: pointer;',
+          on: {
+            click: () => {
+              if (confirm('Reset menu to 0 items?')) {
+                if (window.clearMenuCatalogToCleanSlate) window.clearMenuCatalogToCleanSlate();
+                activeDishes = [];
+                renderDishesList();
+              }
+            },
+          },
+        }, '🧹 Wipe Menu to Clean Slate (0 Items)'),
+      ])
+    );
   }
 
   // Load Subsystem Preferences (Billing, KDS, Packaging)

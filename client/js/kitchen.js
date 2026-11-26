@@ -213,9 +213,11 @@
   // --- 5. RENDER ORDER QUEUE ---
   function renderQueue() {
     if (!queueContainer) return;
+    const { el, svgEl, clear } = window.FroseSafeDom;
+
+    clear(queueContainer);
 
     if (kitchenOrders.length === 0) {
-      queueContainer.innerHTML = '';
       if (emptyState) emptyState.style.display = 'flex';
       if (pendingCountPill) pendingCountPill.textContent = '0';
       if (doneCountPill) doneCountPill.textContent = completedCount.toString();
@@ -226,72 +228,67 @@
     if (pendingCountPill) pendingCountPill.textContent = kitchenOrders.length.toString();
     if (doneCountPill) doneCountPill.textContent = completedCount.toString();
 
-    // Render cards
-    queueContainer.innerHTML = kitchenOrders.map((order) => {
+    kitchenOrders.forEach((order) => {
       const { timeDisplay, ageTier, ageLabel } = getOrderAge(order.createdAt);
       const isTakeaway = (order.notes || '').toLowerCase().includes('pack') || (order.notes || '').toLowerCase().includes('takeaway');
 
-      const itemsHtml = (order.items || []).map((item) => `
-        <div class="kds-item-row">
-          <span class="kds-item-qty">${item.quantity}x</span>
-          <span class="kds-item-name">${escapeHtml(item.itemName || 'Dish')}</span>
-          ${item.notes ? `<span class="kds-item-note">(${escapeHtml(item.notes)})</span>` : ''}
-        </div>
-      `).join('');
+      const itemRows = (order.items || []).map((item) =>
+        el('div', { class: 'kds-item-row' }, [
+          el('span', { class: 'kds-item-qty' }, `${item.quantity}x`),
+          el('span', { class: 'kds-item-name' }, item.itemName || 'Dish'),
+          item.notes ? el('span', { class: 'kds-item-note' }, `(${item.notes})`) : null,
+        ])
+      );
 
-      return `
-        <div class="kds-card ${ageTier}" id="card-${order.id}" data-id="${order.id}">
-          <div class="kds-card-header">
-            <div class="kds-token-box">
-              <span class="kds-token-prefix">TOKEN</span>
-              <span class="kds-token-num">#${order.tokenNo}</span>
-            </div>
-            <div class="kds-header-tags">
-              <span class="kds-tag kds-tag-type ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}">
-                ${isTakeaway ? '📦 TAKEAWAY' : '🍽️ DINE-IN'}
-              </span>
-              <span class="kds-tag kds-tag-timer" id="timer-${order.id}">${timeDisplay} (${ageLabel})</span>
-            </div>
-          </div>
+      const noteBox = order.notes
+        ? el('div', { class: 'kds-order-note-box' }, [
+            svgEl('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2.5 }, [
+              svgEl('circle', { cx: 12, cy: 12, r: 10 }),
+              svgEl('line', { x1: 12, y1: 8, x2: 12, y2: 12 }),
+              svgEl('line', { x1: 12, y1: 16, x2: 12.01, y2: 16 }),
+            ]),
+            el('span', {}, order.notes),
+          ])
+        : null;
 
-          <div class="kds-card-body">
-            <div class="kds-item-list">
-              ${itemsHtml}
-            </div>
+      const card = el('div', { class: `kds-card ${ageTier}`, id: `card-${order.id}`, 'data-id': order.id }, [
+        el('div', { class: 'kds-card-header' }, [
+          el('div', { class: 'kds-token-box' }, [
+            el('span', { class: 'kds-token-prefix' }, 'TOKEN'),
+            el('span', { class: 'kds-token-num' }, `#${order.tokenNo}`),
+          ]),
+          el('div', { class: 'kds-header-tags' }, [
+            el('span', { class: `kds-tag kds-tag-type ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
+              isTakeaway ? '📦 TAKEAWAY' : '🍽️ DINE-IN'
+            ),
+            el('span', { class: 'kds-tag kds-tag-timer', id: `timer-${order.id}` }, `${timeDisplay} (${ageLabel})`),
+          ]),
+        ]),
+        el('div', { class: 'kds-card-body' }, [
+          el('div', { class: 'kds-item-list' }, itemRows),
+          noteBox,
+        ]),
+        el('div', { class: 'kds-card-footer' }, [
+          el('button', {
+            class: 'btn-mark-ready',
+            'data-order-id': order.id,
+            'data-token': order.tokenNo,
+            on: {
+              click: (e) => {
+                e.stopPropagation();
+                handleMarkReady(order.id, String(order.tokenNo));
+              },
+            },
+          }, [
+            svgEl('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
+              svgEl('polyline', { points: '20 6 9 17 4 12' }),
+            ]),
+            el('span', {}, 'MARK ORDER READY'),
+          ]),
+        ]),
+      ]);
 
-            ${order.notes ? `
-              <div class="kds-order-note-box">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="8" x2="12" y2="12"></line>
-                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <span>${escapeHtml(order.notes)}</span>
-              </div>
-            ` : ''}
-          </div>
-
-          <div class="kds-card-footer">
-            <button class="btn-mark-ready" data-order-id="${order.id}" data-token="${order.tokenNo}">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <span>MARK ORDER READY</span>
-            </button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    // Attach knuckle-friendly click handlers
-    const readyButtons = queueContainer.querySelectorAll('.btn-mark-ready');
-    readyButtons.forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const orderId = btn.getAttribute('data-order-id');
-        const tokenNo = btn.getAttribute('data-token');
-        handleMarkReady(orderId, tokenNo);
-      });
+      queueContainer.appendChild(card);
     });
   }
 

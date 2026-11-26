@@ -161,18 +161,20 @@
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
 
-  function getPaymentBadgeHtml(order) {
+  function createPaymentBadgeNode(order) {
+    const { el } = window.FroseSafeDom;
     const isPaid = order.paymentStatus === 'completed' || (order.paymentMethod && order.paymentMethod !== 'pending');
     const method = (order.paymentMethod || 'CASH').toUpperCase();
 
     if (isPaid) {
-      return `<span class="pack-pay-badge pay-paid">✅ PAID (${method})</span>`;
+      return el('span', { class: 'pack-pay-badge pay-paid' }, `✅ PAID (${method})`);
     }
-    return `<span class="pack-pay-badge pay-collect">⚠️ COLLECT CASH</span>`;
+    return el('span', { class: 'pack-pay-badge pay-collect' }, '⚠️ COLLECT CASH');
   }
 
   // --- 4. RENDER LANES ---
   function renderLanes() {
+    const { el, svgEl, clear } = window.FroseSafeDom;
     // 1. Update Header Counters
     if (readyCountPill) readyCountPill.textContent = readyOrders.length.toString();
     if (waitingCountPill) waitingCountPill.textContent = waitingOrders.length.toString();
@@ -185,8 +187,8 @@
       if (globalEmptyState) globalEmptyState.style.display = 'flex';
       if (readyEmptyMsg) readyEmptyMsg.style.display = 'none';
       if (waitingEmptyMsg) waitingEmptyMsg.style.display = 'none';
-      if (readyGrid) readyGrid.innerHTML = '';
-      if (waitingGrid) waitingGrid.innerHTML = '';
+      if (readyGrid) clear(readyGrid);
+      if (waitingGrid) clear(waitingGrid);
       return;
     }
 
@@ -194,113 +196,100 @@
 
     // 3. Render Lane 1: Ready for Pickup
     if (readyGrid) {
+      clear(readyGrid);
       if (readyOrders.length === 0) {
-        readyGrid.innerHTML = '';
         if (readyEmptyMsg) readyEmptyMsg.style.display = 'flex';
       } else {
         if (readyEmptyMsg) readyEmptyMsg.style.display = 'none';
-        readyGrid.innerHTML = readyOrders.map((order) => {
+        readyOrders.forEach((order) => {
           const isTakeaway = (order.notes || '').toLowerCase().includes('pack') || (order.notes || '').toLowerCase().includes('takeaway');
-          const itemsHtml = (order.items || []).map((it) => `
-            <div class="pack-item-row">
-              <span class="pack-item-qty">${it.quantity}x</span>
-              <span class="pack-item-name">${escapeHtml(it.itemName || 'Dish')}</span>
-              ${it.notes ? `<span class="pack-item-note">(${escapeHtml(it.notes)})</span>` : ''}
-            </div>
-          `).join('');
+          const itemNodes = (order.items || []).map((it) =>
+            el('div', { class: 'pack-item-row' }, [
+              el('span', { class: 'pack-item-qty' }, `${it.quantity}x`),
+              el('span', { class: 'pack-item-name' }, it.itemName || 'Dish'),
+              it.notes ? el('span', { class: 'pack-item-note' }, `(${it.notes})`) : null,
+            ])
+          );
 
-          return `
-            <div class="packaging-card card-ready" id="ready-card-${order.id}" data-id="${order.id}">
-              <div class="pack-card-header">
-                <div class="kds-token-box">
-                  <span class="kds-token-prefix">TOKEN</span>
-                  <span class="kds-token-num">#${order.tokenNo}</span>
-                </div>
-                <div class="kds-header-tags">
-                  <span class="kds-tag ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}">
-                    ${isTakeaway ? '📦 TAKEAWAY' : '🍽️ DINE-IN'}
-                  </span>
-                  ${getPaymentBadgeHtml(order)}
-                </div>
-              </div>
-
-              <div class="pack-card-body">
-                <div class="pack-item-list">
-                  ${itemsHtml}
-                </div>
-                ${order.notes ? `
-                  <div class="kds-order-note-box">
-                    <span>${escapeHtml(order.notes)}</span>
-                  </div>
-                ` : ''}
-              </div>
-
-              <div class="pack-card-footer">
-                <button class="btn-mark-delivered" data-order-id="${order.id}" data-token="${order.tokenNo}">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                  <span>MARK DELIVERED & SERVED</span>
-                </button>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        // Attach Deliver Handlers
-        const deliverBtns = readyGrid.querySelectorAll('.btn-mark-delivered');
-        deliverBtns.forEach((btn) => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const orderId = btn.getAttribute('data-order-id');
-            const tokenNo = btn.getAttribute('data-token');
-            handleMarkDelivered(orderId, tokenNo);
-          });
+          readyGrid.appendChild(
+            el('div', { class: 'packaging-card card-ready', id: `ready-card-${order.id}`, 'data-id': order.id }, [
+              el('div', { class: 'pack-card-header' }, [
+                el('div', { class: 'kds-token-box' }, [
+                  el('span', { class: 'kds-token-prefix' }, 'TOKEN'),
+                  el('span', { class: 'kds-token-num' }, `#${order.tokenNo}`),
+                ]),
+                el('div', { class: 'kds-header-tags' }, [
+                  el('span', { class: `kds-tag ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
+                    isTakeaway ? '📦 TAKEAWAY' : '🍽️ DINE-IN'
+                  ),
+                  createPaymentBadgeNode(order),
+                ]),
+              ]),
+              el('div', { class: 'pack-card-body' }, [
+                el('div', { class: 'pack-item-list' }, itemNodes),
+                order.notes ? el('div', { class: 'kds-order-note-box' }, [el('span', {}, order.notes)]) : null,
+              ]),
+              el('div', { class: 'pack-card-footer' }, [
+                el('button', {
+                  class: 'btn-mark-delivered',
+                  'data-order-id': order.id,
+                  'data-token': order.tokenNo,
+                  on: {
+                    click: (e) => {
+                      e.stopPropagation();
+                      handleMarkDelivered(order.id, String(order.tokenNo));
+                    },
+                  },
+                }, [
+                  svgEl('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
+                    svgEl('polyline', { points: '20 6 9 17 4 12' }),
+                  ]),
+                  el('span', {}, 'MARK DELIVERED & SERVED'),
+                ]),
+              ]),
+            ])
+          );
         });
       }
     }
 
     // 4. Render Lane 2: Waiting for Kitchen
     if (waitingGrid) {
+      clear(waitingGrid);
       if (waitingOrders.length === 0) {
-        waitingGrid.innerHTML = '';
         if (waitingEmptyMsg) waitingEmptyMsg.style.display = 'flex';
       } else {
         if (waitingEmptyMsg) waitingEmptyMsg.style.display = 'none';
-        waitingGrid.innerHTML = waitingOrders.map((order) => {
+        waitingOrders.forEach((order) => {
           const isTakeaway = (order.notes || '').toLowerCase().includes('pack') || (order.notes || '').toLowerCase().includes('takeaway');
           const age = getOrderAge(order.createdAt);
-          const itemsHtml = (order.items || []).map((it) => `
-            <div class="pack-item-row">
-              <span class="pack-item-qty qty-waiting">${it.quantity}x</span>
-              <span class="pack-item-name">${escapeHtml(it.itemName || 'Dish')}</span>
-            </div>
-          `).join('');
+          const itemNodes = (order.items || []).map((it) =>
+            el('div', { class: 'pack-item-row' }, [
+              el('span', { class: 'pack-item-qty qty-waiting' }, `${it.quantity}x`),
+              el('span', { class: 'pack-item-name' }, it.itemName || 'Dish'),
+            ])
+          );
 
-          return `
-            <div class="packaging-card card-waiting" id="waiting-card-${order.id}" data-id="${order.id}">
-              <div class="pack-card-header">
-                <div class="kds-token-box">
-                  <span class="kds-token-prefix">TOKEN</span>
-                  <span class="kds-token-num text-muted">#${order.tokenNo}</span>
-                </div>
-                <div class="kds-header-tags">
-                  <span class="kds-tag ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}">
-                    ${isTakeaway ? '📦 TAKEAWAY' : '🍽️ DINE-IN'}
-                  </span>
-                  <span class="kds-tag tag-cooking-status">🍳 Cooking in Kitchen (${age})</span>
-                </div>
-              </div>
-
-              <div class="pack-card-body">
-                <div class="pack-item-list">
-                  ${itemsHtml}
-                </div>
-              </div>
-              <!-- Strictly NO Deliver button in waiting lane -->
-            </div>
-          `;
-        }).join('');
+          waitingGrid.appendChild(
+            el('div', { class: 'packaging-card card-waiting', id: `waiting-card-${order.id}`, 'data-id': order.id }, [
+              el('div', { class: 'pack-card-header' }, [
+                el('div', { class: 'kds-token-box' }, [
+                  el('span', { class: 'kds-token-prefix' }, 'TOKEN'),
+                  el('span', { class: 'kds-token-num text-muted' }, `#${order.tokenNo}`),
+                ]),
+                el('div', { class: 'kds-header-tags' }, [
+                  el('span', { class: `kds-tag ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
+                    isTakeaway ? '📦 TAKEAWAY' : '🍽️ DINE-IN'
+                  ),
+                  el('span', { class: 'kds-tag tag-cooking-status' }, `🍳 Cooking in Kitchen (${age})`),
+                ]),
+              ]),
+              el('div', { class: 'pack-card-body' }, [
+                el('div', { class: 'pack-item-list' }, itemNodes),
+              ]),
+            ])
+          );
+        });
       }
     }
   }

@@ -126,20 +126,20 @@
     if (!preset || !presetItemsPreview) return;
 
     previewItemCount.textContent = `${preset.items.length} Pre-Configured Dishes`;
-    presetItemsPreview.innerHTML = preset.items
-      .map(
-        (item) => `
-        <div class="preview-item-card">
-          <div class="preview-item-emoji">${item.emoji}</div>
-          <div class="preview-item-info">
-            <div class="preview-item-name">${item.name}</div>
-            <div class="preview-item-cat">${item.category}</div>
-          </div>
-          <div class="preview-item-price">&#8377;${item.priceRupees}</div>
-        </div>
-      `
-      )
-      .join('');
+    const { el, clear } = window.FroseSafeDom;
+    clear(presetItemsPreview);
+    preset.items.forEach((item) => {
+      presetItemsPreview.appendChild(
+        el('div', { class: 'preview-item-card' }, [
+          el('div', { class: 'preview-item-emoji' }, item.emoji),
+          el('div', { class: 'preview-item-info' }, [
+            el('div', { class: 'preview-item-name' }, item.name),
+            el('div', { class: 'preview-item-cat' }, item.category),
+          ]),
+          el('div', { class: 'preview-item-price' }, `₹${item.priceRupees}`),
+        ])
+      );
+    });
   }
 
   // Stepper Transition
@@ -329,11 +329,22 @@
       const upiId = upiIdInput.value.trim();
       const quickPin = quickPinInput.value.trim();
 
+      const { el, svgEl, clear } = window.FroseSafeDom;
+      const restoreSubmitButton = () => {
+        btnRegisterSubmit.disabled = false;
+        clear(btnRegisterSubmit);
+        btnRegisterSubmit.appendChild(
+          svgEl('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2.2 }, [
+            svgEl('polyline', { points: '20 6 9 17 4 12' }),
+          ])
+        );
+        btnRegisterSubmit.appendChild(el('span', {}, 'Activate Stall & Launch Billing Counter'));
+      };
+
       btnRegisterSubmit.disabled = true;
-      btnRegisterSubmit.innerHTML = `
-        <span class="spinner-icon"></span>
-        <span>Configuring Stall in 60s...</span>
-      `;
+      clear(btnRegisterSubmit);
+      btnRegisterSubmit.appendChild(el('span', { class: 'spinner-icon' }));
+      btnRegisterSubmit.appendChild(el('span', {}, 'Configuring Stall in 60s...'));
       hideAlert();
 
       try {
@@ -363,13 +374,7 @@
         if (!response.ok) {
           const errMsg = data?.error?.message || data?.message || 'Registration failed. Please check inputs.';
           showAlert(errMsg, 'error');
-          btnRegisterSubmit.disabled = false;
-          btnRegisterSubmit.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            <span>Activate Stall & Launch Billing Counter</span>
-          `;
+          restoreSubmitButton();
           return;
         }
 
@@ -393,13 +398,7 @@
       } catch (err) {
         console.error('Registration network error:', err);
         showAlert('Network communication error. Please verify server connection.', 'error');
-        btnRegisterSubmit.disabled = false;
-        btnRegisterSubmit.innerHTML = `
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span>Activate Stall & Launch Billing Counter</span>
-        `;
+        restoreSubmitButton();
       }
     });
   }

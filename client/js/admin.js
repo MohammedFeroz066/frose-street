@@ -142,7 +142,14 @@
     const elSubRenew = document.getElementById('kpi-sub-renewals');
     if (elCol) elCol.textContent = formatRupees(stats.totalCollectedPaise || '299400');
     if (elSubRenew) {
-      elSubRenew.innerHTML = `Recv: <strong>${formatRupees(stats.totalCollectedPaise || '299400')}</strong> • Due: <strong>${formatRupees(stats.totalPendingPaise || '49900')}</strong>`;
+      const { el, clear } = window.FroseSafeDom;
+      clear(elSubRenew);
+      elSubRenew.append(
+        'Recv: ',
+        el('strong', {}, [formatRupees(stats.totalCollectedPaise || '299400')]),
+        ' • Due: ',
+        el('strong', {}, [formatRupees(stats.totalPendingPaise || '49900')])
+      );
     }
 
     const elOrders = document.getElementById('kpi-val-orders');
@@ -209,12 +216,17 @@
       return true;
     });
 
+    const { el, clear } = window.FroseSafeDom;
+    clear(tbody);
+
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: var(--saas-text-muted);">No restaurants found matching current filter or search criteria.</td></tr>`;
+      tbody.appendChild(el('tr', {}, [
+        el('td', { colspan: '7', style: 'text-align: center; padding: 24px; color: var(--saas-text-muted);' }, ['No restaurants found matching current filter or search criteria.'])
+      ]));
       return;
     }
 
-    tbody.innerHTML = filtered.map(v => {
+    filtered.forEach(v => {
       const bName = v.businessName || v.business_name || 'Restaurant Stall';
       const oName = v.ownerName || v.owner_name || 'Owner';
       const phone = v.phone || 'N/A';
@@ -235,49 +247,46 @@
       else if (isDueSoon) { badgeClass = 'due_soon'; badgeLabel = 'DUE SOON'; }
 
       const hostingBadge = edition === 'local'
-        ? `<span class="badge-hosting local" title="Runs directly on stall owner's Android phone/tablet with zero internet needed">📱 Mobile P2P</span>`
-        : `<span class="badge-hosting cloud" title="FROSE Edge Cloud with live multi-device synchronization">🌐 Cloud Edge</span>`;
+        ? el('span', { class: 'badge-hosting local', title: "Runs directly on stall owner's Android phone/tablet with zero internet needed" }, ['📱 Mobile P2P'])
+        : el('span', { class: 'badge-hosting cloud', title: 'FROSE Edge Cloud with live multi-device synchronization' }, ['🌐 Cloud Edge']);
 
-      return `
-        <tr>
-          <td>
-            <div style="font-weight: 800; font-size: 13.5px; color: var(--saas-burgundy-primary);">${bName}</div>
-            <div style="font-size: 11.5px; color: var(--saas-text-muted);">${oName} • ${v.city || 'Hyderabad'}</div>
-          </td>
-          <td><code style="font-family: var(--font-mono); font-size: 12.5px; font-weight: 700;">${phone}</code></td>
-          <td>${hostingBadge}</td>
-          <td><strong style="color: var(--saas-burgundy-primary); font-size: 12.5px;">${monthlyFee}/mo</strong></td>
-          <td>
-            <div style="font-size: 11px;">Paid: <strong>${lastPaid}</strong></div>
-            <div style="font-size: 11px; color: ${isOverdue ? 'var(--saas-crimson)' : 'var(--saas-text-muted)'};">Due: <strong>${nextDue}</strong></div>
-          </td>
-          <td><span class="badge-status ${badgeClass}">${badgeLabel}</span></td>
-          <td>
-            <div class="action-btn-group">
-              <button class="btn-whatsapp-action btn-whatsapp-stall"
-                data-phone="${phone}"
-                data-owner="${oName}"
-                data-stall="${bName}"
-                data-status="${badgeLabel}"
-                data-due="${nextDue}"
-                data-fee="${monthlyFee}"
-                title="Send WhatsApp payment reminder / receipt">
-                <span>💬 WhatsApp</span>
-              </button>
-              <button class="btn-table-action btn-view-receipt" data-id="${v.id}" title="View Receipt">
-                <span>📄</span>
-              </button>
-              <button class="btn-table-action btn-edit-stall" data-id="${v.id}" title="Edit Stall">
-                <span>✏️</span>
-              </button>
-              <button class="btn-table-action btn-manage-menu" data-id="${v.id}" data-name="${bName}" title="Menu">
-                <span>📋</span>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `;
-    }).join('');
+      tbody.appendChild(el('tr', {}, [
+        el('td', {}, [
+          el('div', { style: 'font-weight: 800; font-size: 13.5px; color: var(--saas-burgundy-primary);' }, [bName]),
+          el('div', { style: 'font-size: 11.5px; color: var(--saas-text-muted);' }, [`${oName} • ${v.city || 'Hyderabad'}`])
+        ]),
+        el('td', {}, [
+          el('code', { style: 'font-family: var(--font-mono); font-size: 12.5px; font-weight: 700;' }, [phone])
+        ]),
+        el('td', {}, [hostingBadge]),
+        el('td', {}, [
+          el('strong', { style: 'color: var(--saas-burgundy-primary); font-size: 12.5px;' }, [`${monthlyFee}/mo`])
+        ]),
+        el('td', {}, [
+          el('div', { style: 'font-size: 11px;' }, ['Paid: ', el('strong', {}, [lastPaid])]),
+          el('div', { style: `font-size: 11px; color: ${isOverdue ? 'var(--saas-crimson)' : 'var(--saas-text-muted)'};` }, ['Due: ', el('strong', {}, [nextDue])])
+        ]),
+        el('td', {}, [el('span', { class: `badge-status ${badgeClass}` }, [badgeLabel])]),
+        el('td', {}, [
+          el('div', { class: 'action-btn-group' }, [
+            el('button', {
+              type: 'button',
+              class: 'btn-whatsapp-action btn-whatsapp-stall',
+              'data-phone': phone,
+              'data-owner': oName,
+              'data-stall': bName,
+              'data-status': badgeLabel,
+              'data-due': nextDue,
+              'data-fee': monthlyFee,
+              title: 'Send WhatsApp payment reminder / receipt'
+            }, [el('span', {}, ['💬 WhatsApp'])]),
+            el('button', { type: 'button', class: 'btn-table-action btn-view-receipt', 'data-id': v.id, title: 'View Receipt' }, [el('span', {}, ['📄'])]),
+            el('button', { type: 'button', class: 'btn-table-action btn-edit-stall', 'data-id': v.id, title: 'Edit Stall' }, [el('span', {}, ['✏️'])]),
+            el('button', { type: 'button', class: 'btn-table-action btn-manage-menu', 'data-id': v.id, 'data-name': bName, title: 'Menu' }, [el('span', {}, ['📋'])])
+          ])
+        ])
+      ]));
+    });
 
     // Attach WhatsApp trigger listeners
     document.querySelectorAll('.btn-whatsapp-stall').forEach(btn => {
@@ -346,22 +355,24 @@
 
     const container = document.getElementById('receipt-modal-content');
     if (container) {
-      container.innerHTML = `
-        <div style="text-align: center; margin-bottom: 12px; border-bottom: 1px solid var(--saas-card-border); padding-bottom: 10px;">
-          <div style="font-weight: 900; font-size: 16px; color: var(--saas-burgundy-primary);">FROSE STREET POS</div>
-          <div style="font-size: 11px; color: var(--saas-text-muted);">Official Subscription Tax Receipt</div>
-          <div style="font-size: 11px; font-weight: 700; margin-top: 4px;">Receipt: #${receiptId}</div>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 6px;">
-          <div style="display: flex; justify-content: space-between;"><span>Restaurant:</span> <strong>${bName}</strong></div>
-          <div style="display: flex; justify-content: space-between;"><span>Stall Owner:</span> <strong>${oName}</strong></div>
-          <div style="display: flex; justify-content: space-between;"><span>Mobile:</span> <code>${phone}</code></div>
-          <div style="display: flex; justify-content: space-between;"><span>Hosting Mode:</span> <strong>${stall.edition === 'local' ? 'Mobile P2P (Offline)' : 'Cloud Managed (Edge)'}</strong></div>
-          <div style="display: flex; justify-content: space-between;"><span>Amount Paid:</span> <strong style="color: var(--saas-emerald); font-size: 14px;">${fee}</strong></div>
-          <div style="display: flex; justify-content: space-between;"><span>Payment Mode:</span> <strong>UPI Intent / BharatQR</strong></div>
-          <div style="display: flex; justify-content: space-between;"><span>Validity Period:</span> <strong>30 Days</strong></div>
-        </div>
-      `;
+      const { el, clear } = window.FroseSafeDom;
+      clear(container);
+      container.append(
+        el('div', { style: 'text-align: center; margin-bottom: 12px; border-bottom: 1px solid var(--saas-card-border); padding-bottom: 10px;' }, [
+          el('div', { style: 'font-weight: 900; font-size: 16px; color: var(--saas-burgundy-primary);' }, ['FROSE STREET POS']),
+          el('div', { style: 'font-size: 11px; color: var(--saas-text-muted);' }, ['Official Subscription Tax Receipt']),
+          el('div', { style: 'font-size: 11px; font-weight: 700; margin-top: 4px;' }, [`Receipt: #${receiptId}`])
+        ]),
+        el('div', { style: 'display: flex; flex-direction: column; gap: 6px;' }, [
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Restaurant:']), el('strong', {}, [bName])]),
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Stall Owner:']), el('strong', {}, [oName])]),
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Mobile:']), el('code', {}, [phone])]),
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Hosting Mode:']), el('strong', {}, [stall.edition === 'local' ? 'Mobile P2P (Offline)' : 'Cloud Managed (Edge)'])]),
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Amount Paid:']), el('strong', { style: 'color: var(--saas-emerald); font-size: 14px;' }, [fee])]),
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Payment Mode:']), el('strong', {}, ['UPI Intent / BharatQR'])]),
+          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Validity Period:']), el('strong', {}, ['30 Days'])])
+        ])
+      );
     }
 
     const shareBtn = document.getElementById('btn-receipt-whatsapp-share');
@@ -396,22 +407,26 @@
       } catch (e) {}
     }
 
-    tbody.innerHTML = users.map(u => `
-      <tr>
-        <td>
-          <div style="font-weight: 700;">${u.name}</div>
-          <code style="font-size: 11.5px; color: var(--saas-text-muted);">${u.phone}</code>
-        </td>
-        <td><span class="badge-status active">${u.role}</span></td>
-        <td><strong>${u.stallName}</strong></td>
-        <td><span class="badge-status ${u.status === 'active' ? 'active' : 'expired'}">${u.status}</span></td>
-        <td>
-          <button class="btn-table-action" onclick="alert('Password reset link dispatched via SMS to ' + '${u.phone}')">
-            Reset Password
-          </button>
-        </td>
-      </tr>
-    `).join('');
+    const { el, clear } = window.FroseSafeDom;
+    clear(tbody);
+    users.forEach(u => {
+      tbody.appendChild(el('tr', {}, [
+        el('td', {}, [
+          el('div', { style: 'font-weight: 700;' }, [u.name || '']),
+          el('code', { style: 'font-size: 11.5px; color: var(--saas-text-muted);' }, [u.phone || ''])
+        ]),
+        el('td', {}, [el('span', { class: 'badge-status active' }, [u.role || 'owner'])]),
+        el('td', {}, [el('strong', {}, [u.stallName || ''])]),
+        el('td', {}, [el('span', { class: `badge-status ${u.status === 'active' ? 'active' : 'expired'}` }, [u.status || 'active'])]),
+        el('td', {}, [
+          el('button', {
+            type: 'button',
+            class: 'btn-table-action',
+            on: { click: () => alert('Password reset link dispatched via SMS to ' + (u.phone || '')) }
+          }, ['Reset Password'])
+        ])
+      ]));
+    });
   }
 
   async function loadAnalytics() {
@@ -444,15 +459,17 @@
     if (upiVal) upiVal.textContent = formatRupees(data.upiSalesPaise);
 
     if (tbody && Array.isArray(data.leaderboard)) {
-      tbody.innerHTML = data.leaderboard.map((item, idx) => `
-        <tr>
-          <td><strong style="color: var(--saas-burgundy-primary);">#${item.rank || idx + 1}</strong></td>
-          <td><strong>${item.name}</strong></td>
-          <td>${item.city}</td>
-          <td>${item.orders || item.totalOrders || 0}</td>
-          <td><strong>${item.volume || formatRupees(item.salesPaise || '0')}</strong></td>
-        </tr>
-      `).join('');
+      const { el, clear } = window.FroseSafeDom;
+      clear(tbody);
+      data.leaderboard.forEach((item, idx) => {
+        tbody.appendChild(el('tr', {}, [
+          el('td', {}, [el('strong', { style: 'color: var(--saas-burgundy-primary);' }, [`#${item.rank || idx + 1}`])]),
+          el('td', {}, [el('strong', {}, [item.name || ''])]),
+          el('td', {}, [item.city || '']),
+          el('td', {}, [String(item.orders || item.totalOrders || 0)]),
+          el('td', {}, [el('strong', {}, [item.volume || formatRupees(item.salesPaise || '0')])])
+        ]));
+      });
     }
   }
 
@@ -500,7 +517,9 @@
     const container = document.getElementById('dish-list-container');
     if (!container) return;
 
-    container.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--saas-text-muted);">Loading dishes...</div>';
+    const { el, clear } = window.FroseSafeDom;
+    clear(container);
+    container.appendChild(el('div', { style: 'padding: 16px; text-align: center; color: var(--saas-text-muted);' }, ['Loading dishes...']));
     openModal('modal-menu-manager');
 
     let dishes = [
@@ -518,17 +537,28 @@
       } catch (e) {}
     }
 
-    container.innerHTML = dishes.map(d => `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #FDFBF7; border-radius: 8px; border: 1px solid var(--saas-card-border);">
-        <div>
-          <div style="font-weight: 800; font-size: 13px;">${d.name}</div>
-          <div style="font-size: 11.5px; color: var(--saas-text-muted);">${d.category || 'General'} • ${formatRupees(d.price_paise || d.pricePaise)}</div>
-        </div>
-        <button class="btn-table-action" onclick="this.textContent = this.textContent === '🟢 In Stock' ? '🔴 Out of Stock' : '🟢 In Stock'">
-          ${(d.is_available ?? d.isAvailable) ? '🟢 In Stock' : '🔴 Out of Stock'}
-        </button>
-      </div>
-    `).join('');
+    clear(container);
+    dishes.forEach(d => {
+      const availBtn = el('button', {
+        type: 'button',
+        class: 'btn-table-action',
+        on: {
+          click: function () {
+            this.textContent = this.textContent === '🟢 In Stock' ? '🔴 Out of Stock' : '🟢 In Stock';
+          }
+        }
+      }, [(d.is_available ?? d.isAvailable) ? '🟢 In Stock' : '🔴 Out of Stock']);
+
+      container.appendChild(el('div', {
+        style: 'display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #FDFBF7; border-radius: 8px; border: 1px solid var(--saas-card-border);'
+      }, [
+        el('div', {}, [
+          el('div', { style: 'font-weight: 800; font-size: 13px;' }, [d.name || '']),
+          el('div', { style: 'font-size: 11.5px; color: var(--saas-text-muted);' }, [`${d.category || 'General'} • ${formatRupees(d.price_paise || d.pricePaise)}`])
+        ]),
+        availBtn
+      ]));
+    });
   }
 
     // 10. Unified Delegated Click Listener (Zero-Fail Real-Time Mobile & Desktop Taps)

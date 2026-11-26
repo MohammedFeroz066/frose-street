@@ -228,7 +228,9 @@ describe('Phase 12 Acceptance: Vendor Registration, 60-Second Onboarding & Prese
       expect(data.vendor).toBeDefined();
       expect(data.vendor.businessName).toBe('Royal Momos & Chai');
       expect(data.vendor.phone).toBe(testPhone);
-      expect(data.token).toBeDefined();
+      expect(data.token).toBeUndefined();
+      expect(res.cookies.find((c) => c.name === 'frose_access_token')).toBeDefined();
+      expect(res.cookies.find((c) => c.name === 'frose_refresh_token')).toBeDefined();
       expect(data.seededItemsCount).toBeGreaterThan(0);
 
       // Verify that menu items were seeded in database

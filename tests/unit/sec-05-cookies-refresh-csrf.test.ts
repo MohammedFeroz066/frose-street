@@ -40,9 +40,12 @@ describe('SEC-05: httpOnly Cookies, Rotating Refresh Tokens, Revocation & CSRF P
     });
 
     expect(loginRes.statusCode).toBe(200);
+    expect(loginRes.json().token).toBeUndefined();
+
     const cookies = loginRes.cookies;
     const accessCookie = cookies.find((c) => c.name === 'frose_access_token');
     const refreshCookie = cookies.find((c) => c.name === 'frose_refresh_token');
+    const legacyCookie = cookies.find((c) => c.name === 'frose_street_token');
 
     expect(accessCookie).toBeDefined();
     expect(accessCookie?.httpOnly).toBe(true);
@@ -51,6 +54,7 @@ describe('SEC-05: httpOnly Cookies, Rotating Refresh Tokens, Revocation & CSRF P
     expect(refreshCookie).toBeDefined();
     expect(refreshCookie?.httpOnly).toBe(true);
     expect(refreshCookie?.sameSite?.toLowerCase()).toBe('strict');
+    expect(legacyCookie).toBeUndefined();
   });
 
   it('rotates refresh token on POST /api/v1/auth/refresh and issues a fresh access token', async () => {
@@ -80,6 +84,7 @@ describe('SEC-05: httpOnly Cookies, Rotating Refresh Tokens, Revocation & CSRF P
     });
 
     expect(refreshRes.statusCode).toBe(200);
+    expect(refreshRes.json().token).toBeUndefined();
     const newRefreshCookie = refreshRes.cookies.find((c) => c.name === 'frose_refresh_token');
     expect(newRefreshCookie).toBeDefined();
     expect(newRefreshCookie!.value).not.toBe(initialRefreshCookie!.value); // Rotated!
@@ -256,6 +261,69 @@ describe('SEC-05: httpOnly Cookies, Rotating Refresh Tokens, Revocation & CSRF P
       });
       expect(wildcardInProd.statusCode).toBe(403);
       expect(wildcardInProd.json().code).toBe('CSRF_VALIDATION_FAILED');
+    } finally {
+      await prodApp.close();
+    }
+  });
+
+  it('uses __Host- cookie prefixes with Secure=true in production and never leaks raw tokens in JSON', async () => {
+    const prodApp = await buildApp({
+      logger: false,
+      config: {
+        NODE_ENV: 'production',
+        PORT: 3100,
+        HOST: '127.0.0.1',
+        DATABASE_URL: 'postgresql://localhost:5432/test',
+        JWT_SECRET: 'a-very-strong-production-secret-key-at-least-32-bytes',
+        JWT_EXPIRES_IN: '15m',
+        CORS_ORIGIN: ['https://street.frostech.com'],
+        CLIENT_DIR: 'client',
+      },
+    });
+    await prodApp.ready();
+
+    try {
+      const phone = '9870009999';
+      const regRes = await prodApp.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        headers: { 'X-FROSE-CSRF': '1', origin: 'https://street.frostech.com' },
+        payload: {
+          phone,
+          businessName: 'Prod Host Cookie Stall',
+          password: 'ValidSecurePassword123!',
+        },
+      });
+      expect(regRes.statusCode).toBe(201);
+      expect(regRes.json().token).toBeUndefined();
+
+      const hostAccess = regRes.cookies.find((c) => c.name === '__Host-frose_access_token');
+      const hostRefresh = regRes.cookies.find((c) => c.name === '__Host-frose_refresh_token');
+      expect(hostAccess).toBeDefined();
+      expect(hostAccess?.secure).toBe(true);
+      expect(hostAccess?.httpOnly).toBe(true);
+      expect(hostAccess?.path).toBe('/');
+      expect(hostRefresh).toBeDefined();
+      expect(hostRefresh?.secure).toBe(true);
+      expect(regRes.cookies.find((c) => c.name === 'frose_street_token')).toBeUndefined();
+
+      const meRes = await prodApp.inject({
+        method: 'GET',
+        url: '/api/v1/auth/me',
+        cookies: { '__Host-frose_access_token': hostAccess!.value },
+      });
+      expect(meRes.statusCode).toBe(200);
+      expect(meRes.json().phone).toBe(phone);
+
+      const refreshRes = await prodApp.inject({
+        method: 'POST',
+        url: '/api/v1/auth/refresh',
+        headers: { 'X-FROSE-CSRF': '1', origin: 'https://street.frostech.com' },
+        cookies: { '__Host-frose_refresh_token': hostRefresh!.value },
+      });
+      expect(refreshRes.statusCode).toBe(200);
+      expect(refreshRes.json().token).toBeUndefined();
+      expect(refreshRes.cookies.find((c) => c.name === '__Host-frose_access_token')).toBeDefined();
     } finally {
       await prodApp.close();
     }

@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { verifyJwt } from '../modules/auth/jwt.js';
 import { verifyJoseAccessToken, getJwtKeyRotationConfig, AuthTokenPayload } from '../modules/auth/jwt-jose.js';
+import { readAccessTokenCookie } from '../modules/auth/session-cookies.js';
 import { AppError } from '../errors/app-error.js';
 import { loadConfig } from '../config/env.js';
 import type { StaffRole } from '../../../shared/types/index.js';
@@ -13,10 +14,10 @@ declare module 'fastify' {
 }
 
 export async function requireAuth(request: FastifyRequest, _reply: FastifyReply) {
-  const config = loadConfig();
+  const config = (request.server as any)?.froseConfig || loadConfig();
 
-  // 1. Check HttpOnly cookies (access token primary, street_token legacy fallback)
-  let token = request.cookies?.frose_access_token || request.cookies?.frose_street_token;
+  // 1. Check HttpOnly access cookie (__Host- prefixed in production)
+  let token = readAccessTokenCookie(request.cookies, config.NODE_ENV);
 
   // 2. Check Authorization Bearer header if cookie not present
   if (!token && request.headers.authorization) {

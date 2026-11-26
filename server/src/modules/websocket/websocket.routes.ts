@@ -4,6 +4,8 @@ import { verifyJwt } from '../auth/jwt.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { loadConfig } from '../../config/env.js';
 
+import { readAccessTokenCookie } from '../auth/session-cookies.js';
+
 export const handleWsConnection = (connection: any, req: any) => {
   const config = loadConfig();
   const socket = connection.socket;
@@ -11,8 +13,8 @@ export const handleWsConnection = (connection: any, req: any) => {
 
   // 1. Extract authentication token
   let token = query?.token;
-  if (!token && req.cookies?.frose_street_token) {
-    token = req.cookies.frose_street_token;
+  if (!token) {
+    token = readAccessTokenCookie(req.cookies, config.NODE_ENV);
   }
   if (!token && req.headers?.authorization) {
     const parts = req.headers.authorization.split(' ');

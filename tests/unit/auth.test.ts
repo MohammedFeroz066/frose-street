@@ -411,16 +411,20 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       expect(json.vendor.phone).toBe(testPhone);
       expect(json.vendor.businessName).toBe('Kolkata Kathi Rolls');
       expect(json.vendor.subscriptionStatus).toBe('trial');
-      expect(json.token).toBeDefined();
+      expect(json.token).toBeUndefined();
 
-      // Check HttpOnly Cookie
+      // Check HttpOnly Cookies
       const cookieHeader = res.headers['set-cookie'];
       expect(cookieHeader).toBeDefined();
-      expect(String(cookieHeader)).toContain('frose_street_token=');
+      expect(String(cookieHeader)).toContain('frose_access_token=');
+      expect(String(cookieHeader)).toContain('frose_refresh_token=');
+      expect(String(cookieHeader)).not.toContain('frose_street_token=');
       expect(String(cookieHeader)).toContain('HttpOnly');
 
+      const accessCookie = res.cookies.find((c) => c.name === 'frose_access_token');
+      expect(accessCookie).toBeDefined();
       registeredVendorId = json.vendor.id;
-      authToken = json.token;
+      authToken = accessCookie!.value;
     });
 
     it('POST /api/v1/auth/register: rejects duplicate registration with 409 Conflict', async () => {
@@ -455,10 +459,12 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       const json = JSON.parse(res.body);
       expect(json.status).toBe('success');
       expect(json.vendor.businessName).toBe('Kolkata Kathi Rolls');
-      expect(json.token).toBeDefined();
+      expect(json.token).toBeUndefined();
 
       const cookieHeader = res.headers['set-cookie'];
-      expect(String(cookieHeader)).toContain('frose_street_token=');
+      expect(String(cookieHeader)).toContain('frose_access_token=');
+      expect(String(cookieHeader)).toContain('frose_refresh_token=');
+      expect(String(cookieHeader)).not.toContain('frose_street_token=');
     });
 
     it('POST /api/v1/auth/login: rejects incorrect password with 401 Unauthorized', async () => {
@@ -507,7 +513,8 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       expect(res.statusCode).toBe(200);
       const json = JSON.parse(res.body);
       expect(json.status).toBe('success');
-      expect(json.token).toBeDefined();
+      expect(json.token).toBeUndefined();
+      expect(res.cookies.find((c) => c.name === 'frose_access_token')).toBeDefined();
     });
 
     it('POST /api/v1/auth/verify-pin: rejects wrong PIN with 401 Unauthorized', async () => {
@@ -558,7 +565,8 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       const json = JSON.parse(res.body);
       expect(json.status).toBe('success');
       expect(json.vendor.businessName).toBe('Kolkata Kathi Rolls');
-      expect(json.token).toBeDefined();
+      expect(json.token).toBeUndefined();
+      expect(res.cookies.find((c) => c.name === 'frose_access_token')).toBeDefined();
     });
 
     it('POST /api/v1/auth/biometric/verify: rejects unknown credential with 401', async () => {
@@ -614,7 +622,8 @@ describe('Phase 5 Acceptance: Authentication (Phone, Password, Biometrics & PIN)
       expect(json.status).toBe('success');
 
       const cookieHeader = res.headers['set-cookie'];
-      expect(String(cookieHeader)).toContain('frose_street_token=;');
+      expect(String(cookieHeader)).toContain('frose_access_token=;');
+      expect(String(cookieHeader)).toContain('frose_refresh_token=;');
     });
   });
 });

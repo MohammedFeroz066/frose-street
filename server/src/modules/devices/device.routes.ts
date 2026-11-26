@@ -6,20 +6,16 @@ import { loadConfig } from '../../config/env.js';
 import { AppError } from '../../errors/app-error.js';
 import type { StaffRole } from '../../../../shared/types/index.js';
 
+import { setAccessCookie } from '../auth/session-cookies.js';
+
 export const deviceRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
-  const config = loadConfig();
+  const config = (app as any).froseConfig || loadConfig();
 
   /**
    * Helper to set HttpOnly auth cookie on paired helper device
    */
   const setAuthCookie = (reply: any, token: string) => {
-    reply.setCookie('frose_street_token', token, {
-      path: '/',
-      httpOnly: true,
-      secure: config.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 30 * 86400, // 30 days
-    });
+    setAccessCookie(reply, config.NODE_ENV, token, 30 * 86400);
   };
 
   /**

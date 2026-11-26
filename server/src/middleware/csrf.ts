@@ -1,6 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import { AppError } from '../errors/app-error.js';
 import { loadConfig, type EnvironmentConfig } from '../config/env.js';
+import { hasSessionCookie as checkSessionCookie } from '../modules/auth/session-cookies.js';
 
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -19,22 +20,15 @@ export function createCsrfProtection(overrideConfig?: EnvironmentConfig) {
       return;
     }
 
+    const config: EnvironmentConfig = overrideConfig || (request.server as any)?.froseConfig || loadConfig();
     const origin = request.headers.origin || request.headers.referer;
-    const hasSessionCookie = Boolean(
-      request.cookies?.frose_access_token ||
-      request.cookies?.['__Host-frose_access_token'] ||
-      request.cookies?.frose_refresh_token ||
-      request.cookies?.['__Host-frose_refresh_token'] ||
-      (request.headers.cookie && request.headers.cookie.includes('frose_'))
-    );
+    const hasSessionCookie = checkSessionCookie(request.cookies, request.headers.cookie, config.NODE_ENV);
 
     // If request has no browser indicators (Origin, Referer, or session cookies),
     // it is a non-browser machine-to-machine / CLI call.
     if (!origin && !hasSessionCookie) {
       return;
     }
-
-    const config = overrideConfig || loadConfig();
 
     // 1. Origin verification
     if (origin) {
@@ -61,7 +55,7 @@ export function createCsrfProtection(overrideConfig?: EnvironmentConfig) {
           ? (config.CORS_ORIGIN as string).split(',')
           : [];
 
-      const isAllowedConfigOrigin = allowedOrigins.some((pattern) => {
+      const isAllowedConfigOrigin = allowedOrigins.some((pattern: string) => {
         const trimmed = pattern.trim();
         if (!trimmed) return false;
         if (trimmed === '*') {

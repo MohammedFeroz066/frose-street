@@ -35,6 +35,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     disableRequestLogging: config.NODE_ENV === 'test',
   });
 
+  app.decorate('froseConfig', config);
+
   // Request Duration Timing (X-Response-Time Header)
   app.addHook('onRequest', async (req, _reply) => {
     (req as any).startTime = process.hrtime();

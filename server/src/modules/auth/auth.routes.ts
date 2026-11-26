@@ -11,9 +11,14 @@ import { RegisterSchema, RegisterStallSchema, LoginSchema, validateSchema } from
 import { LoginSecurityService } from './login-security.service.js';
 import { signJoseAccessToken, getJwtKeyRotationConfig } from './jwt-jose.js';
 import { RefreshTokenService } from './refresh-token.service.js';
+import {
+  setSessionCookies,
+  clearSessionCookies,
+  readRefreshTokenCookie,
+} from './session-cookies.js';
 
 export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
-  const config = loadConfig();
+  const config = (app as any).froseConfig || loadConfig();
 
   let jwtConfig: any;
   try {
@@ -24,38 +29,6 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       currentKid: 'k1',
     };
   }
-
-  // Helper to set HttpOnly session cookies (access token + rotating refresh token)
-  const setSessionCookies = (reply: any, accessToken: string, refreshToken: string) => {
-    const isProd = config.NODE_ENV === 'production';
-    reply.setCookie('frose_access_token', accessToken, {
-      path: '/',
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'strict',
-      maxAge: 900, // 15 minutes
-    });
-    reply.setCookie('frose_refresh_token', refreshToken, {
-      path: '/',
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'strict',
-      maxAge: 30 * 86400, // 30 days
-    });
-    reply.setCookie('frose_street_token', accessToken, {
-      path: '/',
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'strict',
-      maxAge: 900,
-    });
-  };
-
-  const clearSessionCookies = (reply: any) => {
-    reply.clearCookie('frose_access_token', { path: '/' });
-    reply.clearCookie('frose_refresh_token', { path: '/' });
-    reply.clearCookie('frose_street_token', { path: '/' });
-  };
 
   /**
    * POST /api/v1/auth/register
@@ -89,7 +62,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     );
 
     const refreshResult = await RefreshTokenService.createRefreshToken(db, vendor.id);
-    setSessionCookies(reply, token, refreshResult.refreshToken);
+    setSessionCookies(reply, config.NODE_ENV, token, refreshResult.refreshToken);
 
     return reply.status(201).send({
       status: 'success',
@@ -104,7 +77,6 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         subscriptionStatus: vendor.subscription_status,
         subscriptionExpiresAt: vendor.subscription_expires_at,
       },
-      token,
     });
   });
 
@@ -152,7 +124,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       );
 
       const refreshResult = await RefreshTokenService.createRefreshToken(db, vendor.id);
-      setSessionCookies(reply, token, refreshResult.refreshToken);
+      setSessionCookies(reply, config.NODE_ENV, token, refreshResult.refreshToken);
 
       return reply.status(201).send({
         status: 'success',
@@ -169,7 +141,6 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
           hasQuickPin: !!vendor.quick_pin_hash,
           upiId: PaymentService.getVendorVpa(vendor.id),
         },
-        token,
         seededItemsCount,
       });
     } catch (err) {
@@ -211,7 +182,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     );
 
     const refreshResult = await RefreshTokenService.createRefreshToken(db, vendor.id);
-    setSessionCookies(reply, token, refreshResult.refreshToken);
+    setSessionCookies(reply, config.NODE_ENV, token, refreshResult.refreshToken);
 
     return reply.status(200).send({
       status: 'success',
@@ -230,7 +201,6 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         isSuperadmin,
         role,
       },
-      token,
       isSuperadmin,
       role,
     });
@@ -242,7 +212,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.post('/refresh', async (request, reply) => {
     const db = getDatabase();
-    const rawRefreshToken = request.cookies?.frose_refresh_token;
+    const rawRefreshToken = readRefreshTokenCookie(request.cookies, config.NODE_ENV);
 
     if (!rawRefreshToken) {
       throw AppError.unauthorized('Refresh token cookie missing', 'MISSING_REFRESH_TOKEN');
@@ -275,12 +245,11 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       900
     );
 
-    setSessionCookies(reply, accessToken, rotated.refreshToken);
+    setSessionCookies(reply, config.NODE_ENV, accessToken, rotated.refreshToken);
 
     return reply.status(200).send({
       status: 'success',
       message: 'Session refreshed successfully',
-      token: accessToken,
     });
   });
 
@@ -290,13 +259,13 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.post('/logout', async (request, reply) => {
     const db = getDatabase();
-    const rawRefreshToken = request.cookies?.frose_refresh_token;
+    const rawRefreshToken = readRefreshTokenCookie(request.cookies, config.NODE_ENV);
 
     if (rawRefreshToken) {
       await RefreshTokenService.revokeFamily(db, rawRefreshToken);
     }
 
-    clearSessionCookies(reply);
+    clearSessionCookies(reply, config.NODE_ENV);
 
     return reply.status(200).send({
       status: 'success',
@@ -351,7 +320,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     );
 
     const refreshToken = await RefreshTokenService.createRefreshToken(db, vendor.id);
-    setSessionCookies(reply, accessToken, refreshToken.refreshToken);
+    setSessionCookies(reply, config.NODE_ENV, accessToken, refreshToken.refreshToken);
 
     return reply.status(200).send({
       status: 'success',
@@ -361,7 +330,6 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         phone: vendor.phone,
         businessName: vendor.business_name,
       },
-      token: accessToken,
     });
   });
 
@@ -427,7 +395,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     );
 
     const refreshToken = await RefreshTokenService.createRefreshToken(db, cred.id);
-    setSessionCookies(reply, accessToken, refreshToken.refreshToken);
+    setSessionCookies(reply, config.NODE_ENV, accessToken, refreshToken.refreshToken);
 
     return reply.status(200).send({
       status: 'success',
@@ -437,7 +405,6 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         phone: cred.phone,
         businessName: cred.business_name,
       },
-      token: accessToken,
     });
   });
 

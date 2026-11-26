@@ -339,7 +339,8 @@ describe('Phase 6 Acceptance: Device Pairing — QR-Based Kitchen/Packer Connect
 
       // Check cookie
       const cookieHeader = res.headers['set-cookie'];
-      expect(String(cookieHeader)).toContain('frose_street_token=');
+      expect(String(cookieHeader)).toContain('frose_access_token=');
+      expect(String(cookieHeader)).not.toContain('frose_street_token=');
       expect(String(cookieHeader)).toContain('HttpOnly');
 
       pairedDeviceId = json.device.id;

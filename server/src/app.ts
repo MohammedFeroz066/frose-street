@@ -1,4 +1,5 @@
 import fastify, { FastifyInstance } from 'fastify';
+import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
@@ -76,10 +77,45 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     secret: config.JWT_SECRET,
   });
 
-  // Rate Limiting Plugin (100 requests per minute by default, configurable for tests)
+  // Security Headers & Report-Only CSP (@fastify/helmet)
+  await app.register(helmet, {
+    contentSecurityPolicy: {
+      reportOnly: true,
+      useDefaults: false,
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        scriptSrcAttr: ["'none'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'blob:', 'https://api.qrserver.com'],
+        connectSrc: ["'self'", 'ws:', 'wss:'],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        ...(config.NODE_ENV === 'production' ? { upgradeInsecureRequests: [] } : {}),
+      },
+    },
+    frameguard: { action: 'deny' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    hsts: config.NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true } : false,
+    crossOriginEmbedderPolicy: false,
+  });
+
+  // Rate Limiting Plugin (100 requests per minute on API routes; static assets excluded)
+  const STATIC_ASSET_REGEX = /\.(?:html|js|mjs|css|webp|png|jpe?g|svg|gif|ico|woff2?|ttf|eot|json|webmanifest)$/i;
+  const HTML_PORTAL_PATHS = new Set(['/', '/billing', '/packaging', '/kitchen', '/register', '/menu-setup', '/admin', '/login']);
   await app.register(rateLimit, {
     max: options.rateLimitMax ?? 100,
     timeWindow: '1 minute',
+    allowList: (req) => {
+      const urlPath = (req.url || '/').split('?')[0] || '/';
+      if (urlPath.startsWith('/api/')) return false;
+      if (STATIC_ASSET_REGEX.test(urlPath) || urlPath === '/favicon.ico') return true;
+      const accept = String(req.headers.accept || '');
+      return HTML_PORTAL_PATHS.has(urlPath) && accept.includes('text/html');
+    },
   });
 
   // WebSockets Plugin

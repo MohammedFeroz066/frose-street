@@ -57,6 +57,15 @@ describe('SEC-PROD-GUARD / Step 1A.5: Production Startup Security Guards', () =>
     expect(() => validateProductionEnvironment()).toThrow(/CORS_ORIGIN must be explicitly configured in production/i);
   });
 
+  it('refuses production startup if CORS_ORIGIN contains wildcard "*"', () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.USE_MEMORY_DB;
+    process.env.JWT_SECRET = 'a-very-long-production-grade-secret-key-min-32-chars!';
+    process.env.CORS_ORIGIN = '*';
+
+    expect(() => validateProductionEnvironment()).toThrow(/wildcard "\*" is not allowed in production/i);
+  });
+
   it('passes validation when production configuration is fully hardened', () => {
     process.env.NODE_ENV = 'production';
     delete process.env.USE_MEMORY_DB;

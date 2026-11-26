@@ -193,5 +193,71 @@ describe('SEC-05: httpOnly Cookies, Rotating Refresh Tokens, Revocation & CSRF P
     });
     expect(untrustedOrigin.statusCode).toBe(403);
     expect(untrustedOrigin.json().code).toBe('CSRF_VALIDATION_FAILED');
+
+    // Subdomain / prefix-spoofed localhost & loopback origins MUST be rejected
+    const spoofedLocalhost = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      headers: { 'X-FROSE-CSRF': '1', origin: 'https://localhost.attacker.com' },
+      payload: {
+        phone: '9870007777',
+        businessName: 'Spoofed Localhost Stall',
+        password: 'ValidSecurePassword123!',
+      },
+    });
+    expect(spoofedLocalhost.statusCode).toBe(403);
+    expect(spoofedLocalhost.json().code).toBe('CSRF_VALIDATION_FAILED');
+
+    const spoofedLoopback = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/register',
+      headers: { 'X-FROSE-CSRF': '1', origin: 'https://127.0.0.1.evil.com' },
+      payload: {
+        phone: '9870008888',
+        businessName: 'Spoofed Loopback Stall',
+        password: 'ValidSecurePassword123!',
+      },
+    });
+    expect(spoofedLoopback.statusCode).toBe(403);
+    expect(spoofedLoopback.json().code).toBe('CSRF_VALIDATION_FAILED');
+  });
+
+  it('rejects localhost origin and CORS_ORIGIN=* wildcard when NODE_ENV=production', async () => {
+    const prodApp = await buildApp({
+      logger: false,
+      config: {
+        NODE_ENV: 'production',
+        PORT: 3100,
+        HOST: '127.0.0.1',
+        DATABASE_URL: 'postgresql://localhost:5432/test',
+        JWT_SECRET: 'a-very-strong-production-secret-key-at-least-32-bytes',
+        JWT_EXPIRES_IN: '15m',
+        CORS_ORIGIN: ['*'],
+        CLIENT_DIR: 'client',
+      },
+    });
+    await prodApp.ready();
+
+    try {
+      const localhostInProd = await prodApp.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        headers: { 'X-FROSE-CSRF': '1', origin: 'http://localhost:3000' },
+        payload: { phone: '9870001111', password: 'ValidSecurePassword123!' },
+      });
+      expect(localhostInProd.statusCode).toBe(403);
+      expect(localhostInProd.json().code).toBe('CSRF_VALIDATION_FAILED');
+
+      const wildcardInProd = await prodApp.inject({
+        method: 'POST',
+        url: '/api/v1/auth/login',
+        headers: { 'X-FROSE-CSRF': '1', origin: 'https://evil-wildcard-bypass.com' },
+        payload: { phone: '9870001111', password: 'ValidSecurePassword123!' },
+      });
+      expect(wildcardInProd.statusCode).toBe(403);
+      expect(wildcardInProd.json().code).toBe('CSRF_VALIDATION_FAILED');
+    } finally {
+      await prodApp.close();
+    }
   });
 });

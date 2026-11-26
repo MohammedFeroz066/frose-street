@@ -49,6 +49,9 @@ export function validateProductionEnvironment(): void {
   if (!corsOrigin || corsOrigin.trim().length === 0) {
     throw new Error('FATAL SECURITY ERROR: CORS_ORIGIN must be explicitly configured in production');
   }
+  if (corsOrigin.split(',').some((o) => o.trim() === '*')) {
+    throw new Error('FATAL SECURITY ERROR: CORS_ORIGIN wildcard "*" is not allowed in production');
+  }
 }
 
 export function loadConfig(): EnvironmentConfig {

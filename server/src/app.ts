@@ -8,7 +8,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { loadConfig, EnvironmentConfig } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
-import { csrfProtection } from './middleware/csrf.js';
+import { createCsrfProtection } from './middleware/csrf.js';
 import { AppError } from './errors/app-error.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { deviceRoutes } from './modules/devices/device.routes.js';
@@ -92,7 +92,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.setNotFoundHandler(notFoundHandler);
 
   // Anti-CSRF Origin and Custom Header Verification Hook
-  app.addHook('preHandler', csrfProtection);
+  app.addHook('preHandler', createCsrfProtection(config));
 
   // Serve PWA Client Static Files
   const clientDir = path.resolve(process.cwd(), 'client');

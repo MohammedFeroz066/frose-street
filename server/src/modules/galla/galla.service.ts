@@ -3,6 +3,7 @@ import type { Database } from '../../db/types.js';
 import type { Expense, GallaSummary, DailySummary } from '../../../../shared/types/index.js';
 import { AppError } from '../../errors/app-error.js';
 import { WebSocketHub } from '../websocket/websocket.hub.js';
+import { getIstDateString } from '../../utils/ist-date.js';
 
 export interface LogExpenseInput {
   amountPaise: number | bigint;
@@ -63,7 +64,7 @@ export class GallaService {
     const category = (input.category || 'general').trim().toLowerCase().slice(0, 50);
     const paymentMethod: 'cash' | 'upi' = input.paymentMethod === 'upi' ? 'upi' : 'cash';
 
-    const todayDateString = new Date().toISOString().split('T')[0];
+    const todayDateString = getIstDateString();
     const expenseDate = input.expenseDate || todayDateString;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(expenseDate)) {
@@ -132,7 +133,7 @@ export class GallaService {
     totalExpensesPaise: number;
     totalExpensesRupees: number;
   }> {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = date || getIstDateString();
 
     const rows = await db
       .selectFrom('expenses')
@@ -214,7 +215,7 @@ export class GallaService {
     vendorId: string,
     date?: string,
   ): Promise<GallaSummary> {
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = date || getIstDateString();
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
       throw AppError.badRequest(
@@ -230,9 +231,9 @@ export class GallaService {
       .where('vendor_id', '=', vendorId)
       .execute();
 
-    // Filter orders belonging to target date
+    // Filter orders belonging to target IST business date
     const dateOrders = allOrders.filter((o) => {
-      const orderDateStr = new Date(o.created_at).toISOString().split('T')[0];
+      const orderDateStr = getIstDateString(o.created_at);
       return orderDateStr === targetDate;
     });
 
@@ -352,7 +353,7 @@ export class GallaService {
     summary: DailySummary;
     zReportText: string;
   }> {
-    const targetDate = input?.date || new Date().toISOString().split('T')[0];
+    const targetDate = input?.date || getIstDateString();
 
     // Compute live balances
     const live = await this.getGallaSummary(db, vendorId, targetDate);

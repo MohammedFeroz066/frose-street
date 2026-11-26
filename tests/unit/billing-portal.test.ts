@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { buildApp } from '../../server/src/app.js';
 import { signJwt } from '../../server/src/modules/auth/jwt.js';
+import { getIstDateString } from '../../server/src/utils/ist-date.js';
 
 // In-memory data store for testing
 const memoryVendors: Map<string, any> = new Map();
@@ -133,7 +134,7 @@ describe('Phase 13 Acceptance: Billing Portal (Core Ordering Screen & Dynamic UP
       phone: '9876543210',
       business_name: 'Royal Momos Counter',
       daily_token_counter: 0,
-      token_reset_date: new Date().toISOString().split('T')[0],
+      token_reset_date: getIstDateString(),
       subscription_status: 'active',
       edition: 'cloud',
     });

@@ -3,6 +3,7 @@ import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import { hashPassword, verifyPassword, hashPin, verifyPin } from '../../utils/crypto.js';
 import { validateStrongPassword } from '../../utils/password-validator.js';
+import { getIstDateString } from '../../utils/ist-date.js';
 import { AppError } from '../../errors/app-error.js';
 import { STREET_MENU_PRESETS } from '../menu/menu.presets.js';
 import { SubscriptionService } from '../subscriptions/subscription.service.js';
@@ -89,7 +90,7 @@ export class AuthService {
           subscription_status: 'trial',
           subscription_expires_at: trialExpiry,
           daily_token_counter: 0,
-          token_reset_date: new Date().toISOString().split('T')[0],
+          token_reset_date: getIstDateString(),
           password_hash: passwordHash,
           quick_pin_hash: pinHash,
         })

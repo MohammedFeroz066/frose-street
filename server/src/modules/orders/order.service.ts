@@ -4,6 +4,7 @@ import type { StaffRole } from '../../../../shared/types/index.js';
 import { AppError } from '../../errors/app-error.js';
 import { WebSocketHub } from '../websocket/websocket.hub.js';
 import { SubscriptionService } from '../subscriptions/subscription.service.js';
+import { getIstDateString, normalizeDateColumnString } from '../../utils/ist-date.js';
 
 export interface CreateOrderItemInput {
   menuItemId: string;
@@ -125,25 +126,40 @@ export class OrderService {
       if (err.code === 'SUBSCRIPTION_EXPIRED') throw err;
     }
 
-    const todayDateString = new Date().toISOString().split('T')[0];
+    const todayDateString = getIstDateString();
     let nextToken = 1;
 
-    if (vendor.token_reset_date === todayDateString) {
-      nextToken = (vendor.daily_token_counter || 0) + 1;
+    if (isRealPg) {
+      const updatedVendor = await sql<{ daily_token_counter: number }>`
+        UPDATE vendors
+        SET
+          daily_token_counter = CASE
+            WHEN token_reset_date = ${todayDateString}::date THEN daily_token_counter + 1
+            ELSE 1
+          END,
+          token_reset_date = ${todayDateString}::date
+        WHERE id = ${vendorId}
+        RETURNING daily_token_counter
+      `.execute(db);
+      nextToken = Number(updatedVendor.rows[0]?.daily_token_counter ?? 1);
     } else {
-      // Midnight date rollover: Reset counter to 1 for the new calendar day
-      nextToken = 1;
-    }
+      const lastResetDate = normalizeDateColumnString(vendor.token_reset_date);
+      if (lastResetDate === todayDateString) {
+        nextToken = (vendor.daily_token_counter || 0) + 1;
+      } else {
+        // Midnight IST date rollover: Reset counter to 1 for the new IST business day
+        nextToken = 1;
+      }
 
-    // Update vendor daily token counter atomically
-    await db
-      .updateTable('vendors')
-      .set({
-        daily_token_counter: nextToken,
-        token_reset_date: todayDateString,
-      })
-      .where('id', '=', vendorId)
-      .execute();
+      await db
+        .updateTable('vendors')
+        .set({
+          daily_token_counter: nextToken,
+          token_reset_date: todayDateString,
+        })
+        .where('id', '=', vendorId)
+        .execute();
+    }
 
     // 2. Validate menu items and compute integer paise totals
     const itemIds = input.items.map((i) => i.menuItemId);

@@ -2,6 +2,7 @@ import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import { AppError } from '../../errors/app-error.js';
 import { hashPassword, hashPin } from '../../utils/crypto.js';
+import { getIstDateString } from '../../utils/ist-date.js';
 import { randomUUID } from 'node:crypto';
 
 export interface CreateVendorAdminInput {
@@ -50,7 +51,7 @@ export class AdminService {
 
     const now = Date.now();
     const in7Days = now + 7 * 24 * 3600 * 1000;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getIstDateString();
 
     let activeCount = 0;
     let trialCount = 0;
@@ -258,7 +259,7 @@ export class AdminService {
         subscription_status: isPaid ? 'active' : 'trial',
         subscription_expires_at: expiryDate,
         daily_token_counter: 0,
-        token_reset_date: new Date().toISOString().split('T')[0],
+        token_reset_date: getIstDateString(),
         password_hash: passwordHash,
         quick_pin_hash: pinHash,
       })
@@ -271,7 +272,7 @@ export class AdminService {
         vendor_id: newVendor.id,
         plan: input.edition || 'cloud',
         amount_paise: monthlyFeePaise,
-        period_start: new Date().toISOString().split('T')[0],
+        period_start: getIstDateString(),
         period_end: expiryDate.split('T')[0],
         payment_method: 'upi',
         payment_reference: 'UPI-' + Date.now().toString(36).toUpperCase(),

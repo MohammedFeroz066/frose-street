@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { GallaService } from '../../server/src/modules/galla/galla.service.js';
+import { getIstDateString } from '../../server/src/utils/ist-date.js';
 import { signJwt } from '../../server/src/modules/auth/jwt.js';
 import { buildApp } from '../../server/src/app.js';
 import { WebSocketHub } from '../../server/src/modules/websocket/websocket.hub.js';
@@ -316,7 +317,7 @@ describe('Phase 10 Acceptance: Daily Galla, Expenses, and Day-End Z-Report', () 
 
   describe('TEST 2: Expense Creation, Categories & Listing by Date', () => {
     it('creates multiple expenses and computes total expenses correctly in paise and rupees', async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getIstDateString();
 
       // Cashier logs petty cash milk
       const r1 = await app.inject({
@@ -429,7 +430,7 @@ describe('Phase 10 Acceptance: Daily Galla, Expenses, and Day-End Z-Report', () 
 
   describe('TEST 4: Live Galla Math — Cash vs UPI Breakdown & Drawer Balance', () => {
     it('calculates Cash vs UPI sales, petty cash drawer balance, and net profit down to the single paisa', async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getIstDateString();
 
       // 1. Seed paid and cancelled orders
       // Order 1: Cash, ₹160 (16000 paise) - paid
@@ -554,7 +555,7 @@ describe('Phase 10 Acceptance: Daily Galla, Expenses, and Day-End Z-Report', () 
 
   describe('TEST 5: Top Selling Item Identification', () => {
     it('accurately identifies the highest selling menu item for the day', async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getIstDateString();
 
       memoryOrders.set('ord-10', {
         id: 'ord-10',
@@ -625,7 +626,7 @@ describe('Phase 10 Acceptance: Daily Galla, Expenses, and Day-End Z-Report', () 
 
   describe('TEST 6: Day-End Fiscal Closing (Z-Report) & Persistence', () => {
     it('seals the business day into daily_summaries and generates street vendor WhatsApp text', async () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getIstDateString();
 
       // Seed 1 order and 1 expense
       memoryOrders.set('ord-closing', {

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { OrderService } from '../../server/src/modules/orders/order.service.js';
+import { getIstDateString } from '../../server/src/utils/ist-date.js';
 import { signJwt } from '../../server/src/modules/auth/jwt.js';
 import { buildApp } from '../../server/src/app.js';
 import type { FastifyInstance } from 'fastify';
@@ -200,7 +201,7 @@ describe('Phase 8 Acceptance: Order & Atomic Token Engine', () => {
     memoryVendors.clear();
     memoryMenuItems.clear();
 
-    const todayDate = new Date().toISOString().split('T')[0];
+    const todayDate = getIstDateString();
 
     // Seed vendor with token counter
     memoryVendors.set(mockVendorId, {
@@ -286,7 +287,7 @@ describe('Phase 8 Acceptance: Order & Atomic Token Engine', () => {
       expect(order.tokenNo).toBe(1);
       expect(order.tokenDisplay).toBe('#1');
       const updatedVendor = memoryVendors.get(mockVendorId);
-      expect(updatedVendor.token_reset_date).toBe(new Date().toISOString().split('T')[0]);
+      expect(updatedVendor.token_reset_date).toBe(getIstDateString());
     });
   });
 

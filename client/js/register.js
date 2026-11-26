@@ -337,7 +337,8 @@
       hideAlert();
 
       try {
-        const response = await fetch('/api/v1/auth/register-stall', {
+        const fn = window.froseApiFetch || fetch;
+        const response = await fn('/api/v1/auth/register-stall', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -377,7 +378,7 @@
           localStorage.setItem('frose_current_vendor', JSON.stringify(data.vendor));
           localStorage.setItem('frose_stall_name', data.vendor.businessName);
           localStorage.setItem('frose_stall_phone', data.vendor.phone);
-          localStorage.removeItem('frose_auth_token'); localStorage.setItem('frose_session_active', '1');
+          localStorage.setItem('frose_session_active', '1');
         } catch {
           // LocalStorage fallback
         }

@@ -155,9 +155,11 @@
     if (pairToken) {
       try {
         showToast('Pairing with stall counter...');
-        const res = await fetch('/api/v1/devices/pair', {
+        const fn = window.froseApiFetch || fetch;
+        const res = await fn('/api/v1/devices/pair', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
           body: JSON.stringify({
             pairingToken: pairToken,
             deviceName: 'Cook Kitchen Phone (' + (navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Tablet') + ')'
@@ -340,12 +342,13 @@
 
     // Call API to advance status to 'ready'
     try {
-      const token = localStorage.getItem('frose_device_token') || '';
-      const res = await fetch(`/api/v1/orders/${orderId}/status`, {
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn(`/api/v1/orders/${orderId}/status`, {
         method: 'PATCH',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
+          'X-FROSE-CSRF': '1'
         },
         body: JSON.stringify({ status: 'ready' })
       });
@@ -377,10 +380,8 @@
 
     // 2. Fetch from backend API
     try {
-      const token = localStorage.getItem('frose_device_token') || '';
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
-      const res = await fetch('/api/v1/orders/live', { headers });
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn('/api/v1/orders/live', { credentials: 'same-origin' });
       if (res.ok) {
         const data = await res.json();
         if (data.kitchenQueue && Array.isArray(data.kitchenQueue)) {
@@ -566,33 +567,9 @@
   }
 
   async function submitPin() {
-    try {
-      const res = await fetch('/api/v1/auth/pin-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: enteredPin })
-      });
-      const data = await res.json();
-      if (res.ok && data.token) {
-        localStorage.setItem('frose_device_token', data.token); localStorage.setItem('frose_session_active', '1');
-        if (data.vendor && data.vendor.businessName) {
-          localStorage.setItem('frose_stall_name', data.vendor.businessName);
-          if (stallNameEl) stallNameEl.textContent = data.vendor.businessName;
-        }
-        showToast('✅ Counter Unlocked!');
-        closePinModal();
-        fetchLiveOrders();
-        initWebSocket();
-      } else {
-        showToast('❌ Invalid PIN');
-        enteredPin = '';
-        updatePinDots();
-      }
-    } catch (e) {
-      showToast('❌ Auth error');
-      enteredPin = '';
-      updatePinDots();
-    }
+    showToast('❌ PIN login is disabled. Pair via QR or sign in on /login.html.');
+    enteredPin = '';
+    updatePinDots();
   }
 
   // --- 12. INITIALIZATION & EVENT BINDINGS ---

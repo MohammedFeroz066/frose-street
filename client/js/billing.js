@@ -121,7 +121,8 @@
     // 3. Try fetching from backend API
     if (sessionActive) {
       try {
-        const res = await fetch('/api/v1/menu', {
+        const fn = window.froseApiFetch || fetch;
+        const res = await fn('/api/v1/menu', {
           headers: { 'X-FROSE-CSRF': '1' }, credentials: 'same-origin'
         });
         if (res.ok) {
@@ -802,15 +803,16 @@
   window.handleLogout = async function () {
     if (confirm('Sign out of Stall Account?')) {
       try {
-        await fetch('/api/v1/auth/logout', {
+        const fn = window.froseApiFetch || fetch;
+        await fn('/api/v1/auth/logout', {
           method: 'POST',
           headers: { 'X-FROSE-CSRF': '1' },
           credentials: 'same-origin'
         });
       } catch (e) {}
       localStorage.removeItem('frose_session_active');
-      localStorage.removeItem('frose_auth_token');
-      window.location.href = '/login';
+      localStorage.removeItem('frose_session_active');
+      window.location.href = '/login.html';
     }
   };
 

@@ -6,6 +6,7 @@
   <title>Menu & Category Setup — FROSE Street</title>
   <meta name="description" content="Add categories, upload dish photos via camera or gallery, configure prices, and manage menu items for your restaurant stall.">
   <meta name="theme-color" content="#5B0612">
+  <script src="/js/api-client.js?v=1.0.0"></script>
   <script>
     (function() {
       var session = localStorage.getItem('frose_session_active') || localStorage.getItem('frose_license_token');
@@ -638,7 +639,6 @@
 
   <script>
     (function () {
-      const AUTH_TOKEN = localStorage.getItem('frose_session_active');
       const CURRENT_VENDOR = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
       function getVendorKey() {
         return CURRENT_VENDOR.id || CURRENT_VENDOR.phone || localStorage.getItem('frose_stall_phone') || 'primary_vendor';
@@ -760,8 +760,9 @@
 
       async function fetchDishes() {
         try {
-          const res = await fetch('/api/v1/menu', {
-            headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+          const fn = window.froseApiFetch || fetch;
+          const res = await fn('/api/v1/menu', {
+            credentials: 'same-origin'
           });
           if (res.ok) {
             const data = await res.json();
@@ -928,11 +929,13 @@
         };
 
         try {
-          const res = await fetch('/api/v1/menu', {
+          const fn = window.froseApiFetch || fetch;
+          const res = await fn('/api/v1/menu', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${AUTH_TOKEN}`
+              'X-FROSE-CSRF': '1'
             },
             body: JSON.stringify(newDish)
           });
@@ -988,9 +991,11 @@
       window.deleteDish = async function (id) {
         if (!confirm('Are you sure you want to delete this dish?')) return;
         try {
-          await fetch(`/api/v1/menu/${id}`, {
+          const fn = window.froseApiFetch || fetch;
+          await fn(`/api/v1/menu/${id}`, {
             method: 'DELETE',
-            headers: { Authorization: `Bearer ${AUTH_TOKEN}` }
+            credentials: 'same-origin',
+            headers: { 'X-FROSE-CSRF': '1' }
           });
         } catch (e) {}
 

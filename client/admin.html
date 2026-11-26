@@ -25,6 +25,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   
+  <script src="/js/api-client.js?v=1.0.0"></script>
   <script>
     if (!localStorage.getItem('frose_session_active') && !localStorage.getItem('frose_license_token')) {
       window.location.replace('/login');
@@ -1437,7 +1438,7 @@
 
           <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
             <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Initial Password</label>
-            <input type="text" id="page-add-password" value="Feroz@123" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
+            <input type="password" id="page-add-password" placeholder="Min 10 characters passphrase" minlength="10" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
           </div>
 
           <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
@@ -1566,7 +1567,7 @@
           </div>
           <div class="form-field">
             <label>Initial Password</label>
-            <input type="text" id="add-password" value="Feroz@123">
+            <input type="password" id="add-password" placeholder="Min 10 characters passphrase" minlength="10" required>
           </div>
         </div>
 
@@ -1833,7 +1834,7 @@
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
             <span style="color: #64748B;">Password:</span>
-            <strong id="qr-modal-pwd" style="font-family: monospace; color: #0F172A;">Feroz@123</strong>
+            <strong id="qr-modal-pwd" style="font-family: monospace; color: #0F172A;">-</strong>
           </div>
           <div style="display: flex; justify-content: space-between;">
             <span style="color: #64748B;">Subscription:</span>
@@ -1951,7 +1952,6 @@
       lifetimeSalesPaise: '0',
       deviceCount: 1,
       activeDevices: 1,
-      password: 'Feroz@123',
       turnover: {
         daily: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
         weekly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
@@ -1981,18 +1981,13 @@
     }
   }
 
-  // Authenticated API fetch
+  // Authenticated API fetch (delegated to shared cookie + single-flight refresh client)
   async function apiFetch(endpoint, options = {}) {
-    const headers = {
-      'Content-Type': 'application/json',
-      'X-FROSE-CSRF': '1',
-      ...(options.headers || {})
-    };
     try {
-      const res = await fetch(endpoint, { ...options, headers });
-      if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem('frose_auth_token'); localStorage.removeItem('frose_session_active');
-        window.location.replace('/login');
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn(endpoint, { ...options, credentials: 'same-origin' });
+      if (!res || res.status === 401 || res.status === 403) {
+        localStorage.removeItem('frose_session_active');
         return null;
       }
       return res;
@@ -2601,8 +2596,12 @@
     const bLogout = e.target.closest('#btn-bottom-logout, #btn-menu-logout');
     if (bLogout) {
       if (confirm('Sign out of Super Admin Console?')) {
-        localStorage.removeItem('frose_auth_token'); localStorage.removeItem('frose_session_active');
-        window.location.replace('/login');
+        (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
+          .catch(() => {})
+          .finally(() => {
+            localStorage.removeItem('frose_session_active');
+            window.location.replace('/login.html');
+          });
       }
       return;
     }
@@ -2871,17 +2870,17 @@
       businessName: document.getElementById('page-add-stall-name').value.trim(),
       ownerName: document.getElementById('page-add-owner-name').value.trim(),
       phone: document.getElementById('page-add-phone').value.trim(),
-      password: document.getElementById('page-add-password').value.trim() || 'Feroz@123',
+      password: document.getElementById('page-add-password').value.trim(),
       city: document.getElementById('page-add-city').value.trim() || 'Hyderabad',
       edition: document.getElementById('page-add-edition').value,
       monthlyFeeRupees: Number(document.getElementById('page-add-monthly-fee').value) || 499,
       billingCycle: document.getElementById('page-add-billing-cycle').value,
       initialPaymentStatus: document.getElementById('page-add-initial-status').value,
-      upiId: document.getElementById('page-add-upi').value.trim() || 'frosestall@okaxis'
+      upiId: document.getElementById('page-add-upi').value.trim()
     };
 
-    if (!payload.businessName || !payload.phone || payload.phone.length !== 10) {
-      alert('Please enter a valid stall name and 10-digit mobile number');
+    if (!payload.businessName || !payload.phone || payload.phone.length !== 10 || !payload.password || payload.password.length < 10) {
+      alert('Please enter a valid stall name, 10-digit mobile number, and passphrase (min 10 characters)');
       if (submitBtn) submitBtn.disabled = false;
       return;
     }
@@ -3062,8 +3061,12 @@
     if (mLogout) {
       mLogout.addEventListener('click', () => {
         if (confirm('Sign out of Super Admin Console?')) {
-          localStorage.removeItem('frose_auth_token'); localStorage.removeItem('frose_session_active');
-          window.location.replace('/login');
+          (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
+            .catch(() => {})
+            .finally(() => {
+              localStorage.removeItem('frose_session_active');
+              window.location.replace('/login.html');
+            });
         }
       });
     }
@@ -3080,7 +3083,7 @@
           businessName: document.getElementById('add-stall-name').value.trim(),
           ownerName: document.getElementById('add-owner-name').value.trim(),
           phone: document.getElementById('add-phone').value.trim(),
-          password: document.getElementById('add-password').value.trim() || 'Feroz@123',
+          password: document.getElementById('add-password').value.trim(),
           city: document.getElementById('add-city').value.trim() || 'Hyderabad',
           edition: document.getElementById('add-edition').value,
           monthlyFeeRupees: Number(document.getElementById('add-monthly-fee').value) || 499,
@@ -3208,14 +3211,22 @@
     }
   };
   window.logoutSuperAdmin = function() {
-    localStorage.removeItem('frose_auth_token'); localStorage.removeItem('frose_session_active');
-    localStorage.removeItem('frose_current_vendor');
-    window.location.replace('/login');
+    (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
+      .catch(() => {})
+      .finally(() => {
+        localStorage.removeItem('frose_session_active');
+        localStorage.removeItem('frose_current_vendor');
+        window.location.replace('/login.html');
+      });
   };
   window.adminLogout = function() {
     if (confirm('Sign out of Super Admin Console?')) {
-      localStorage.removeItem('frose_auth_token'); localStorage.removeItem('frose_session_active');
-      window.location.replace('/login');
+      (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
+        .catch(() => {})
+        .finally(() => {
+          localStorage.removeItem('frose_session_active');
+          window.location.replace('/login.html');
+        });
     }
   };
   window.toggleUserDropdown = function(e) {
@@ -3246,10 +3257,10 @@
 
     if (!currentStallForQR) return;
     const phone = (currentStallForQR.phone || '').replace(/\D/g, '').slice(-10);
-    const pwd = currentStallForQR.password || 'Feroz@123';
+    const pwd = currentStallForQR.password || '';
     const bName = currentStallForQR.businessName || currentStallForQR.business_name || 'Restaurant Stall';
 
-    const webUrl = window.location.origin + '/login?stall=' + phone + '&pwd=' + encodeURIComponent(pwd) + '&autologin=1';
+    const webUrl = window.location.origin + '/login?stall=' + phone + (pwd ? '&pwd=' + encodeURIComponent(pwd) : '');
     const downloadUrl = window.location.origin + '/downloads/frose-street-local-cloud.apk';
 
     if (mode === 'backend') {
@@ -3292,7 +3303,7 @@
     if (!modal) return;
 
     const phone = (stall.phone || '').replace(/\D/g, '').slice(-10);
-    const pwd = stall.password || 'Feroz@123';
+    const pwd = stall.password || '';
     const bName = stall.businessName || stall.business_name || 'Restaurant Stall';
     const plan = (stall.subscriptionStatus || stall.subscription_status || 'trial').toUpperCase() + ' (' + formatRupees(stall.monthlyFeePaise || '89900') + '/mo)';
 
@@ -3315,7 +3326,6 @@
       getDynamicVendors().find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === clean) || {
         phone: clean,
         businessName: 'Restaurant Stall',
-        password: 'Feroz@123',
         monthlyFeePaise: '89900',
         subscriptionStatus: 'trial'
       };

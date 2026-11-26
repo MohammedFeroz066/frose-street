@@ -39,18 +39,13 @@
     }
   }
 
-  // Authenticated API fetch
+  // Authenticated API fetch (delegated to shared cookie + single-flight refresh client)
   async function apiFetch(endpoint, options = {}) {
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(options.headers || {})
-    };
     try {
-      const res = await fetch(endpoint, { ...options, headers, credentials: 'same-origin' });
-      if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem('frose_session_active'); localStorage.removeItem('frose_auth_token');
-        window.location.replace('/login');
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn(endpoint, { ...options, credentials: 'same-origin' });
+      if (!res || res.status === 401 || res.status === 403) {
+        localStorage.removeItem('frose_session_active');
         return null;
       }
       return res;
@@ -603,8 +598,12 @@
     const bLogout = e.target.closest('#btn-bottom-logout, #btn-menu-logout');
     if (bLogout) {
       if (confirm('Sign out of Super Admin Console?')) {
-        localStorage.removeItem('frose_session_active'); localStorage.removeItem('frose_auth_token');
-        window.location.replace('/login');
+        (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
+          .catch(() => {})
+          .finally(() => {
+            localStorage.removeItem('frose_session_active');
+            window.location.replace('/login.html');
+          });
       }
       return;
     }
@@ -861,8 +860,12 @@
     if (mLogout) {
       mLogout.addEventListener('click', () => {
         if (confirm('Sign out of Super Admin Console?')) {
-          localStorage.removeItem('frose_session_active'); localStorage.removeItem('frose_auth_token');
-          window.location.replace('/login');
+          (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
+            .catch(() => {})
+            .finally(() => {
+              localStorage.removeItem('frose_session_active');
+              window.location.replace('/login.html');
+            });
         }
       });
     }
@@ -989,8 +992,12 @@
   };
   window.adminLogout = function() {
     if (confirm('Sign out of Super Admin Console?')) {
-      localStorage.removeItem('frose_session_active'); localStorage.removeItem('frose_auth_token');
-      window.location.replace('/login');
+      (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
+        .catch(() => {})
+        .finally(() => {
+          localStorage.removeItem('frose_session_active');
+          window.location.replace('/login.html');
+        });
     }
   };
   window.toggleUserDropdown = function(e) {

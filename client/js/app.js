@@ -143,7 +143,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnOpenPairing?.addEventListener('click', async () => {
     try {
-      const res = await fetch('/api/v1/devices/pairing-token', {
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn('/api/v1/devices/pairing-token', {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -185,7 +186,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     try {
-      const res = await fetch('/api/v1/galla/summary', {
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn('/api/v1/galla/summary', {
         credentials: 'same-origin'
       });
       if (res.status === 401) {

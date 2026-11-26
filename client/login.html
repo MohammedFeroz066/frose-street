@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/css/style.css?v=2.3.0">
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#F8FAFC">
+  <script src="/js/api-client.js?v=1.0.0"></script>
   <style>
     @media (max-width: 480px) {
       .login-container {
@@ -316,7 +317,8 @@
         let data = null;
 
         try {
-          res = await fetch('/api/v1/auth/login', {
+          const fn = window.froseApiFetch || fetch;
+          res = await fn('/api/v1/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
             credentials: 'same-origin',

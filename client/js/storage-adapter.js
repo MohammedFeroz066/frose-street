@@ -402,21 +402,29 @@
       };
     }
 
-    async getNextAtomicToken() {
-      const res = await fetch(`${this.baseUrl}/api/v1/orders/next-token`, {
+    async _request(path, options = {}) {
+      const fn = globalThis.froseApiFetch || fetch;
+      const headers = {
+        ...this._getHeaders(),
+        ...(options.headers || {}),
+      };
+      return fn(`${this.baseUrl}${path}`, {
+        ...options,
         credentials: 'same-origin',
-        headers: this._getHeaders()
+        headers,
       });
+    }
+
+    async getNextAtomicToken() {
+      const res = await this._request('/api/v1/orders/next-token');
       if (!res.ok) throw new Error('Failed to fetch next token from cloud');
       const data = await res.json();
       return data.nextTokenNo;
     }
 
     async createOrder(input) {
-      const res = await fetch(`${this.baseUrl}/api/v1/orders`, {
-        credentials: 'same-origin',
+      const res = await this._request('/api/v1/orders', {
         method: 'POST',
-        headers: this._getHeaders(),
         body: JSON.stringify(input)
       });
       if (!res.ok) throw new Error('Cloud order creation failed');
@@ -424,10 +432,8 @@
     }
 
     async updateOrderStatus(orderId, status) {
-      const res = await fetch(`${this.baseUrl}/api/v1/orders/${orderId}/status`, {
-        credentials: 'same-origin',
+      const res = await this._request(`/api/v1/orders/${orderId}/status`, {
         method: 'PATCH',
-        headers: this._getHeaders(),
         body: JSON.stringify({ status })
       });
       if (!res.ok) throw new Error('Cloud status update failed');
@@ -435,20 +441,14 @@
     }
 
     async getLiveOrders() {
-      const res = await fetch(`${this.baseUrl}/api/v1/orders/live`, {
-        credentials: 'same-origin',
-        headers: this._getHeaders()
-      });
+      const res = await this._request('/api/v1/orders/live');
       if (!res.ok) throw new Error('Cloud live orders fetch failed');
       const data = await res.json();
       return data.orders || [];
     }
 
     async getGallaSummary() {
-      const res = await fetch(`${this.baseUrl}/api/v1/galla/summary`, {
-        credentials: 'same-origin',
-        headers: this._getHeaders()
-      });
+      const res = await this._request('/api/v1/galla/summary');
       if (!res.ok) throw new Error('Cloud galla summary failed');
       return await res.json();
     }

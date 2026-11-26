@@ -1374,6 +1374,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="/js/api-client.js?v=1.0.0"></script>
   <script type="module" src="/js/storage-adapter.js?v=7.0.0"></script>
   <script type="module" src="/js/app.js?v=7.0.0"></script>
   <script src="/js/ios-fast-nav.js?v=7.0.0" defer></script>
@@ -1398,10 +1399,14 @@
         window.location.href = '/menu-setup';
       }
     };
-    window.handleLogout = function() {
+    window.handleLogout = async function() {
       if (confirm('Sign out of Stall Client session?')) {
-        localStorage.removeItem('frose_session_active'); localStorage.removeItem('frose_session_active');
-        window.location.href = '/login';
+        try {
+          const fn = window.froseApiFetch || fetch;
+          await fn('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } });
+        } catch (e) {}
+        localStorage.removeItem('frose_session_active');
+        window.location.href = '/login.html';
       }
     };
     window.toggleUserMenu = function(e) {

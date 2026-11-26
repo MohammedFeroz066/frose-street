@@ -271,8 +271,9 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
       issuedAt: new Date().toISOString(),
     };
 
+    const publicKeyPem = await SubscriptionService.getLicensePublicKeyPem();
     const token = await SubscriptionService.generateSignedLicenseToken(payload);
-    const offlineResult = LicenseManager.decodeToken(token);
+    const offlineResult = await LicenseManager.verifyLicense(token, publicKeyPem);
 
     expect(offlineResult.valid).toBe(true);
     expect(offlineResult.payload?.vendorId).toBe('offline-stall-01');
@@ -292,8 +293,9 @@ describe('Phase 18: Subscription, SaaS Licensing & Renewal System', () => {
       issuedAt: new Date().toISOString(),
     };
 
+    const publicKeyPem = await SubscriptionService.getLicensePublicKeyPem();
     const token = await SubscriptionService.generateSignedLicenseToken(payload);
-    const offlineResult = LicenseManager.decodeToken(token);
+    const offlineResult = await LicenseManager.verifyLicense(token, publicKeyPem);
 
     expect(offlineResult.valid).toBe(true);
     expect(offlineResult.status).toBe('trial_expiring');

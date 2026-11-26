@@ -494,56 +494,198 @@
       return 'http://192.168.43.1:3100';
     }
   }
+  function base64UrlToUint8Array(b64u) {
+    const padLen = (4 - (b64u.length % 4)) % 4;
+    const b64 = String(b64u).replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(padLen);
+    const binStr = (typeof atob === 'function')
+      ? atob(b64)
+      : Buffer.from(b64, 'base64').toString('binary');
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+    return bytes;
+  }
+
+  function spkiPemToArrayBuffer(pem) {
+    const clean = String(pem)
+      .replace(/-----BEGIN PUBLIC KEY-----/g, '')
+      .replace(/-----END PUBLIC KEY-----/g, '')
+      .replace(/\s+/g, '');
+    const binStr = (typeof atob === 'function')
+      ? atob(clean)
+      : Buffer.from(clean, 'base64').toString('binary');
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+    return bytes.buffer;
+  }
+
   class LicenseManager {
     /**
-     * Decodes and validates HMAC license token structure offline
+     * Unverified Base64 decoding is disabled (fail-closed); use async verifyLicense().
      */
-    static decodeToken(token) {
-      if (!token || typeof token !== 'string' || !token.includes('.')) {
-        return { valid: false, reason: 'Malformed token' };
+    static decodeToken(_token) {
+      return {
+        valid: false,
+        isReadOnly: true,
+        canCreateOrders: false,
+        reason: 'Unverified Base64 decoding is disabled; cryptographic Ed25519 verification via LicenseManager.verifyLicense() is required'
+      };
+    }
+
+    /**
+     * Fetches and caches ONLY the Ed25519 SPKI public key from /api/v1/subscriptions/public-key.
+     */
+    static async getPublicKeyPem(baseUrl = '') {
+      if (typeof localStorage !== 'undefined') {
+        const cached = localStorage.getItem('frose_license_public_key_pem');
+        if (cached && cached.includes('BEGIN PUBLIC KEY')) return cached;
       }
-      const parts = token.split('.');
-      if (parts.length !== 2 && parts.length !== 3) {
-        return { valid: false, reason: 'Invalid token segment count' };
-      }
+      const fetchFn = globalThis.froseApiFetch || (typeof fetch === 'function' ? fetch : null);
+      if (!fetchFn) return null;
       try {
-        const rawPayloadPart = parts.length === 3 ? parts[1] : parts[0];
-        const payloadBase64 = rawPayloadPart.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonStr = (typeof atob === 'function')
-          ? atob(payloadBase64)
-          : Buffer.from(payloadBase64, 'base64').toString('utf8');
-        const payload = JSON.parse(jsonStr);
+        const res = await fetchFn(`${baseUrl}/api/v1/subscriptions/public-key`, {
+          credentials: 'same-origin'
+        });
+        if (!res || !res.ok) return null;
+        const data = await res.json();
+        if (data && typeof data.publicKeyPem === 'string' && data.publicKeyPem.includes('BEGIN PUBLIC KEY')) {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('frose_license_public_key_pem', data.publicKeyPem);
+          }
+          return data.publicKeyPem;
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    /**
+     * Cryptographically verifies an Ed25519 (EdDSA) offline license JWT via WebCrypto.
+     * Fails closed on invalid signature, tampered payload, alg !== 'EdDSA', expiry, or missing crypto.subtle.
+     */
+    static async verifyLicense(token, publicKeyPem) {
+      const cryptoObj = globalThis.crypto;
+      if (!cryptoObj || !cryptoObj.subtle) {
+        return {
+          valid: false,
+          isReadOnly: true,
+          canCreateOrders: false,
+          reason: 'WebCrypto crypto.subtle unavailable; Ed25519 license verification requires a secure context (HTTPS or localhost)'
+        };
+      }
+
+      if (!token || typeof token !== 'string') {
+        return { valid: false, isReadOnly: true, canCreateOrders: false, reason: 'Malformed token' };
+      }
+
+      const parts = token.split('.');
+      if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) {
+        return { valid: false, isReadOnly: true, canCreateOrders: false, reason: 'Invalid EdDSA JWT structure (3 segments required)' };
+      }
+
+      const keyPem = publicKeyPem || (await LicenseManager.getPublicKeyPem());
+      if (!keyPem || typeof keyPem !== 'string') {
+        return { valid: false, isReadOnly: true, canCreateOrders: false, reason: 'Ed25519 public key unavailable' };
+      }
+
+      try {
+        const decoder = new TextDecoder();
+        const header = JSON.parse(decoder.decode(base64UrlToUint8Array(parts[0])));
+        if (!header || header.alg !== 'EdDSA') {
+          return {
+            valid: false,
+            isReadOnly: true,
+            canCreateOrders: false,
+            reason: `Unsupported JWT algorithm: ${header?.alg || 'none'} (EdDSA required)`
+          };
+        }
+
+        const spkiBuffer = spkiPemToArrayBuffer(keyPem);
+        const publicKey = await cryptoObj.subtle.importKey(
+          'spki',
+          spkiBuffer,
+          { name: 'Ed25519' },
+          false,
+          ['verify']
+        );
+
+        const signingInput = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
+        const signatureBytes = base64UrlToUint8Array(parts[2]);
+        const isSignatureValid = await cryptoObj.subtle.verify(
+          'Ed25519',
+          publicKey,
+          signatureBytes,
+          signingInput
+        );
+
+        if (!isSignatureValid) {
+          return {
+            valid: false,
+            isReadOnly: true,
+            canCreateOrders: false,
+            reason: 'Invalid Ed25519 license signature'
+          };
+        }
+
+        const payload = JSON.parse(decoder.decode(base64UrlToUint8Array(parts[1])));
+        if (!payload || !payload.periodEnd) {
+          return { valid: false, isReadOnly: true, canCreateOrders: false, reason: 'Missing license periodEnd claim' };
+        }
 
         const now = new Date();
+        if (typeof payload.exp === 'number' && now.getTime() > payload.exp * 1000) {
+          return {
+            valid: false,
+            payload,
+            status: 'expired_readonly',
+            daysRemaining: 0,
+            isReadOnly: true,
+            canCreateOrders: false,
+            reason: 'License token exp claim expired'
+          };
+        }
+
         const expiry = new Date(payload.periodEnd + 'T23:59:59.999Z');
         const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-        let status = 'active';
-        let isReadOnly = false;
-
         if (diffDays >= 0) {
-          status = diffDays <= 4 ? 'trial_expiring' : 'active';
-        } else {
-          const daysOverdue = Math.abs(diffDays);
-          if (daysOverdue <= 3) {
-            status = 'grace_period';
-            isReadOnly = false;
-          } else {
-            status = 'expired_readonly';
-            isReadOnly = true;
-          }
+          const status = diffDays <= 4 ? 'trial_expiring' : 'active';
+          return {
+            valid: true,
+            payload,
+            status,
+            daysRemaining: diffDays,
+            isReadOnly: false,
+            canCreateOrders: true
+          };
+        }
+
+        const daysOverdue = Math.abs(diffDays);
+        if (daysOverdue <= 3) {
+          return {
+            valid: true,
+            payload,
+            status: 'grace_period',
+            daysRemaining: 0,
+            isReadOnly: false,
+            canCreateOrders: true
+          };
         }
 
         return {
-          valid: true,
+          valid: false,
           payload,
-          status,
-          daysRemaining: diffDays,
-          isReadOnly,
-          canCreateOrders: !isReadOnly
+          status: 'expired_readonly',
+          daysRemaining: 0,
+          isReadOnly: true,
+          canCreateOrders: false,
+          reason: 'License expired beyond 3-day grace period'
         };
       } catch (e) {
-        return { valid: false, reason: 'Failed to decode license payload' };
+        return {
+          valid: false,
+          isReadOnly: true,
+          canCreateOrders: false,
+          reason: 'Ed25519 license verification failed'
+        };
       }
     }
 

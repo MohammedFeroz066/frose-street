@@ -1,0 +1,410 @@
+/**
+ * FROSE Street — Multi-Language Staff UI (I18N-01)
+ * Zero-dependency, CSP-safe i18n supporting English (en), Telugu (te), Hindi (hi), Tamil (ta).
+ * Strictly uses .textContent and .placeholder for safe DOM updates.
+ */
+(function (global) {
+  'use strict';
+
+  var STORAGE_KEY = 'frose_ui_lang';
+  var SUPPORTED_LANGS = [
+    { code: 'en', label: 'English', nativeLabel: 'English' },
+    { code: 'te', label: 'Telugu', nativeLabel: 'తెలుగు' },
+    { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी' },
+    { code: 'ta', label: 'Tamil', nativeLabel: 'தமிழ்' },
+  ];
+
+  var LOCALES = {
+    en: {
+      'nav.bill': 'Bill',
+      'nav.orders': 'Orders',
+      'nav.menu': 'Menu',
+      'nav.payments': 'Payments',
+      'nav.settings': 'Settings',
+      'nav.kitchen_kds': 'Kitchen KDS',
+      'nav.packaging': 'Packaging',
+      'status.online': 'Online',
+      'status.offline': 'Offline',
+      'status.syncing': 'Syncing',
+      'bill.search_placeholder': 'Search dishes...',
+      'bill.add_dish': '+ Dish',
+      'bill.current_order': 'Current Order',
+      'bill.clear': 'Clear',
+      'bill.dine_in': 'Dine-In',
+      'bill.parcel': 'Parcel',
+      'bill.total': 'Total',
+      'bill.grand_total': 'Grand Total',
+      'bill.proceed_payment': 'Proceed to Payment →',
+      'bill.checkout': 'Checkout →',
+      'bill.clear_cart': 'Clear Cart',
+      'checkout.title': 'Checkout',
+      'checkout.cash': '💵 Cash',
+      'checkout.upi': '📱 UPI',
+      'checkout.split': '⚡ Split',
+      'checkout.exact': 'Exact',
+      'checkout.cash_tendered': 'Cash Tendered (₹)',
+      'checkout.cash_received_placeholder': 'Enter cash received',
+      'checkout.change_due': 'Change Due',
+      'checkout.pay_cash': 'Pay Cash',
+      'checkout.upi_hint': 'Show your counter UPI QR and confirm manually on your Soundbox or Bank App.',
+      'checkout.show_upi_qr': 'Show UPI QR',
+      'checkout.cash_paid': 'Cash Paid (₹)',
+      'checkout.upi_remainder': 'UPI Remainder',
+      'checkout.split_confirm': 'Customer Paid UPI Remainder (Confirm on Soundbox/App)',
+      'checkout.complete_split': '⚡ Complete Split Payment',
+      'checkout.order_note_placeholder': 'Order note (optional, e.g. Less spicy)',
+      'kds.cooking': 'COOKING',
+      'kds.ready': 'READY',
+      'kds.pending': 'Pending',
+      'kds.awake': 'AWAKE',
+      'kds.start_cooking': '🔥 Start Cooking',
+      'kds.mark_ready': 'Mark Ready',
+      'kds.parcel': '📦 PARCEL',
+      'kds.dine_in': '🍽️ DINE-IN',
+      'kds.edited': 'EDITED',
+      'kds.toast_cooking': '🔥 Cooking Token #{token}',
+      'kds.toast_ready': '✅ Order #{token} Marked Ready!',
+      'pack.ready': 'READY',
+      'pack.waiting': 'WAITING',
+      'pack.served': 'SERVED',
+      'pack.handed_over': 'Handed Over',
+      'pack.ready_lane': 'Ready for Pickup',
+      'pack.waiting_lane': 'Waiting for Kitchen',
+      'pack.toast_served': '✅ Order #{token} Handed Over!',
+      'pack.toast_ready': '🔔 Token #{token} is READY!',
+      'settings.language_heading': 'Language / భాష / भाषा / மொழி',
+      'settings.language_sub': 'Switch staff UI language across Billing, Kitchen & Packaging',
+      'settings.appearance_heading': '3. Appearance & Theme',
+      'payments.title': 'Payments & Galla',
+      'payments.subtitle': 'Cash drawer tally, UPI receipts, and expenses',
+      'payments.add_expense': '+ Add Expense',
+      'payments.net_sales': 'Net Sales',
+      'payments.cash_drawer': 'Cash in Drawer',
+      'payments.upi_received': 'UPI Received',
+      'payments.expenses': 'Expenses',
+      'payments.export_sales_csv': 'Export Sales CSV (CA / GST)',
+      'payments.export_expenses_csv': 'Export Expenses CSV',
+      'payments.close_day': 'Close Day / Z-Report',
+      'payments.view_z_report': 'View / Update Z-Report',
+    },
+    te: {
+      'nav.bill': 'బిల్',
+      'nav.orders': 'ఆర్డర్లు',
+      'nav.menu': 'మెనూ',
+      'nav.payments': 'చెల్లింపులు',
+      'nav.settings': 'సెట్టింగ్స్',
+      'nav.kitchen_kds': 'కిచెన్ KDS',
+      'nav.packaging': 'ప్యాకేజింగ్',
+      'status.online': 'ఆన్‌లైన్',
+      'status.offline': 'ఆఫ్‌లైన్',
+      'status.syncing': 'సింక్',
+      'bill.search_placeholder': 'వంటకాలు వెతకండి...',
+      'bill.add_dish': '+ వంటకం',
+      'bill.current_order': 'ప్రస్తుత ఆర్డర్',
+      'bill.clear': 'క్లియర్',
+      'bill.dine_in': 'డైన్-ఇన్',
+      'bill.parcel': 'పార్సెల్',
+      'bill.total': 'మొత్తం',
+      'bill.grand_total': 'గ్రాండ్ టోటల్',
+      'bill.proceed_payment': 'చెల్లింపుకు వెళ్ళండి →',
+      'bill.checkout': 'చెల్లించండి →',
+      'bill.clear_cart': 'కార్ట్ ఖాళీ చేయండి',
+      'checkout.title': 'చెల్లింపు',
+      'checkout.cash': '💵 నగదు',
+      'checkout.upi': '📱 UPI',
+      'checkout.split': '⚡ స్ప్లిట్',
+      'checkout.exact': 'సరిగ్గా',
+      'checkout.cash_tendered': 'ఇచ్చిన నగదు (₹)',
+      'checkout.cash_received_placeholder': 'అందుకున్న నగదు నమోదు చేయండి',
+      'checkout.change_due': 'తిరిగి ఇవ్వాల్సిన చిల్లర',
+      'checkout.pay_cash': 'నగదు చెల్లించండి',
+      'checkout.upi_hint': 'కౌంటర్ UPI QR చూపించి సౌండ్‌బాక్స్ లేదా బ్యాంక్ యాప్‌లో నిర్ధారించండి.',
+      'checkout.show_upi_qr': 'UPI QR చూపించు',
+      'checkout.cash_paid': 'నగదు (₹)',
+      'checkout.upi_remainder': 'మిగిలిన UPI',
+      'checkout.split_confirm': 'కస్టమర్ UPI చెల్లించారు (సౌండ్‌బాక్స్‌లో నిర్ధారించండి)',
+      'checkout.complete_split': '⚡ స్ప్లిట్ చెల్లింపు పూర్తి చేయండి',
+      'checkout.order_note_placeholder': 'ఆర్డర్ సూచన (ఉదా. కారం తక్కువ)',
+      'kds.cooking': 'వండుతోంది',
+      'kds.ready': 'సిద్ధం',
+      'kds.pending': 'పెండింగ్',
+      'kds.awake': 'ఆన్',
+      'kds.start_cooking': '🔥 వండటం ప్రారంభించు',
+      'kds.mark_ready': 'సిద్ధంగా మార్క్ చేయండి',
+      'kds.parcel': '📦 పార్సెల్',
+      'kds.dine_in': '🍽️ డైన్-ఇన్',
+      'kds.edited': 'సవరించబడింది',
+      'kds.toast_cooking': '🔥 టోకెన్ #{token} వండుతోంది',
+      'kds.toast_ready': '✅ ఆర్డర్ #{token} సిద్ధమైంది!',
+      'pack.ready': 'సిద్ధం',
+      'pack.waiting': 'వేచి ఉంది',
+      'pack.served': 'అందించబడింది',
+      'pack.handed_over': 'అందించబడింది',
+      'pack.ready_lane': 'పికప్‌కు సిద్ధం',
+      'pack.waiting_lane': 'కిచెన్ కోసం వేచి ఉంది',
+      'pack.toast_served': '✅ ఆర్డర్ #{token} అందించబడింది!',
+      'pack.toast_ready': '🔔 టోకెన్ #{token} సిద్ధంగా ఉంది!',
+      'settings.language_heading': 'భాష (Language)',
+      'settings.language_sub': 'బిల్లింగ్, కిచెన్ మరియు ప్యాకేజింగ్ భాషను మార్చండి',
+      'settings.appearance_heading': '3. రూపాన్ని & థీమ్',
+      'payments.title': 'చెల్లింపులు & గల్లా',
+      'payments.subtitle': 'నగదు డ్రాయర్ లెక్క, UPI మరియు ఖర్చులు',
+      'payments.add_expense': '+ ఖర్చు జోడించు',
+      'payments.net_sales': 'నికర అమ్మకాలు',
+      'payments.cash_drawer': 'డ్రాయర్‌లో నగదు',
+      'payments.upi_received': 'అందిన UPI',
+      'payments.expenses': 'ఖర్చులు',
+      'payments.export_sales_csv': 'అమ్మకాల CSV డౌన్‌లోడ్ (CA / GST)',
+      'payments.export_expenses_csv': 'ఖర్చుల CSV డౌన్‌లోడ్',
+      'payments.close_day': 'రోజు ముగించు / Z-రిపోర్ట్',
+      'payments.view_z_report': 'Z-రిపోర్ట్ చూడండి',
+    },
+    hi: {
+      'nav.bill': 'बिल',
+      'nav.orders': 'ऑर्डर',
+      'nav.menu': 'मेनू',
+      'nav.payments': 'भुगतान',
+      'nav.settings': 'सेटिंग्स',
+      'nav.kitchen_kds': 'किचन KDS',
+      'nav.packaging': 'पैकेजिंग',
+      'status.online': 'ऑनलाइन',
+      'status.offline': 'ऑफ़लाइन',
+      'status.syncing': 'सिंक',
+      'bill.search_placeholder': 'डिश खोजें...',
+      'bill.add_dish': '+ डिश',
+      'bill.current_order': 'वर्तमान ऑर्डर',
+      'bill.clear': 'साफ़ करें',
+      'bill.dine_in': 'डाइन-इन',
+      'bill.parcel': 'पार्सल',
+      'bill.total': 'कुल',
+      'bill.grand_total': 'कुल राशि',
+      'bill.proceed_payment': 'भुगतान करें →',
+      'bill.checkout': 'चेकआउट →',
+      'bill.clear_cart': 'कार्ट खाली करें',
+      'checkout.title': 'चेकआउट',
+      'checkout.cash': '💵 नकद',
+      'checkout.upi': '📱 UPI',
+      'checkout.split': '⚡ स्प्लिट',
+      'checkout.exact': 'पूरा',
+      'checkout.cash_tendered': 'प्राप्त नकद (₹)',
+      'checkout.cash_received_placeholder': 'प्राप्त नकद दर्ज करें',
+      'checkout.change_due': 'वापसी छुट्टा',
+      'checkout.pay_cash': 'नकद भुगतान',
+      'checkout.upi_hint': 'काउंटर UPI QR दिखाएं और साउंडबॉक्स या बैंक ऐप पर पुष्टि करें।',
+      'checkout.show_upi_qr': 'UPI QR दिखाएं',
+      'checkout.cash_paid': 'नकद दिया (₹)',
+      'checkout.upi_remainder': 'शेष UPI',
+      'checkout.split_confirm': 'ग्राहक ने शेष UPI दिया (साउंडबॉक्स पर पुष्टि करें)',
+      'checkout.complete_split': '⚡ स्प्लिट भुगतान पूरा करें',
+      'checkout.order_note_placeholder': 'ऑर्डर नोट (जैसे कम तीखा)',
+      'kds.cooking': 'पक रहा है',
+      'kds.ready': 'तैयार',
+      'kds.pending': 'लंबित',
+      'kds.awake': 'चालू',
+      'kds.start_cooking': '🔥 पकाना शुरू करें',
+      'kds.mark_ready': 'तैयार चिह्नित करें',
+      'kds.parcel': '📦 पार्सल',
+      'kds.dine_in': '🍽️ डाइन-इन',
+      'kds.edited': 'संपादित',
+      'kds.toast_cooking': '🔥 टोकन #{token} पक रहा है',
+      'kds.toast_ready': '✅ ऑर्डर #{token} तैयार है!',
+      'pack.ready': 'तैयार',
+      'pack.waiting': 'प्रतीक्षा',
+      'pack.served': 'परोसा गया',
+      'pack.handed_over': 'सौंपा गया',
+      'pack.ready_lane': 'पिकअप के लिए तैयार',
+      'pack.waiting_lane': 'किचन की प्रतीक्षा में',
+      'pack.toast_served': '✅ ऑर्डर #{token} सौंपा गया!',
+      'pack.toast_ready': '🔔 टोकन #{token} तैयार है!',
+      'settings.language_heading': 'भाषा (Language)',
+      'settings.language_sub': 'बिलिंग, किचन और पैकेजिंग की भाषा बदलें',
+      'settings.appearance_heading': '3. थीम और दिखावट',
+      'payments.title': 'भुगतान और गल्ला',
+      'payments.subtitle': 'कैश ड्रॉअर हिसाब, UPI रसीदें और खर्च',
+      'payments.add_expense': '+ खर्च जोड़ें',
+      'payments.net_sales': 'शुद्ध बिक्री',
+      'payments.cash_drawer': 'गल्ले में नकद',
+      'payments.upi_received': 'प्राप्त UPI',
+      'payments.expenses': 'खर्च',
+      'payments.export_sales_csv': 'बिक्री CSV डाउनलोड (CA / GST)',
+      'payments.export_expenses_csv': 'खर्च CSV डाउनलोड',
+      'payments.close_day': 'दिन बंद करें / Z-रिपोर्ट',
+      'payments.view_z_report': 'Z-रिपोर्ट देखें',
+    },
+    ta: {
+      'nav.bill': 'பில்',
+      'nav.orders': 'ஆர்டர்கள்',
+      'nav.menu': 'மெனு',
+      'nav.payments': 'பணம்',
+      'nav.settings': 'அமைப்புகள்',
+      'nav.kitchen_kds': 'சமையலறை KDS',
+      'nav.packaging': 'பேக்கேஜிங்',
+      'status.online': 'ஆன்லைன்',
+      'status.offline': 'ஆஃப்லைன்',
+      'status.syncing': 'ஒத்திசைவு',
+      'bill.search_placeholder': 'உணவைத் தேடு...',
+      'bill.add_dish': '+ உணவு',
+      'bill.current_order': 'தற்போதைய ஆர்டர்',
+      'bill.clear': 'அழி',
+      'bill.dine_in': 'உள்ளே உணவு',
+      'bill.parcel': 'பார்சல்',
+      'bill.total': 'மொத்தம்',
+      'bill.grand_total': 'மொத்த தொகை',
+      'bill.proceed_payment': 'பணம் செலுத்தவும் →',
+      'bill.checkout': 'செலுத்தவும் →',
+      'bill.clear_cart': 'கார்ட்டை காலி செய்',
+      'checkout.title': 'பணம் செலுத்தல்',
+      'checkout.cash': '💵 ரொக்கம்',
+      'checkout.upi': '📱 UPI',
+      'checkout.split': '⚡ பிரித்து',
+      'checkout.exact': 'சரியாக',
+      'checkout.cash_tendered': 'கொடுத்த ரொக்கம் (₹)',
+      'checkout.cash_received_placeholder': 'பெற்ற ரொக்கத்தை உள்ளிடவும்',
+      'checkout.change_due': 'மீதி சில்லறை',
+      'checkout.pay_cash': 'ரொக்கம் செலுத்து',
+      'checkout.upi_hint': 'UPI QR காட்டி சவுண்ட்பாக்ஸ் அல்லது வங்கி செயலியில் உறுதிப்படுத்தவும்.',
+      'checkout.show_upi_qr': 'UPI QR காட்டு',
+      'checkout.cash_paid': 'ரொக்கம் (₹)',
+      'checkout.upi_remainder': 'மீதி UPI',
+      'checkout.split_confirm': 'வாடிக்கையாளர் UPI செலுத்தினார் (சவுண்ட்பாக்ஸில் உறுதிப்படுத்தவும்)',
+      'checkout.complete_split': '⚡ பிரித்த பணம் முடி',
+      'checkout.order_note_placeholder': 'ஆர்டர் குறிப்பு (எ.கா. காரம் குறைவு)',
+      'kds.cooking': 'சமைக்கிறது',
+      'kds.ready': 'தயார்',
+      'kds.pending': 'நிலுவை',
+      'kds.awake': 'ஆன்',
+      'kds.start_cooking': '🔥 சமைக்கத் தொடங்கு',
+      'kds.mark_ready': 'தயார் எனக் குறி',
+      'kds.parcel': '📦 பார்சல்',
+      'kds.dine_in': '🍽️ உள்ளே',
+      'kds.edited': 'திருத்தப்பட்டது',
+      'kds.toast_cooking': '🔥 டோக்கன் #{token} சமைக்கிறது',
+      'kds.toast_ready': '✅ ஆர்டர் #{token} தயார்!',
+      'pack.ready': 'தயார்',
+      'pack.waiting': 'காத்திருப்பு',
+      'pack.served': 'வழங்கப்பட்டது',
+      'pack.handed_over': 'ஒப்படைக்கப்பட்டது',
+      'pack.ready_lane': 'எடுக்கத் தயார்',
+      'pack.waiting_lane': 'சமையலறைக்காக காத்திருப்பு',
+      'pack.toast_served': '✅ ஆர்டர் #{token} ஒப்படைக்கப்பட்டது!',
+      'pack.toast_ready': '🔔 டோக்கன் #{token} தயாராக உள்ளது!',
+      'settings.language_heading': 'மொழி (Language)',
+      'settings.language_sub': 'பில்லிங், சமையலறை மற்றும் பேக்கேஜிங் மொழியை மாற்றவும்',
+      'settings.appearance_heading': '3. தோற்றம் & தீம்',
+      'payments.title': 'பணம் & கல்லா',
+      'payments.subtitle': 'ரொக்கப் பெட்டி கணக்கு, UPI மற்றும் செலவுகள்',
+      'payments.add_expense': '+ செலவு சேர்',
+      'payments.net_sales': 'நிகர விற்பனை',
+      'payments.cash_drawer': 'பெட்டியில் ரொக்கம்',
+      'payments.upi_received': 'பெற்ற UPI',
+      'payments.expenses': 'செலவுகள்',
+      'payments.export_sales_csv': 'விற்பனை CSV பதிவிறக்கம் (CA / GST)',
+      'payments.export_expenses_csv': 'செலவு CSV பதிவிறக்கம்',
+      'payments.close_day': 'நாள் மூடு / Z-அறிக்கை',
+      'payments.view_z_report': 'Z-அறிக்கை பார்',
+    },
+  };
+
+  function normalizeLang(code) {
+    var c = String(code || '').trim().toLowerCase();
+    return Object.prototype.hasOwnProperty.call(LOCALES, c) ? c : 'en';
+  }
+
+  function getLanguage() {
+    try {
+      var saved = global.localStorage && global.localStorage.getItem(STORAGE_KEY);
+      return normalizeLang(saved || 'en');
+    } catch (_) {
+      return 'en';
+    }
+  }
+
+  function t(key, vars) {
+    var lang = getLanguage();
+    var dict = LOCALES[lang] || LOCALES.en;
+    var template = Object.prototype.hasOwnProperty.call(dict, key)
+      ? dict[key]
+      : (Object.prototype.hasOwnProperty.call(LOCALES.en, key) ? LOCALES.en[key] : key);
+
+    if (!vars || typeof vars !== 'object') return template;
+    return String(template).replace(/\{(\w+)\}/g, function (_, name) {
+      return Object.prototype.hasOwnProperty.call(vars, name) ? String(vars[name]) : '{' + name + '}';
+    });
+  }
+
+  function applyTranslations(root) {
+    var target = root || global.document;
+    if (!target || typeof target.querySelectorAll !== 'function') return;
+
+    try {
+      if (global.document && global.document.documentElement) {
+        global.document.documentElement.lang = getLanguage();
+      }
+    } catch (_) {}
+
+    var nodes = target.querySelectorAll('[data-i18n]');
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      var key = (node.dataset && node.dataset.i18n) || (node.getAttribute && node.getAttribute('data-i18n'));
+      if (key) {
+        node.textContent = t(key);
+      }
+    }
+
+    var placeholders = target.querySelectorAll('[data-i18n-placeholder]');
+    for (var j = 0; j < placeholders.length; j++) {
+      var inp = placeholders[j];
+      var pKey = (inp.dataset && inp.dataset.i18nPlaceholder) || (inp.getAttribute && inp.getAttribute('data-i18n-placeholder'));
+      if (pKey) {
+        inp.placeholder = t(pKey);
+      }
+    }
+  }
+
+  function setLanguage(code) {
+    var normalized = normalizeLang(code);
+    try {
+      if (global.localStorage) {
+        global.localStorage.setItem(STORAGE_KEY, normalized);
+      }
+    } catch (_) {}
+
+    try {
+      if (global.document && global.document.documentElement) {
+        global.document.documentElement.lang = normalized;
+      }
+    } catch (_) {}
+
+    applyTranslations(global.document);
+
+    try {
+      if (typeof global.dispatchEvent === 'function' && typeof global.CustomEvent === 'function') {
+        global.dispatchEvent(new global.CustomEvent('frose:language-changed', { detail: { lang: normalized } }));
+      }
+    } catch (_) {}
+
+    return normalized;
+  }
+
+  var api = {
+    STORAGE_KEY: STORAGE_KEY,
+    SUPPORTED_LANGS: SUPPORTED_LANGS,
+    LOCALES: LOCALES,
+    getLanguage: getLanguage,
+    setLanguage: setLanguage,
+    t: t,
+    applyTranslations: applyTranslations,
+  };
+
+  global.FroseI18n = api;
+
+  if (global.document && typeof global.document.addEventListener === 'function') {
+    if (global.document.readyState === 'loading') {
+      global.document.addEventListener('DOMContentLoaded', function () {
+        applyTranslations(global.document);
+      });
+    } else {
+      applyTranslations(global.document);
+    }
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

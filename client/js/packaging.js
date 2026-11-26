@@ -8,6 +8,13 @@
 (function () {
   'use strict';
 
+  function tr(key, vars, fallback) {
+    if (window.FroseI18n && typeof window.FroseI18n.t === 'function') {
+      return window.FroseI18n.t(key, vars);
+    }
+    return fallback || key;
+  }
+
   // --- STATE ---
   let readyOrders = [];
   let waitingOrders = [];
@@ -249,7 +256,7 @@
                   svgEl('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
                     svgEl('polyline', { points: '20 6 9 17 4 12' }),
                   ]),
-                  el('span', {}, 'MARK DELIVERED & SERVED'),
+                  el('span', {}, tr('pack.handed_over', null, 'Handed Over')),
                 ]),
               ]),
             ])
@@ -315,7 +322,7 @@
     // Optimistically remove from readyOrders
     readyOrders = readyOrders.filter((o) => o.id !== orderId);
     deliveredCount++;
-    showToast(`✅ Order #${tokenNo} Delivered & Served!`);
+    showToast(tr('pack.toast_served', { token: tokenNo }, `✅ Order #${tokenNo} Delivered & Served!`));
 
     setTimeout(() => {
       renderLanes();
@@ -352,7 +359,7 @@
       readyOrders.unshift(promoted);
       renderLanes();
       playPickupBell();
-      showToast(`🔔 Token #${promoted.tokenNo} is READY for serving!`);
+      showToast(tr('pack.toast_ready', { token: promoted.tokenNo }, `🔔 Token #${promoted.tokenNo} is READY for serving!`));
       // Auto-scroll to ready lane
       const readySec = document.getElementById('packaging-ready-section');
       if (readySec) readySec.scrollIntoView({ behavior: 'smooth' });
@@ -684,6 +691,10 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
+
+  window.addEventListener('frose:language-changed', () => {
+    renderLanes();
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

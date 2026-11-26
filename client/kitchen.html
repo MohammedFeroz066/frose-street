@@ -7,6 +7,7 @@
   <meta name="description" content="Ultra-fast, knuckle-friendly kitchen display order queue for street food cooks.">
   <meta name="theme-color" content="#0B0E14">
   <script src="/js/theme.js?v=1.0.0"></script>
+  <script src="/js/i18n.js?v=1.0.0"></script>
   <script src="/js/safe-dom.js?v=1.0.0"></script>
   <script src="/js/idb-store.js?v=1.0.0"></script>
   <script src="/js/ui-components.js?v=1.0.0"></script>
@@ -60,11 +61,11 @@
       <!-- Center: High-Contrast Station Tally Counters -->
       <div class="kds-header-stats">
         <div class="kds-stat-pill pill-pending">
-          <span class="kds-stat-label">COOKING</span>
+          <span class="kds-stat-label" data-i18n="kds.cooking">COOKING</span>
           <span class="kds-stat-val" id="pending-count-pill">0</span>
         </div>
         <div class="kds-stat-pill pill-done">
-          <span class="kds-stat-label">READY</span>
+          <span class="kds-stat-label" data-i18n="kds.ready">READY</span>
           <span class="kds-stat-val" id="done-count-pill">0</span>
         </div>
       </div>
@@ -73,7 +74,7 @@
       <div class="navbar-actions">
         <div class="kds-wakelock-pill" id="wakelock-pill" title="Screen Keep-Awake">
           <span class="wakelock-dot"></span>
-          <span class="wakelock-text">AWAKE</span>
+          <span class="wakelock-text" data-i18n="kds.awake">AWAKE</span>
         </div>
 
         <button type="button" class="btn-icon-header" id="btn-kds-theme" aria-label="Toggle Theme" title="Switch Theme">

@@ -21,6 +21,13 @@
     return '₹' + Math.round(Number(paise || 0) / 100);
   }
 
+  function tr(key, fallback) {
+    if (global.FroseI18n && typeof global.FroseI18n.t === 'function') {
+      return global.FroseI18n.t(key);
+    }
+    return fallback || key;
+  }
+
   function toast(msg, variant) {
     if (ws().notify) ws().notify(msg, variant);
   }
@@ -91,8 +98,8 @@
     root.appendChild(
       el('div', { style: 'display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px;' }, [
         el('div', {}, [
-          el('h2', { style: 'margin: 0; font-size: 20px; font-weight: 900;' }, 'Payments & Galla'),
-          el('div', { style: 'font-size: 12.5px; color: var(--text-muted);' }, 'Cash drawer tally, UPI receipts, and expenses'),
+          el('h2', { style: 'margin: 0; font-size: 20px; font-weight: 900;' }, tr('payments.title', 'Payments & Galla')),
+          el('div', { style: 'font-size: 12.5px; color: var(--text-muted);' }, tr('payments.subtitle', 'Cash drawer tally, UPI receipts, and expenses')),
         ]),
         el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
           el('input', {
@@ -113,7 +120,7 @@
             id: 'btn-open-add-expense',
             class: 'saas-btn saas-btn-primary',
             on: { click: openAddExpenseSheet },
-          }, '+ Add Expense'),
+          }, tr('payments.add_expense', '+ Add Expense')),
         ]),
       ])
     );
@@ -121,22 +128,22 @@
     root.appendChild(
       el('div', { class: 'saas-kpi-grid', style: 'margin-bottom: 14px;' }, [
         el('div', { class: 'saas-kpi-card' }, [
-          el('span', { class: 'saas-kpi-label' }, 'Net Sales'),
+          el('span', { class: 'saas-kpi-label' }, tr('payments.net_sales', 'Net Sales')),
           el('span', { class: 'saas-kpi-value', id: 'kpi-net-sales' }, fmt(s.totalSalesPaise)),
           el('span', { class: 'saas-kpi-sub' }, (s.totalOrders || 0) + ' paid orders'),
         ]),
         el('div', { class: 'saas-kpi-card' }, [
-          el('span', { class: 'saas-kpi-label' }, 'Cash in Drawer'),
+          el('span', { class: 'saas-kpi-label' }, tr('payments.cash_drawer', 'Cash in Drawer')),
           el('span', { class: 'saas-kpi-value', id: 'kpi-cash-drawer' }, fmt(s.cashInDrawerPaise)),
           el('span', { class: 'saas-kpi-sub' }, 'Cash sales minus cash out'),
         ]),
         el('div', { class: 'saas-kpi-card' }, [
-          el('span', { class: 'saas-kpi-label' }, 'UPI Received'),
+          el('span', { class: 'saas-kpi-label' }, tr('payments.upi_received', 'UPI Received')),
           el('span', { class: 'saas-kpi-value', id: 'kpi-upi-received' }, fmt(s.upiSalesPaise)),
           el('span', { class: 'saas-kpi-sub' }, 'Marked paid (UPI)'),
         ]),
         el('div', { class: 'saas-kpi-card' }, [
-          el('span', { class: 'saas-kpi-label' }, 'Expenses'),
+          el('span', { class: 'saas-kpi-label' }, tr('payments.expenses', 'Expenses')),
           el('span', { class: 'saas-kpi-value', id: 'kpi-total-expenses' }, fmt(s.totalExpensesPaise)),
           el('span', { class: 'saas-kpi-sub' }, (state.expenses.length || 0) + ' entries'),
         ]),
@@ -479,6 +486,16 @@
     var remaining = global.document.querySelectorAll('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active');
     if (remaining.length === 0) global.document.body.classList.remove('saas-modal-open');
   };
+
+  if (typeof global.addEventListener === 'function') {
+    global.addEventListener('frose:language-changed', function () {
+      var root = global.document && global.document.getElementById('payments-panel-root');
+      if (root && root.children && root.children.length > 0) {
+        renderShell();
+        renderLedger();
+      }
+    });
+  }
 
   global.FrosePaymentsPanel = {
     mount: refresh,

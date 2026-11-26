@@ -8,6 +8,13 @@
 (function () {
   'use strict';
 
+  function tr(key, vars, fallback) {
+    if (window.FroseI18n && typeof window.FroseI18n.t === 'function') {
+      return window.FroseI18n.t(key, vars);
+    }
+    return fallback || key;
+  }
+
   // --- STATE ---
   let kitchenOrders = [];
   let completedCount = 0;
@@ -274,7 +281,7 @@
                 handleStartCooking(order.id, String(order.tokenNo));
               },
             },
-          }, ['🔥 START COOKING'])
+          }, [tr('kds.start_cooking', null, '🔥 Start Cooking')])
         );
       }
 
@@ -293,7 +300,7 @@
           svgEl('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
             svgEl('polyline', { points: '20 6 9 17 4 12' }),
           ]),
-          el('span', {}, 'MARK ORDER READY'),
+          el('span', {}, tr('kds.mark_ready', null, 'Mark Ready')),
         ])
       );
 
@@ -305,9 +312,9 @@
           ]),
           el('div', { class: 'kds-header-tags' }, [
             el('span', { class: `kds-tag kds-tag-type ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
-              isTakeaway ? '📦 PARCEL' : '🍽️ DINE-IN'
+              isTakeaway ? tr('kds.parcel', null, '📦 PARCEL') : tr('kds.dine_in', null, '🍽️ DINE-IN')
             ),
-            order.editedAt ? el('span', { class: 'kds-tag kds-tag-edited' }, 'EDITED') : null,
+            order.editedAt ? el('span', { class: 'kds-tag kds-tag-edited' }, tr('kds.edited', null, 'EDITED')) : null,
             el('span', { class: `kds-tag kds-tag-timer ${timerClass}`, id: `timer-${order.id}` }, `${timeDisplay} (${ageLabel})`),
           ]),
         ]),
@@ -356,7 +363,7 @@
       existing.orderStatus = 'preparing';
       renderQueue();
     }
-    showToast(`🔥 Cooking Token #${tokenNo}`);
+    showToast(tr('kds.toast_cooking', { token: tokenNo }, `🔥 Cooking Token #${tokenNo}`));
     try {
       const fn = window.froseApiFetch || fetch;
       await fn(`/api/v1/orders/${orderId}/status`, {
@@ -384,7 +391,7 @@
     kitchenOrders = kitchenOrders.filter((o) => o.id !== orderId);
     completedCount++;
 
-    showToast(`✅ Order #${tokenNo} Marked Ready!`);
+    showToast(tr('kds.toast_ready', { token: tokenNo }, `✅ Order #${tokenNo} Marked Ready!`));
 
     setTimeout(() => {
       renderQueue();
@@ -752,6 +759,10 @@
   }
 
   // Self-start
+  window.addEventListener('frose:language-changed', () => {
+    renderQueue();
+  });
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

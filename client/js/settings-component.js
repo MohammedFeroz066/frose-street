@@ -240,7 +240,29 @@
       ])
     );
 
-    // 4. Appearance & Theme
+    // 4. Appearance, Theme & Language
+    var activeLang = window.FroseI18n ? window.FroseI18n.getLanguage() : 'en';
+    var langPills = (window.FroseI18n ? window.FroseI18n.SUPPORTED_LANGS : [
+      { code: 'en', nativeLabel: 'English' },
+      { code: 'te', nativeLabel: 'తెలుగు' },
+      { code: 'hi', nativeLabel: 'हिन्दी' },
+      { code: 'ta', nativeLabel: 'தமிழ்' },
+    ]).map(function (lang) {
+      return el('button', {
+        type: 'button',
+        class: 'saas-seg-btn' + (activeLang === lang.code ? ' active' : ''),
+        'data-lang-choice': lang.code,
+        style: 'min-height: 44px;',
+        on: {
+          click: function () {
+            if (window.FroseI18n) window.FroseI18n.setLanguage(lang.code);
+            renderSettingsHub();
+            toast('Language: ' + lang.nativeLabel, 'success');
+          },
+        },
+      }, lang.nativeLabel);
+    });
+
     var themeCards = [
       { id: 'light', label: 'Crisp Light', swatch: 'swatch-light' },
       { id: 'dark', label: 'Obsidian Dark', swatch: 'swatch-dark' },
@@ -265,8 +287,13 @@
 
     stack.appendChild(
       el('section', { class: 'saas-card', style: 'display: flex; flex-direction: column; gap: 12px;' }, [
-        el('h3', { style: 'margin: 0; font-size: 16px; font-weight: 800;' }, '3. Appearance & Theme'),
+        el('h3', { style: 'margin: 0; font-size: 16px; font-weight: 800;' }, window.FroseI18n ? window.FroseI18n.t('settings.appearance_heading') : '3. Appearance & Theme'),
         el('div', { class: 'pos-theme-grid' }, themeCards),
+        el('div', { style: 'padding-top: 8px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px;' }, [
+          el('div', { style: 'font-size: 13.5px; font-weight: 800;' }, window.FroseI18n ? window.FroseI18n.t('settings.language_heading') : 'Language / భాష / भाषा / மொழி'),
+          el('div', { style: 'font-size: 12px; color: var(--text-muted);' }, window.FroseI18n ? window.FroseI18n.t('settings.language_sub') : 'Switch staff UI language across Billing, Kitchen & Packaging'),
+          el('div', { class: 'saas-segmented', id: 'settings-language-selector', style: 'display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;' }, langPills),
+        ]),
       ])
     );
 

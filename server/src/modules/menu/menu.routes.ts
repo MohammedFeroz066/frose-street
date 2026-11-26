@@ -1,8 +1,31 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { MenuService } from './menu.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { validateSchema } from '../auth/auth.schemas.js';
 import { getDatabase } from '../../db/database.js';
-import { AppError } from '../../errors/app-error.js';
+
+const MenuListQuerySchema = z.object({
+  availableOnly: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
+}).strict();
+
+const SeedPresetSchema = z.object({
+  presetKey: z.string().min(1).max(80),
+}).strict();
+
+const CreateMenuSchema = z.object({
+  name: z.string().min(1).max(120),
+  pricePaise: z.number(),
+  category: z.string().max(80).optional(),
+  emojiIcon: z.string().max(16).optional(),
+  colorHex: z.string().max(20).optional(),
+  imageUrl: z.string().max(500000).optional(),
+  displayOrder: z.number().int().optional(),
+  isAvailable: z.boolean().optional(),
+}).strict();
+
+const UpdateMenuSchema = CreateMenuSchema.partial().strict();
+const MenuIdParamSchema = z.object({ id: z.string().min(1).max(100) }).strict();
 
 export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   /**
@@ -11,8 +34,8 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
    */
   app.get('/', { preHandler: [requireAuth] }, async (request, reply) => {
     const db = getDatabase();
-    const query = request.query as any;
-    const availableOnly = query?.availableOnly === 'true' || query?.availableOnly === true;
+    const query = validateSchema(MenuListQuerySchema, request.query || {});
+    const availableOnly = query.availableOnly === 'true' || query.availableOnly === true;
 
     const items = await MenuService.getMenuItems(db, request.user!.sub, { availableOnly });
 
@@ -44,11 +67,7 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
       const db = getDatabase();
-      const body = request.body as any;
-
-      if (!body || !body.presetKey) {
-        throw AppError.badRequest('presetKey is required', 'MISSING_PRESET_KEY');
-      }
+      const body = validateSchema(SeedPresetSchema, request.body);
 
       const result = await MenuService.seedPresets(db, request.user!.sub, body.presetKey);
 
@@ -69,22 +88,9 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
       const db = getDatabase();
-      const body = request.body as any;
+      const body = validateSchema(CreateMenuSchema, request.body);
 
-      if (!body) {
-        throw AppError.badRequest('Request body is required', 'MISSING_BODY');
-      }
-
-      const item = await MenuService.createMenuItem(db, request.user!.sub, {
-        name: body.name,
-        pricePaise: body.pricePaise,
-        category: body.category,
-        emojiIcon: body.emojiIcon,
-        colorHex: body.colorHex,
-        imageUrl: body.imageUrl,
-        displayOrder: body.displayOrder,
-        isAvailable: body.isAvailable,
-      });
+      const item = await MenuService.createMenuItem(db, request.user!.sub, body);
 
       return reply.status(201).send({
         status: 'success',
@@ -103,14 +109,10 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
       const db = getDatabase();
-      const params = request.params as any;
-      const body = request.body as any;
+      const params = validateSchema(MenuIdParamSchema, request.params);
+      const body = validateSchema(UpdateMenuSchema, request.body || {});
 
-      if (!params || !params.id) {
-        throw AppError.badRequest('Item ID is required in URL parameter', 'MISSING_ITEM_ID');
-      }
-
-      const item = await MenuService.updateMenuItem(db, request.user!.sub, params.id, body || {});
+      const item = await MenuService.updateMenuItem(db, request.user!.sub, params.id, body);
 
       return reply.status(200).send({
         status: 'success',
@@ -130,11 +132,7 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner', 'cashier', 'cook')] },
     async (request, reply) => {
       const db = getDatabase();
-      const params = request.params as any;
-
-      if (!params || !params.id) {
-        throw AppError.badRequest('Item ID is required', 'MISSING_ITEM_ID');
-      }
+      const params = validateSchema(MenuIdParamSchema, request.params);
 
       const result = await MenuService.toggleAvailability(db, request.user!.sub, params.id);
 
@@ -154,11 +152,7 @@ export const menuRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
       const db = getDatabase();
-      const params = request.params as any;
-
-      if (!params || !params.id) {
-        throw AppError.badRequest('Item ID is required', 'MISSING_ITEM_ID');
-      }
+      const params = validateSchema(MenuIdParamSchema, request.params);
 
       const result = await MenuService.deleteMenuItem(db, request.user!.sub, params.id);
 

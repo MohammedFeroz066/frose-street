@@ -1,8 +1,44 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { PaymentService } from './payment.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { validateSchema } from '../auth/auth.schemas.js';
 import { AppError } from '../../errors/app-error.js';
-import { getDatabase } from '../../db/database.js';
+
+const GenerateUpiSchema = z.object({
+  vpa: z.string().max(120).optional(),
+  payeeName: z.string().max(120).optional(),
+  amountPaise: z.number(),
+  tokenNo: z.number().int().positive().optional(),
+  itemsSummary: z.string().max(500).optional(),
+}).strict();
+
+const VpaValidateSchema = z.object({
+  vpa: z.string().max(120).optional().default(''),
+}).strict();
+
+const SetVpaSchema = z.object({
+  vpa: z.string().min(1).max(120),
+}).strict();
+
+const RazorpayWebhookSchema = z.object({
+  event: z.string().min(1).optional(),
+  payload: z.object({
+    payment: z.object({
+      entity: z.object({
+        id: z.string().min(1).optional(),
+      }).passthrough().optional(),
+    }).passthrough().optional(),
+  }).passthrough().optional(),
+}).passthrough();
+
+const CashfreeWebhookSchema = z.object({
+  data: z.object({
+    order: z.object({
+      order_id: z.string().min(1).optional(),
+    }).passthrough().optional(),
+  }).passthrough().optional(),
+}).passthrough();
 
 export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   /**
@@ -13,10 +49,7 @@ export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
     '/generate-upi',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const body = request.body as any;
-      if (!body) {
-        throw AppError.badRequest('Request body required', 'MISSING_BODY');
-      }
+      const body = validateSchema(GenerateUpiSchema, request.body);
 
       const vendorId = request.user!.sub;
       const vpa = body.vpa || PaymentService.getVendorVpa(vendorId);
@@ -52,8 +85,8 @@ export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
    * Validates UPI VPA format
    */
   app.post('/vpa-validate', async (request, reply) => {
-    const body = request.body as any;
-    const vpa = body?.vpa;
+    const body = validateSchema(VpaValidateSchema, request.body);
+    const vpa = body.vpa;
 
     const isValid = PaymentService.validateVpa(vpa);
     return reply.status(200).send({
@@ -87,10 +120,7 @@ export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
     '/vpa',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
-      const body = request.body as any;
-      if (!body || !body.vpa) {
-        throw AppError.badRequest('VPA is required', 'MISSING_VPA');
-      }
+      const body = validateSchema(SetVpaSchema, request.body);
 
       const vendorId = request.user!.sub;
       const savedVpa = PaymentService.setVendorVpa(vendorId, body.vpa);
@@ -120,9 +150,9 @@ export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
       }
     }
 
-    const payload = request.body as any;
-    const event = payload?.event || 'payment.captured';
-    const paymentId = payload?.payload?.payment?.entity?.id || 'pay_mock_123';
+    const payload = validateSchema(RazorpayWebhookSchema, request.body);
+    const event = payload.event || 'payment.captured';
+    const paymentId = payload.payload?.payment?.entity?.id || 'pay_mock_123';
 
     return reply.status(200).send({
       status: 'success',
@@ -149,11 +179,11 @@ export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
       }
     }
 
-    const body = request.body as any;
+    const body = validateSchema(CashfreeWebhookSchema, request.body);
     return reply.status(200).send({
       status: 'success',
       received: true,
-      orderId: body?.data?.order?.order_id || 'order_mock_123',
+      orderId: body.data?.order?.order_id || 'order_mock_123',
       message: 'Cashfree webhook processed successfully',
     });
   });

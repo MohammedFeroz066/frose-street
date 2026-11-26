@@ -28,6 +28,12 @@ export interface BuildAppOptions {
   rateLimitMax?: number;
 }
 
+declare module 'fastify' {
+  interface FastifyInstance {
+    froseConfig?: EnvironmentConfig;
+  }
+}
+
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const config = options.config || loadConfig();
 

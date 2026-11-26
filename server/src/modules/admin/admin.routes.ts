@@ -1,7 +1,58 @@
 import type { FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { getDatabase } from '../../db/database.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { validateSchema } from '../auth/auth.schemas.js';
 import { AdminService } from './admin.service.js';
+
+const VendorIdParamSchema = z.object({ id: z.string().min(1).max(100) }).strict();
+const VendorMenuParamSchema = z.object({
+  id: z.string().min(1).max(100),
+  itemId: z.string().min(1).max(100),
+}).strict();
+
+const CreateVendorAdminSchema = z.object({
+  businessName: z.string().min(1).max(120),
+  ownerName: z.string().max(120).optional().default('Stall Owner'),
+  phone: z.string().min(10).max(15),
+  password: z.string().min(6).max(200).optional(),
+  quickPin: z.string().regex(/^\d{4}$/).optional(),
+  city: z.string().max(80).optional(),
+  edition: z.enum(['cloud', 'local']).optional(),
+  subscriptionDays: z.number().int().positive().max(3650).optional(),
+  monthlyFeeRupees: z.number().int().nonnegative().optional(),
+  billingCycle: z.enum(['monthly', 'quarterly', 'annual']).optional(),
+  initialPaymentStatus: z.enum(['paid', 'trial', 'pending']).optional(),
+  upiId: z.string().max(120).optional(),
+}).strict();
+
+const UpdateVendorAdminSchema = z.object({
+  businessName: z.string().min(1).max(120).optional(),
+  ownerName: z.string().max(120).optional(),
+  phone: z.string().min(10).max(15).optional(),
+  city: z.string().max(80).optional(),
+  edition: z.enum(['cloud', 'local']).optional(),
+  subscriptionStatus: z.enum(['trial', 'active', 'expired', 'suspended']).optional(),
+  subscriptionExpiresAt: z.string().min(4).max(64).optional(),
+  password: z.string().min(6).max(200).optional(),
+  quickPin: z.string().regex(/^\d{4}$/).optional(),
+}).strict();
+
+const CreateMenuItemAdminSchema = z.object({
+  name: z.string().min(1).max(120),
+  pricePaise: z.number().int().positive(),
+  category: z.string().min(1).max(80),
+  emojiIcon: z.string().max(16).optional(),
+  colorHex: z.string().max(20).optional(),
+}).strict();
+
+const UpdateMenuItemAdminSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  pricePaise: z.number().int().positive().optional(),
+  category: z.string().min(1).max(80).optional(),
+  isAvailable: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+}).strict();
 
 function serializeBigInt(obj: any): any {
   if (obj === null || obj === undefined) return obj;
@@ -54,8 +105,8 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    */
   app.post('/vendors', async (request, reply) => {
     const db = getDatabase();
-    const body = request.body as any;
-    const result = await AdminService.createVendor(db, body || {});
+    const body = validateSchema(CreateVendorAdminSchema, request.body);
+    const result = await AdminService.createVendor(db, body);
     return reply.status(201).send({
       status: 'success',
       message: 'Restaurant stall onboarded successfully',
@@ -69,9 +120,9 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    */
   app.patch('/vendors/:id', async (request, reply) => {
     const db = getDatabase();
-    const { id } = request.params as { id: string };
-    const body = request.body as any;
-    const updated = await AdminService.updateVendor(db, id, body || {});
+    const { id } = validateSchema(VendorIdParamSchema, request.params);
+    const body = validateSchema(UpdateVendorAdminSchema, request.body);
+    const updated = await AdminService.updateVendor(db, id, body);
     return reply.status(200).send({
       status: 'success',
       message: 'Restaurant stall updated successfully',
@@ -85,7 +136,7 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    */
   app.get('/vendors/:id/menu', async (request, reply) => {
     const db = getDatabase();
-    const { id } = request.params as { id: string };
+    const { id } = validateSchema(VendorIdParamSchema, request.params);
     const menu = await AdminService.getVendorMenu(db, id);
     return reply.status(200).send({
       status: 'success',
@@ -99,9 +150,9 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    */
   app.post('/vendors/:id/menu', async (request, reply) => {
     const db = getDatabase();
-    const { id } = request.params as { id: string };
-    const body = request.body as any;
-    const item = await AdminService.createVendorMenuItem(db, id, body || {});
+    const { id } = validateSchema(VendorIdParamSchema, request.params);
+    const body = validateSchema(CreateMenuItemAdminSchema, request.body);
+    const item = await AdminService.createVendorMenuItem(db, id, body);
     return reply.status(201).send({
       status: 'success',
       message: 'Menu item created successfully',
@@ -115,9 +166,9 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
    */
   app.patch('/vendors/:id/menu/:itemId', async (request, reply) => {
     const db = getDatabase();
-    const { id, itemId } = request.params as { id: string; itemId: string };
-    const body = request.body as any;
-    const updated = await AdminService.updateVendorMenuItem(db, id, itemId, body || {});
+    const { id, itemId } = validateSchema(VendorMenuParamSchema, request.params);
+    const body = validateSchema(UpdateMenuItemAdminSchema, request.body);
+    const updated = await AdminService.updateVendorMenuItem(db, id, itemId, body);
     return reply.status(200).send({
       status: 'success',
       message: 'Menu item updated successfully',

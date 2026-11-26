@@ -1,8 +1,38 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { GallaService } from './galla.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
+import { validateSchema } from '../auth/auth.schemas.js';
 import { getDatabase } from '../../db/database.js';
 import { AppError } from '../../errors/app-error.js';
+
+const LogExpenseSchema = z.object({
+  amountPaise: z.union([z.number(), z.bigint()]).optional(),
+  amount_paise: z.union([z.number(), z.bigint()]).optional(),
+  description: z.string().max(250).optional(),
+  title: z.string().max(250).optional(),
+  category: z.string().max(80).optional(),
+  paymentMethod: z.enum(['cash', 'upi']).optional(),
+  payment_method: z.enum(['cash', 'upi']).optional(),
+  expenseDate: z.string().max(32).optional(),
+  expense_date: z.string().max(32).optional(),
+}).strict();
+
+const DateQuerySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+}).strict();
+
+const ExpenseIdParamSchema = z.object({ id: z.string().min(1).max(100) }).strict();
+
+const CloseDayBodySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  notes: z.string().max(300).optional(),
+}).strict();
+
+const PaginationQuerySchema = z.object({
+  limit: z.string().regex(/^\d+$/).optional(),
+  offset: z.string().regex(/^\d+$/).optional(),
+}).strict();
 
 export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   /**
@@ -14,24 +44,19 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
       const db = getDatabase();
-      const body = request.body as any;
-
-      if (!body) {
-        throw AppError.badRequest('Expense payload is required', 'MISSING_PAYLOAD');
-      }
+      const body = validateSchema(LogExpenseSchema, request.body);
 
       const amountPaise = body.amountPaise ?? body.amount_paise;
-      const description = body.description ?? body.title;
-      const category = body.category;
-      const paymentMethod = body.paymentMethod ?? body.payment_method;
-      const expenseDate = body.expenseDate ?? body.expense_date;
+      if (amountPaise === undefined) {
+        throw AppError.badRequest('Expense amount must be a valid integer in paise', 'INVALID_INTEGER_PAISE');
+      }
 
       const expense = await GallaService.logExpense(db, request.user!.sub, {
         amountPaise,
-        description,
-        category,
-        paymentMethod,
-        expenseDate,
+        description: body.description ?? body.title,
+        category: body.category,
+        paymentMethod: body.paymentMethod ?? body.payment_method,
+        expenseDate: body.expenseDate ?? body.expense_date,
       });
 
       return reply.status(201).send({
@@ -51,7 +76,7 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
       const db = getDatabase();
-      const query = (request.query || {}) as { date?: string };
+      const query = validateSchema(DateQuerySchema, request.query || {});
 
       const result = await GallaService.getExpenses(db, request.user!.sub, query.date);
 
@@ -71,11 +96,7 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
       const db = getDatabase();
-      const params = request.params as { id: string };
-
-      if (!params.id) {
-        throw AppError.badRequest('Expense ID is required', 'MISSING_EXPENSE_ID');
-      }
+      const params = validateSchema(ExpenseIdParamSchema, request.params);
 
       const result = await GallaService.deleteExpense(db, request.user!.sub, params.id);
 
@@ -95,7 +116,7 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
       const db = getDatabase();
-      const query = (request.query || {}) as { date?: string };
+      const query = validateSchema(DateQuerySchema, request.query || {});
 
       const summary = await GallaService.getGallaSummary(db, request.user!.sub, query.date);
 
@@ -115,7 +136,7 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner')] },
     async (request, reply) => {
       const db = getDatabase();
-      const body = (request.body || {}) as { date?: string; notes?: string };
+      const body = validateSchema(CloseDayBodySchema, request.body || {});
 
       const result = await GallaService.closeFiscalDay(db, request.user!.sub, body);
 
@@ -136,7 +157,7 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner')] },
     async (request, reply) => {
       const db = getDatabase();
-      const body = (request.body || {}) as { date?: string; notes?: string };
+      const body = validateSchema(CloseDayBodySchema, request.body || {});
 
       const result = await GallaService.closeFiscalDay(db, request.user!.sub, body);
 
@@ -157,7 +178,7 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner')] },
     async (request, reply) => {
       const db = getDatabase();
-      const query = (request.query || {}) as { limit?: string; offset?: string };
+      const query = validateSchema(PaginationQuerySchema, request.query || {});
 
       const limit = query.limit ? parseInt(query.limit, 10) : 30;
       const offset = query.offset ? parseInt(query.offset, 10) : 0;
@@ -183,7 +204,7 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     { preHandler: [requireAuth, requireRole('owner')] },
     async (request, reply) => {
       const db = getDatabase();
-      const query = (request.query || {}) as { limit?: string; offset?: string };
+      const query = validateSchema(PaginationQuerySchema, request.query || {});
 
       const limit = query.limit ? parseInt(query.limit, 10) : 30;
       const offset = query.offset ? parseInt(query.offset, 10) : 0;

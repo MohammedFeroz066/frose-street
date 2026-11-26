@@ -1,7 +1,18 @@
 import type { FastifyPluginAsync } from 'fastify';
-import { SubscriptionService, type SubscriptionPlan } from './subscription.service.js';
+import { z } from 'zod';
+import { SubscriptionService } from './subscription.service.js';
+import { validateSchema } from '../auth/auth.schemas.js';
 import { AppError } from '../../errors/app-error.js';
 import { getDatabase } from '../../db/database.js';
+
+const RenewSubscriptionSchema = z.object({
+  plan: z.enum(['local', 'cloud']),
+  paymentReference: z.string().max(120).optional(),
+}).strict();
+
+const VerifyTokenSchema = z.object({
+  token: z.string().min(1),
+}).strict();
 
 export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
   /**
@@ -10,7 +21,7 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    */
   app.get('/status', async (req, reply) => {
     const db = getDatabase();
-    let vendorId = (req as any).user?.vendorId || (req as any).user?.sub;
+    let vendorId = req.user?.sub;
 
     // Fallback: If not authenticated in local/test environment, take first vendor from DB
     if (!vendorId) {
@@ -30,11 +41,9 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    * POST /api/v1/subscriptions/renew
    * Renews or upgrades subscription plan via UPI
    */
-  app.post<{
-    Body: { plan: SubscriptionPlan; paymentReference?: string };
-  }>('/renew', async (req, reply) => {
+  app.post('/renew', async (req, reply) => {
     const db = getDatabase();
-    let vendorId = (req as any).user?.vendorId || (req as any).user?.sub;
+    let vendorId = req.user?.sub;
 
     if (!vendorId) {
       const firstVendor = await db.selectFrom('vendors').select('id').limit(1).executeTakeFirst();
@@ -45,10 +54,7 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
       throw AppError.unauthorized('Authentication required to renew subscription');
     }
 
-    const { plan, paymentReference } = req.body || {};
-    if (!plan || (plan !== 'local' && plan !== 'cloud')) {
-      throw AppError.badRequest('Invalid subscription plan. Must be "local" or "cloud"');
-    }
+    const { plan, paymentReference } = validateSchema(RenewSubscriptionSchema, req.body);
 
     const result = await SubscriptionService.renewSubscription(
       db,
@@ -77,13 +83,8 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    * POST /api/v1/subscriptions/verify-token
    * Public/offline endpoint for validating cryptographic Ed25519 license tokens
    */
-  app.post<{
-    Body: { token: string };
-  }>('/verify-token', async (req, reply) => {
-    const { token } = req.body || {};
-    if (!token) {
-      throw AppError.badRequest('License token is required');
-    }
+  app.post('/verify-token', async (req, reply) => {
+    const { token } = validateSchema(VerifyTokenSchema, req.body);
 
     const verification = await SubscriptionService.verifySignedLicenseToken(token);
     return reply.status(200).send(verification);
@@ -93,7 +94,7 @@ export const subscriptionRoutes: FastifyPluginAsync = async (app) => {
    * GET /api/v1/subscriptions/admin/vendors
    * Super-Admin endpoint: lists all vendors with subscription metrics and revenue
    */
-  app.get('/admin/vendors', async (req, reply) => {
+  app.get('/admin/vendors', async (_req, reply) => {
     const db = getDatabase();
     const adminData = await SubscriptionService.getAdminVendorsList(db);
     return reply.status(200).send(adminData);

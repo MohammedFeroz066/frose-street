@@ -3962,12 +3962,8 @@ html.modal-open {
 
 
 /* ==========================================================================
-   APPLE iOS 120FPS FLUID VIEW TRANSITIONS & ZERO-LAG TOUCH INTERACTION
+   APPLE iOS 120FPS FLUID ENTRANCE & ZERO-LAG TOUCH INTERACTION
    ========================================================================== */
-@view-transition {
-  navigation: auto;
-}
-
 html {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;

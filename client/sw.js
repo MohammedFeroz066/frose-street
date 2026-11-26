@@ -7,7 +7,7 @@
  * - Automatic obsolete cache purge on activate
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v51-offline-safety';
+const CACHE_NAME = 'frose-street-v9-production-v52-offline-safety';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const PRECACHE_ASSETS = [
@@ -159,7 +159,14 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(async () => (await caches.match(event.request, { ignoreSearch: true })) || Response.error())
+        .catch(async () => {
+          const cached = await caches.match(event.request, { ignoreSearch: true });
+          if (cached) return cached;
+          if (event.request.destination === 'style' && url.origin !== self.location.origin) {
+            return new Response('', { status: 200, headers: { 'Content-Type': 'text/css' } });
+          }
+          return Response.error();
+        })
     );
     return;
   }
@@ -176,7 +183,12 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => Response.error());
+        .catch(() => {
+          if (url.pathname === '/favicon.ico' || url.origin !== self.location.origin) {
+            return new Response(null, { status: 204 });
+          }
+          return Response.error();
+        });
     })
   );
 });

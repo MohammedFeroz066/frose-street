@@ -15,6 +15,7 @@ import * as m011 from './migrations/011_add_is_superadmin_to_vendors.js';
 import * as m012 from './migrations/012_create_auth_security_tables.js';
 import * as m013 from './migrations/013_align_runtime_schema.js';
 import * as m014 from './migrations/014_rls_roles_and_policies.js';
+import * as m015 from './migrations/015_add_client_order_id_to_orders.js';
 
 export const allMigrations: Record<string, Migration> = {
   '001_create_vendors': m001,
@@ -31,6 +32,7 @@ export const allMigrations: Record<string, Migration> = {
   '012_create_auth_security_tables': m012,
   '013_align_runtime_schema': m013,
   '014_rls_roles_and_policies': m014,
+  '015_add_client_order_id_to_orders': m015,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

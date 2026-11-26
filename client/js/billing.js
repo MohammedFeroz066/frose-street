@@ -14,6 +14,63 @@
   let currentTokenNumber = 1;
   let currentOrderType = 'counter'; // 'counter' | 'dinein'
   let activeVendorId = '';
+  let syncEngine = null;
+
+  function renderSyncStatusBadge(snapshot) {
+    const badge = document.getElementById('pos-sync-status-badge');
+    if (!badge || !window.FroseSafeDom) return;
+    const { el, clear } = window.FroseSafeDom;
+    const state = snapshot?.state || (navigator.onLine ? 'online' : 'offline');
+    const label = snapshot?.label || (navigator.onLine ? 'Online' : 'Offline — 0 pending');
+
+    if (state === 'syncing') {
+      badge.style.background = 'rgba(59, 130, 246, 0.25)';
+      badge.style.borderColor = 'rgba(147, 197, 253, 0.6)';
+      badge.style.color = '#EFF6FF';
+    } else if (state === 'offline' || (snapshot && snapshot.pendingCount > 0)) {
+      badge.style.background = 'rgba(245, 158, 11, 0.25)';
+      badge.style.borderColor = 'rgba(252, 211, 77, 0.65)';
+      badge.style.color = '#FEF3C7';
+    } else {
+      badge.style.background = 'rgba(16, 185, 129, 0.2)';
+      badge.style.borderColor = 'rgba(16, 185, 129, 0.45)';
+      badge.style.color = '#ECFDF5';
+    }
+
+    clear(badge);
+    badge.appendChild(el('span', {}, label));
+  }
+
+  async function initOfflineRuntime() {
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    const storageMod = window.__FROSE_STORAGE__ || {};
+    const vKey = getVendorKey();
+    if (storageMod.SyncEngine && window.FroseIdbStore) {
+      if (!syncEngine) {
+        syncEngine = new storageMod.SyncEngine({
+          store: window.FroseIdbStore,
+          vendorId: vKey,
+          onStatusChange: renderSyncStatusBadge,
+          onOrderSynced: (srvOrder) => {
+            if (srvOrder && typeof srvOrder.tokenNo === 'number') {
+              currentTokenNumber = srvOrder.tokenNo;
+            }
+          }
+        });
+        window.__FROSE_SYNC_ENGINE__ = syncEngine;
+        syncEngine.startListeners();
+      } else {
+        syncEngine.setVendorId(vKey);
+      }
+      await syncEngine.notifyStatus();
+      if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+        syncEngine.flushOutbox().catch(() => {});
+      }
+    }
+  }
 
   function getVendorKey() {
     if (activeVendorId) return activeVendorId;
@@ -635,10 +692,11 @@
     cart.forEach(({ item, quantity }) => {
       totalPaise += item.pricePaise * BigInt(quantity);
       itemsList.push({
+        menuItemId: item.id,
         id: item.id,
         name: item.name,
         quantity,
-        pricePaise: item.pricePaise.toString()
+        pricePaise: Number(item.pricePaise)
       });
       apiItems.push({
         menuItemId: item.id,
@@ -646,20 +704,34 @@
       });
     });
 
+    const storageMod = window.__FROSE_STORAGE__ || {};
+    const clientOrderId = typeof storageMod.generateUuidV4 === 'function'
+      ? storageMod.generateUuidV4()
+      : (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function' ? globalThis.crypto.randomUUID() : ('ord-' + Date.now()));
+    const createdAtClient = new Date().toISOString();
+    const paymentMethodNormalized = String(method || 'cash').toLowerCase() === 'upi' ? 'upi' : 'cash';
+
     let serverOrder = null;
-    if (localStorage.getItem('frose_session_active') && apiItems.length > 0) {
+    let shouldQueueOffline = (typeof navigator !== 'undefined' && navigator.onLine === false);
+
+    if (!shouldQueueOffline && localStorage.getItem('frose_session_active') && apiItems.length > 0) {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timerId = controller ? setTimeout(() => controller.abort(), 4000) : null;
       try {
         const fn = window.froseApiFetch || fetch;
         const res = await fn('/api/v1/orders', {
           method: 'POST',
           credentials: 'same-origin',
+          signal: controller ? controller.signal : undefined,
           headers: {
             'Content-Type': 'application/json',
             'X-FROSE-CSRF': '1'
           },
           body: JSON.stringify({
+            clientOrderId,
+            createdAtClient,
             items: apiItems,
-            paymentMethod: String(method || 'cash').toLowerCase() === 'upi' ? 'upi' : 'cash',
+            paymentMethod: paymentMethodNormalized,
             paymentStatus: 'paid',
             source: 'pos'
           })
@@ -667,12 +739,79 @@
         if (res && res.ok) {
           const json = await res.json();
           if (json && json.order) serverOrder = json.order;
+        } else if (res && res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
+          let errMsg = 'Order rejected by server';
+          try {
+            const errJson = await res.json();
+            errMsg = errJson?.message || errJson?.error?.message || errMsg;
+          } catch (_) {}
+          alert(`❌ ${errMsg}`);
+          return;
+        } else {
+          shouldQueueOffline = true;
         }
-      } catch (_) {}
+      } catch (_) {
+        shouldQueueOffline = true;
+      } finally {
+        if (timerId) clearTimeout(timerId);
+      }
+    } else if (!localStorage.getItem('frose_session_active')) {
+      shouldQueueOffline = true;
     }
 
-    currentTokenNumber = serverOrder?.tokenNo ?? (currentTokenNumber + 1);
-    const tokenStr = `TOKEN #${currentTokenNumber}`;
+    let orderData = null;
+    let tokenStr = '';
+
+    if (serverOrder) {
+      currentTokenNumber = serverOrder.tokenNo ?? (currentTokenNumber + 1);
+      tokenStr = `TOKEN #${currentTokenNumber}`;
+      orderData = {
+        ...serverOrder,
+        client_order_id: serverOrder.clientOrderId || clientOrderId,
+        orderType: currentOrderType,
+        items: itemsList,
+        totalPaise: Number(totalPaise),
+        syncStatus: 'synced'
+      };
+      if (window.FroseIdbStore) {
+        try {
+          await window.FroseIdbStore.saveOrder(getVendorKey(), orderData);
+        } catch (_) {}
+      }
+    } else if (shouldQueueOffline && syncEngine) {
+      try {
+        const offlineRes = await syncEngine.queueOfflineOrder({
+          vendorId: getVendorKey(),
+          clientOrderId,
+          createdAtClient,
+          items: itemsList,
+          totalPaise: Number(totalPaise),
+          paymentMethod: paymentMethodNormalized,
+          paymentStatus: 'paid',
+          orderType: currentOrderType
+        });
+        orderData = offlineRes.order;
+        tokenStr = `TOKEN ${orderData.localTokenDisplay || ('OFF-' + String(orderData.tokenNo).padStart(2, '0'))}`;
+      } catch (licErr) {
+        alert(`🔒 ${licErr?.message || 'Offline billing blocked: valid offline license required.'}`);
+        return;
+      }
+    } else {
+      currentTokenNumber = currentTokenNumber + 1;
+      tokenStr = `TOKEN #${currentTokenNumber}`;
+      orderData = {
+        id: clientOrderId,
+        client_order_id: clientOrderId,
+        tokenNo: currentTokenNumber,
+        orderType: currentOrderType,
+        items: itemsList,
+        totalPaise: Number(totalPaise),
+        paymentMethod: paymentMethodNormalized,
+        status: 'pending',
+        syncStatus: 'pending',
+        createdAt: createdAtClient
+      };
+    }
 
     // Flash Token Modal
     const fToken = document.getElementById('flash-token-number');
@@ -681,32 +820,8 @@
     const fAmount = document.getElementById('flash-token-amount');
     if (fAmount) fAmount.textContent = `${formatRupees(totalPaise)} Paid (${method})`;
 
-    // Persist order in durable IndexedDB + notify same-origin BroadcastChannel
-    const orderData = serverOrder || {
-      id: 'ord-' + Date.now(),
-      client_order_id: 'ord-' + Date.now(),
-      tokenNo: currentTokenNumber,
-      tokenNumber: currentTokenNumber,
-      orderType: currentOrderType, // 'counter' | 'dinein'
-      items: itemsList.map(it => ({ ...it, pricePaise: Number(it.pricePaise) })),
-      totalPaise: Number(totalPaise),
-      paymentMethod: method,
-      status: 'pending',
-      syncStatus: serverOrder ? 'synced' : 'pending',
-      createdAt: new Date().toISOString()
-    };
-
     try {
-      if (window.FroseIdbStore) {
-        await window.FroseIdbStore.saveOrder(getVendorKey(), {
-          ...orderData,
-          client_order_id: orderData.client_order_id || orderData.id,
-          totalPaise: Number(totalPaise),
-          items: itemsList.map(it => ({ ...it, pricePaise: Number(it.pricePaise) })),
-          syncStatus: serverOrder ? 'synced' : 'pending'
-        });
-      }
-      if (typeof BroadcastChannel !== 'undefined') {
+      if (typeof BroadcastChannel !== 'undefined' && orderData) {
         const orderChannel = new BroadcastChannel('frose_orders');
         orderChannel.postMessage({ event: 'order:new', data: orderData });
       }
@@ -916,8 +1031,18 @@
     }
   };
 
+  let _licenseSyncedInSession = false;
+
   async function refreshPOS() {
     await loadCatalog();
+    await initOfflineRuntime();
+    if (!_licenseSyncedInSession && localStorage.getItem('frose_session_active') && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+      _licenseSyncedInSession = true;
+      const storageMod = window.__FROSE_STORAGE__ || {};
+      if (storageMod.LicenseManager) {
+        storageMod.LicenseManager.syncLicenseFromServer(getVendorKey()).catch(() => {});
+      }
+    }
     renderDishesGrid();
     updateCartUI();
     populateProfileInfo();

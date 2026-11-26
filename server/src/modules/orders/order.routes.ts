@@ -17,6 +17,8 @@ const CreateOrderSchema = z.object({
   customerPhone: z.string().max(20).optional(),
   notes: z.string().max(300).optional(),
   source: z.enum(['pos', 'qr_customer', 'online']).optional(),
+  clientOrderId: z.string().uuid().optional(),
+  createdAtClient: z.string().datetime().optional(),
 }).strict();
 
 const OrderHistoryQuerySchema = z.object({
@@ -43,11 +45,12 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     async (request, reply) => {
       const body = validateSchema(CreateOrderSchema, request.body);
 
-      const order = await withTenantContext(request.user!.sub, (db) =>
+      const result = await withTenantContext(request.user!.sub, (db) =>
         OrderService.createOrder(db, request.user!.sub, body),
       );
 
-      return reply.status(201).send({
+      const { idempotentReplay, ...order } = result as any;
+      return reply.status(idempotentReplay ? 200 : 201).send({
         status: 'success',
         message: `Order punched successfully: Token #${order.tokenNo}`,
         order,

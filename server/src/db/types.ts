@@ -83,6 +83,8 @@ export interface OrdersTable {
   order_status: 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
   notes: string | null;
   source: 'pos' | 'qr_customer' | 'online';
+  client_order_id?: string | null;
+  created_at_client?: Timestamp | null;
   created_at: Generated<Timestamp>;
   updated_at: Generated<Timestamp>;
 }

@@ -779,6 +779,332 @@
       }
       return { token, publicKeyPem, vendorId };
     }
+
+    /**
+     * Fetches and verifies the vendor's Ed25519 offline license + public key from the backend
+     * and caches them in IndexedDB meta store for offline POS gating.
+     */
+    static async syncLicenseFromServer(vendorId, baseUrl = '') {
+      const fetchFn = globalThis.froseApiFetch || (typeof fetch === 'function' ? fetch : null);
+      if (!fetchFn) return null;
+      try {
+        const [statusRes, publicKeyPem] = await Promise.all([
+          fetchFn(`${baseUrl}/api/v1/subscriptions/status`, { credentials: 'same-origin' }),
+          LicenseManager.getPublicKeyPem(baseUrl)
+        ]);
+        if (!statusRes || !statusRes.ok) return null;
+        const statusData = await statusRes.json();
+        const token = statusData && statusData.licenseToken;
+        if (!token || !publicKeyPem) return null;
+
+        const verification = await LicenseManager.verifyLicense(token, publicKeyPem);
+        if (verification && verification.valid) {
+          await LicenseManager.saveLicense(token, {
+            vendorId: vendorId || statusData.vendorId,
+            publicKeyPem
+          });
+        }
+        return { ...verification, token, publicKeyPem };
+      } catch (_) {
+        return null;
+      }
+    }
+  }
+
+  function generateUuidV4() {
+    if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+      return globalThis.crypto.randomUUID();
+    }
+    if (globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function') {
+      const bytes = new Uint8Array(16);
+      globalThis.crypto.getRandomValues(bytes);
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+    throw new Error('Secure random UUID generator unavailable');
+  }
+
+  // =========================================================================
+  // Offline Sync Engine (FIFO Outbox, Bounded Exponential Backoff, Ed25519 Gate)
+  // =========================================================================
+  class SyncEngine {
+    constructor(options = {}) {
+      this.store = options.store || globalThis.FroseIdbStore;
+      this.vendorId = options.vendorId || '';
+      this.fetchImpl = options.fetchImpl || ((url, opts) => {
+        const fn = globalThis.froseApiFetch || fetch;
+        return fn(url, opts);
+      });
+      this.onStatusChange = typeof options.onStatusChange === 'function' ? options.onStatusChange : () => {};
+      this.onOrderSynced = typeof options.onOrderSynced === 'function' ? options.onOrderSynced : () => {};
+      this.baseRetryDelayMs = Number(options.baseRetryDelayMs || 1500);
+      this.maxRetryDelayMs = Number(options.maxRetryDelayMs || 60000);
+      this._flushingPromise = null;
+      this._retryTimer = null;
+      this._listenersBound = false;
+    }
+
+    setVendorId(vendorId) {
+      if (vendorId) this.vendorId = String(vendorId);
+    }
+
+    async verifyOfflineLicense() {
+      const bundle = await LicenseManager.getCachedLicenseBundle();
+      if (!bundle || !bundle.token) {
+        return {
+          valid: false,
+          isReadOnly: true,
+          canCreateOrders: false,
+          reason: 'Offline license not cached; connect online once to verify subscription'
+        };
+      }
+      return LicenseManager.verifyLicense(bundle.token, bundle.publicKeyPem);
+    }
+
+    async getStatusSnapshot() {
+      if (!this.store || !this.vendorId) {
+        const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+        return { state: isOnline ? 'online' : 'offline', pendingCount: 0, failedCount: 0, label: isOnline ? 'Online' : 'Offline — 0 pending' };
+      }
+      const outbox = await this.store.getOutbox(this.vendorId);
+      const pendingCount = outbox.filter((e) => e.status === 'pending' || e.status === 'syncing').length;
+      const failedCount = outbox.filter((e) => e.status === 'failed').length;
+      const isSyncing = outbox.some((e) => e.status === 'syncing');
+      const isOnline = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+
+      let state = isOnline ? 'online' : 'offline';
+      let label = 'Online';
+      if (isSyncing) {
+        state = 'syncing';
+        label = `Syncing... (${pendingCount} pending)`;
+      } else if (!isOnline) {
+        state = 'offline';
+        label = `Offline — ${pendingCount} pending`;
+      } else if (pendingCount > 0) {
+        state = 'pending';
+        label = `Online — ${pendingCount} pending`;
+      }
+      return { state, pendingCount, failedCount, label };
+    }
+
+    async notifyStatus(override) {
+      const snap = await this.getStatusSnapshot();
+      this.onStatusChange(override ? { ...snap, ...override } : snap);
+    }
+
+    async queueOfflineOrder(input) {
+      if (!this.store) {
+        throw new Error('IndexedDB store unavailable for offline order capture');
+      }
+      const vendorId = String(input.vendorId || this.vendorId || '');
+      if (!vendorId) {
+        throw new Error('Vendor ID is required for offline order capture');
+      }
+      this.vendorId = vendorId;
+
+      const licenseResult = await this.verifyOfflineLicense();
+      if (!licenseResult || !licenseResult.valid || !licenseResult.canCreateOrders) {
+        throw new Error(licenseResult?.reason || 'Offline billing blocked: subscription license expired or invalid');
+      }
+
+      const clientOrderId = input.clientOrderId || generateUuidV4();
+      const createdAtClient = input.createdAtClient || new Date().toISOString();
+      const istDate = this.store.getIstDateString(createdAtClient);
+      const localSeq = await this.store.getNextOfflineToken(vendorId, istDate);
+      const localTokenDisplay = `OFF-${String(localSeq).padStart(2, '0')}`;
+
+      const items = (input.items || []).map((it) => ({
+        menuItemId: String(it.menuItemId || it.id),
+        name: String(it.name || ''),
+        quantity: Number(it.quantity || 1),
+        pricePaise: this.store.toSafeIntegerPaise(it.pricePaise, 'item.pricePaise')
+      }));
+
+      const totalPaise = this.store.toSafeIntegerPaise(input.totalPaise, 'order.totalPaise');
+      const paymentMethod = String(input.paymentMethod || 'cash').toLowerCase() === 'upi' ? 'upi' : 'cash';
+      const paymentStatus = input.paymentStatus || 'paid';
+
+      const orderRecord = {
+        client_order_id: clientOrderId,
+        id: clientOrderId,
+        vendor_id: vendorId,
+        tokenNo: localSeq,
+        tokenDisplay: localTokenDisplay,
+        localTokenDisplay,
+        items,
+        totalPaise,
+        paymentMethod,
+        paymentStatus,
+        orderType: input.orderType || 'counter',
+        status: 'pending',
+        syncStatus: 'pending',
+        createdAt: createdAtClient,
+        updatedAt: createdAtClient
+      };
+
+      const apiPayload = {
+        clientOrderId,
+        createdAtClient,
+        items: items.map((it) => ({ menuItemId: it.menuItemId, quantity: it.quantity })),
+        paymentMethod,
+        paymentStatus,
+        source: 'pos'
+      };
+
+      const outboxRecord = {
+        client_order_id: clientOrderId,
+        vendor_id: vendorId,
+        payload: apiPayload,
+        status: 'pending',
+        retryCount: 0,
+        lastError: null,
+        nextRetryAt: 0,
+        createdAt: createdAtClient,
+        updatedAt: createdAtClient
+      };
+
+      const saved = await this.store.recordOfflineOrderAtomic(vendorId, orderRecord, outboxRecord);
+      await this.notifyStatus();
+      return { ok: true, order: saved.order, outbox: saved.outbox };
+    }
+
+    async flushOutbox(options = {}) {
+      if (this._flushingPromise) return this._flushingPromise;
+      const force = Boolean(options && options.force);
+      const run = async () => {
+        if (!this.store || !this.vendorId) return { synced: 0, failed: 0, deferred: 0 };
+        if (!force && typeof navigator !== 'undefined' && navigator.onLine === false) {
+          await this.notifyStatus();
+          return { synced: 0, failed: 0, deferred: 0 };
+        }
+
+        const queue = await this.store.getOutbox(this.vendorId, ['pending', 'syncing']);
+        let synced = 0;
+        let failed = 0;
+        let deferred = 0;
+
+        for (const entry of queue) {
+          if (!force && entry.nextRetryAt && entry.nextRetryAt > Date.now()) {
+            deferred++;
+            continue;
+          }
+
+          await this.store.updateOutboxItem(entry.client_order_id, { status: 'syncing' });
+          await this.notifyStatus({ state: 'syncing', label: 'Syncing...' });
+
+          try {
+            const res = await this.fetchImpl('/api/v1/orders', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-FROSE-CSRF': '1'
+              },
+              body: JSON.stringify(entry.payload)
+            });
+
+            if (res && res.ok) {
+              let data = null;
+              try { data = await res.json(); } catch (_) {}
+              const srvOrder = data && data.order ? data.order : null;
+              await this.store.updateOutboxItem(entry.client_order_id, {
+                status: 'synced',
+                lastError: null
+              });
+              await this.store.updateOrder(entry.client_order_id, {
+                id: srvOrder?.id || entry.client_order_id,
+                tokenNo: srvOrder?.tokenNo ?? null,
+                tokenDisplay: srvOrder?.tokenDisplay || (srvOrder?.tokenNo ? `#${srvOrder.tokenNo}` : ''),
+                syncStatus: 'synced'
+              });
+              synced++;
+              try { this.onOrderSynced(srvOrder, entry); } catch (_) {}
+              continue;
+            }
+
+            const status = res ? res.status : 0;
+            if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
+              let errText = `HTTP ${status}`;
+              try {
+                const errJson = await res.json();
+                errText = errJson?.message || errJson?.error?.message || errText;
+              } catch (_) {}
+              await this.store.updateOutboxItem(entry.client_order_id, {
+                status: 'failed',
+                lastError: errText
+              });
+              await this.store.updateOrder(entry.client_order_id, { syncStatus: 'failed' });
+              failed++;
+              continue;
+            }
+
+            // Transient 5xx / 429 / 408 error: bounded exponential backoff
+            const nextRetryCount = (entry.retryCount || 0) + 1;
+            const delayMs = Math.min(this.maxRetryDelayMs, this.baseRetryDelayMs * Math.pow(2, nextRetryCount));
+            await this.store.updateOutboxItem(entry.client_order_id, {
+              status: 'pending',
+              retryCount: nextRetryCount,
+              lastError: `HTTP ${status || 'NETWORK'}`,
+              nextRetryAt: Date.now() + delayMs
+            });
+            deferred++;
+            this._scheduleRetry(delayMs);
+            break;
+          } catch (err) {
+            const nextRetryCount = (entry.retryCount || 0) + 1;
+            const delayMs = Math.min(this.maxRetryDelayMs, this.baseRetryDelayMs * Math.pow(2, nextRetryCount));
+            await this.store.updateOutboxItem(entry.client_order_id, {
+              status: 'pending',
+              retryCount: nextRetryCount,
+              lastError: err?.message || 'Network error',
+              nextRetryAt: Date.now() + delayMs
+            });
+            deferred++;
+            this._scheduleRetry(delayMs);
+            break;
+          }
+        }
+
+        await this.notifyStatus();
+        return { synced, failed, deferred };
+      };
+
+      this._flushingPromise = run().finally(() => {
+        this._flushingPromise = null;
+      });
+      return this._flushingPromise;
+    }
+
+    _scheduleRetry(delayMs) {
+      if (typeof setTimeout !== 'function') return;
+      if (this._retryTimer) clearTimeout(this._retryTimer);
+      this._retryTimer = setTimeout(() => {
+        this._retryTimer = null;
+        this.flushOutbox();
+      }, delayMs);
+    }
+
+    startListeners() {
+      if (this._listenersBound || typeof window === 'undefined') return;
+      this._listenersBound = true;
+      window.addEventListener('online', () => {
+        this.notifyStatus();
+        this.flushOutbox({ force: true });
+      });
+      window.addEventListener('offline', () => {
+        this.notifyStatus();
+      });
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+            this.flushOutbox();
+          }
+        });
+      }
+      this.notifyStatus();
+    }
   }
 
   // Export module for both browser and Node/Vitest
@@ -787,7 +1113,9 @@
     LocalIndexedDBAdapter,
     CloudHttpAdapter,
     DataAdapterFactory,
-    LicenseManager
+    LicenseManager,
+    SyncEngine,
+    generateUuidV4
   };
 
   global.__FROSE_STORAGE__ = StorageModule;
@@ -805,4 +1133,6 @@ export const LocalIndexedDBAdapter = globalThis.__FROSE_STORAGE__?.LocalIndexedD
 export const CloudHttpAdapter = globalThis.__FROSE_STORAGE__?.CloudHttpAdapter;
 export const DataAdapterFactory = globalThis.__FROSE_STORAGE__?.DataAdapterFactory;
 export const LicenseManager = globalThis.__FROSE_STORAGE__?.LicenseManager;
+export const SyncEngine = globalThis.__FROSE_STORAGE__?.SyncEngine;
+export const generateUuidV4 = globalThis.__FROSE_STORAGE__?.generateUuidV4;
 export default globalThis.__FROSE_STORAGE__;

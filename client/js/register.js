@@ -378,7 +378,7 @@
           return;
         }
 
-        // Store active stall info in local storage for instant offline access (wipe any prior tenant cache)
+        // Store active stall info & enforce vendor-scoped IndexedDB isolation (wipe any prior tenant)
         try {
           localStorage.removeItem('frose_vendors_directory');
           localStorage.removeItem('frose_dishes_active');
@@ -388,6 +388,10 @@
           localStorage.setItem('frose_stall_name', data.vendor.businessName);
           localStorage.setItem('frose_stall_phone', data.vendor.phone);
           localStorage.setItem('frose_session_active', '1');
+          if (window.FroseIdbStore && data.vendor && data.vendor.id) {
+            await window.FroseIdbStore.ensureVendorScope(data.vendor.id);
+            await window.FroseIdbStore.setMeta('vendor_profile', { vendor_id: data.vendor.id, value: data.vendor });
+          }
         } catch {
           // LocalStorage fallback
         }

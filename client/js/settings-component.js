@@ -459,7 +459,14 @@
   };
 
   // Force Cloud Sync
-  window.forceCloudSync = function () {
+  window.forceCloudSync = async function () {
+    const engine = window.__FROSE_SYNC_ENGINE__;
+    if (engine && typeof engine.flushOutbox === 'function') {
+      const res = await engine.flushOutbox({ force: true });
+      const snap = await engine.getStatusSnapshot();
+      showToast(`☁️ Sync Complete: ${res.synced} synced, ${snap.pendingCount} pending`);
+      return;
+    }
     showToast('☁️ Cloud Telemetry Sync Completed: 0 pending mutations');
   };
 

@@ -115,8 +115,22 @@ export declare class LicenseManager {
   static decodeToken(token: string): LicenseValidationResult;
   static getPublicKeyPem(baseUrl?: string): Promise<string | null>;
   static verifyLicense(token: string, publicKeyPem?: string): Promise<LicenseValidationResult>;
-  static saveLicense(token: string): void;
-  static getCachedLicense(): string | null;
+  static saveLicense(token: string, extra?: { vendorId?: string; publicKeyPem?: string }): Promise<void>;
+  static getCachedLicense(): Promise<string | null>;
+  static getCachedLicenseBundle(): Promise<{ token: string | null; publicKeyPem: string | null; vendorId: string | null }>;
+  static syncLicenseFromServer(vendorId?: string, baseUrl?: string): Promise<any>;
 }
+
+export declare class SyncEngine {
+  constructor(options?: any);
+  setVendorId(vendorId: string): void;
+  verifyOfflineLicense(): Promise<LicenseValidationResult>;
+  getStatusSnapshot(): Promise<{ state: string; pendingCount: number; failedCount: number; label: string }>;
+  queueOfflineOrder(input: any): Promise<any>;
+  flushOutbox(options?: { force?: boolean }): Promise<{ synced: number; failed: number; deferred: number }>;
+  startListeners(): void;
+}
+
+export declare function generateUuidV4(): string;
 
 export const LicenseManager: typeof LicenseManager;

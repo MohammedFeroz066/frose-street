@@ -1,4 +1,4 @@
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import type { StaffRole } from '../../../../shared/types/index.js';
 import { AppError } from '../../errors/app-error.js';
@@ -19,6 +19,8 @@ export interface CreateOrderInput {
   customerPhone?: string;
   notes?: string;
   source?: 'pos' | 'qr_customer' | 'online';
+  clientOrderId?: string;
+  createdAtClient?: string;
 }
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
@@ -47,15 +49,70 @@ export class OrderService {
       throw AppError.badRequest('Invalid payment method. Allowed: cash, upi, split', 'INVALID_PAYMENT_METHOD');
     }
 
-    // 1. Fetch vendor to manage atomic token counter and check daily rollover
-    const vendor = await db
-      .selectFrom('vendors')
-      .selectAll()
-      .where('id', '=', vendorId)
-      .executeTakeFirst();
+    // 1. Fetch vendor (with row-level lock on PostgreSQL to serialize concurrent token & idempotency checks)
+    const isRealPg = process.env.USE_MEMORY_DB !== 'true' && typeof (db as any)?.getExecutor === 'function';
+    let vendor: any;
+    if (isRealPg) {
+      const locked = await sql<any>`SELECT * FROM vendors WHERE id = ${vendorId} FOR UPDATE`.execute(db);
+      vendor = locked.rows[0];
+    } else {
+      vendor = await db
+        .selectFrom('vendors')
+        .selectAll()
+        .where('id', '=', vendorId)
+        .executeTakeFirst();
+    }
 
     if (!vendor) {
       throw AppError.notFound('Vendor stall not found', 'VENDOR_NOT_FOUND');
+    }
+
+    // 1b. Idempotency check BEFORE incrementing daily token counter or double-counting Galla
+    const clientOrderId = input.clientOrderId ? input.clientOrderId.trim() : null;
+    if (clientOrderId) {
+      const existingOrder = await db
+        .selectFrom('orders')
+        .selectAll()
+        .where('vendor_id', '=', vendorId)
+        .where('client_order_id', '=', clientOrderId)
+        .executeTakeFirst();
+
+      if (existingOrder) {
+        const existingItems = await db
+          .selectFrom('order_items')
+          .selectAll()
+          .where('order_id', '=', existingOrder.id)
+          .execute();
+
+        return {
+          id: existingOrder.id,
+          vendorId: existingOrder.vendor_id,
+          tokenNo: existingOrder.token_no,
+          tokenDisplay: `#${existingOrder.token_no}`,
+          totalPaise: Number(existingOrder.total_paise),
+          totalRupees: Number(existingOrder.total_paise) / 100,
+          paymentMethod: existingOrder.payment_method,
+          paymentStatus: existingOrder.payment_status,
+          orderStatus: existingOrder.order_status,
+          customerName: existingOrder.customer_name,
+          customerPhone: existingOrder.customer_phone,
+          notes: existingOrder.notes,
+          source: existingOrder.source,
+          clientOrderId: existingOrder.client_order_id ?? clientOrderId,
+          createdAtClient: existingOrder.created_at_client ?? null,
+          items: existingItems.map((i) => ({
+            id: i.id,
+            menuItemId: i.menu_item_id,
+            itemName: i.item_name,
+            quantity: i.quantity,
+            unitPricePaise: Number(i.unit_price_paise),
+            lineTotalPaise: Number(i.line_total_paise),
+            notes: i.notes,
+          })),
+          createdAt: existingOrder.created_at,
+          idempotentReplay: true,
+        };
+      }
     }
 
     // Verify subscription status (read-only lock if grace period has expired)
@@ -161,6 +218,8 @@ export class OrderService {
         order_status: initialStatus,
         notes: input.notes?.trim() || null,
         source: input.source || 'pos',
+        client_order_id: clientOrderId,
+        created_at_client: input.createdAtClient ? new Date(input.createdAtClient) : null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -207,6 +266,8 @@ export class OrderService {
       customerPhone: order.customer_phone,
       notes: order.notes,
       source: order.source,
+      clientOrderId: order.client_order_id ?? null,
+      createdAtClient: order.created_at_client ?? null,
       items: insertedLineItems,
       createdAt: order.created_at,
     };

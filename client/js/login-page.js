@@ -65,7 +65,7 @@
     }, 1000);
   }
 
-  function handleAuthSuccess(data) {
+  async function handleAuthSuccess(data) {
     localStorage.removeItem('frose_auth_token');
     localStorage.removeItem('frose_vendors_directory');
     localStorage.removeItem('frose_dishes_active');
@@ -77,6 +77,12 @@
       if (data.vendor.businessName) localStorage.setItem('frose_stall_name', data.vendor.businessName);
       if (data.vendor.phone) localStorage.setItem('frose_stall_phone', data.vendor.phone);
       if (data.vendor.upiId) localStorage.setItem('frose_vendor_vpa', data.vendor.upiId);
+      if (window.FroseIdbStore && data.vendor.id) {
+        try {
+          await window.FroseIdbStore.ensureVendorScope(data.vendor.id);
+          await window.FroseIdbStore.setMeta('vendor_profile', { vendor_id: data.vendor.id, value: data.vendor });
+        } catch (_) {}
+      }
     }
     var isSuper = data.isSuperadmin || data.role === 'superadmin' || (data.vendor && (data.vendor.role === 'superadmin' || data.vendor.isSuperadmin));
     if (isSuper) {

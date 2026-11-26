@@ -242,6 +242,22 @@ A forensic comparison between the claimed manual specification and the real repo
 ---
 
 ## 6. VERIFICATION STATUS & CONCLUSION
-- **Codebase Modification Status:** ZERO production/application files modified in Phase 0 (Audit only).
-- **Branch:** `audit/security-architecture-ux-phase0`
-- **Next Step:** Awaiting user review and authorization to proceed to **Phase 1: Security Fixes**.
+- **Phase 0 Baseline:** Initial audit captured on `audit/security-architecture-ux-phase0` (zero app edits during Phase 0).
+- **Active Branch:** `phase1/security-hardening`
+
+### Step 1B Hardening Status (COMPLETE — Awaiting Step 1C Sign-Off)
+All Step 1B server and client auth/session/crypto remediation commits are complete and verified cleanly (all credentials, phone numbers, and UPI VPAs redacted):
+
+#### Patch 1B-1 (Server Auth, Cookie Hardening, CSRF, `jose` HS256 & Ed25519)
+- `5bd7b4c` — `SEC-14-CLEANUP`: Purged remaining hardcoded VPA, password, and license secret fallbacks.
+- `0d5596a` — `SEC-05-CSRF-FIX`: Enforced exact hostname `localhost` / `127.0.0.1` origin validation and rejected wildcard `*` CORS in production.
+- `7b6b827` — `SEC-05-COOKIE-HARDEN`: Enforced `__Host-` prefixed HttpOnly `SameSite=Strict` cookies in production, dropped legacy cookies, and stopped leaking access/refresh tokens in JSON payloads.
+- `da69fcf` — `SEC-02-WIRE-JOSE`: Wired Ed25519 (`EdDSA`) offline subscription licenses, retired legacy `@fastify/jwt` / `jwt.ts` from auth and devices, and enforced strict auth Zod schemas (`is_superadmin` stripped/rejected).
+- `98d7647` — `SEC-05-COOKIE-HARDEN`: Updated login-security and superadmin unit tests for cookie-only sessions.
+
+#### Patch 1B-2 (Client Cookie/CSRF Consolidation & Browser Ed25519 Verification)
+- `3161994` — `SEC-14-CF-DELETE`: Deleted Cloudflare Pages mock catch-all auth handlers (`functions/api/[[path]].js`, `client/functions/api/[[path]].js`) and client fallback auth code in `login.html`.
+- `05540e6` — `SEC-05-CLIENT-AUTH`: Added classic-script-safe `client/js/api-client.js` with `credentials: 'same-origin'`, `X-FROSE-CSRF: 1` on mutating requests, single-flight `401 -> POST /api/v1/auth/refresh -> retry` coalescing, `/login.html` redirect + session clear on refresh failure; wired across `admin.html`, `admin.js`, `menu-setup.html`, `app.js`, `billing.js`, `register.js`, `storage-adapter.js`, `login.html`, `kitchen.js`, `packaging.js`, and `index.html`; removed client HTTP `Authorization: Bearer` headers, hardcoded admin form default credentials, and disabled `/api/v1/auth/pin-login` calls.
+- `52e7585` — `SEC-02-BROWSER-ED25519`: Upgraded `LicenseManager` in `client/js/storage-adapter.js` to verify Ed25519 (`EdDSA`) offline license JWTs using WebCrypto `crypto.subtle` (`importKey('spki', ...)` + `verify('Ed25519', ...)`) with `GET /api/v1/subscriptions/public-key`, failing closed on tampered/unsigned/`alg !== 'EdDSA'`/expired tokens or unavailable `crypto.subtle`.
+
+- **Next Permitted Step:** Stopped for Project Head sign-off before starting **Step 1C** (`@fastify/helmet`, CORS rewrite, route-wide Zod schemas, WebSocket `?token=` removal).

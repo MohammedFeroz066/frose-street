@@ -85,9 +85,17 @@
       if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
 
       var settled = false;
+      var inputNode = null;
+      function onKeyDown(e) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          finish(options.returnObject ? { confirmed: false, value: '' } : false);
+        }
+      }
       function finish(result) {
         if (settled) return;
         settled = true;
+        global.document.removeEventListener('keydown', onKeyDown);
         if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
         var remaining = global.document.querySelectorAll('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active');
         if (remaining.length === 0) {
@@ -97,36 +105,67 @@
         resolve(result);
       }
 
+      var bodyNodes = [
+        dom.el('div', { class: 'saas-sheet-handle' }),
+        dom.el('h3', { style: 'margin: 0 0 8px 0; font-size: 17px; font-weight: 800;' }, options.title || 'Confirm Action'),
+        dom.el('p', { style: 'margin: 0 0 14px 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;' }, options.message || 'Are you sure?'),
+      ];
+
+      if (options.inputLabel) {
+        inputNode = dom.el('input', {
+          type: 'text',
+          class: 'saas-input',
+          placeholder: options.inputPlaceholder || '',
+          value: options.inputDefault || '',
+          style: 'margin-bottom: 14px;',
+        });
+        bodyNodes.push(
+          dom.el('label', { class: 'saas-label', style: 'display: block; margin-bottom: 6px;' }, options.inputLabel),
+          inputNode
+        );
+      }
+
+      bodyNodes.push(
+        dom.el('div', { style: 'display: grid; grid-template-columns: 1fr 1fr; gap: 10px;' }, [
+          dom.el('button', {
+            type: 'button',
+            class: 'saas-btn saas-btn-secondary',
+            on: { click: function () { finish(options.returnObject ? { confirmed: false, value: '' } : false); } },
+          }, options.cancelLabel || 'Cancel'),
+          dom.el('button', {
+            type: 'button',
+            class: options.danger ? 'saas-btn saas-btn-danger' : 'saas-btn saas-btn-primary',
+            on: {
+              click: function () {
+                var val = inputNode ? String(inputNode.value || '').trim() : '';
+                if (options.inputRequired && !val) {
+                  if (inputNode) inputNode.focus();
+                  showToast(options.inputRequiredMessage || 'Please enter a reason to continue', 'warning');
+                  return;
+                }
+                finish(options.returnObject ? { confirmed: true, value: val } : true);
+              },
+            },
+          }, options.confirmLabel || 'Confirm'),
+        ])
+      );
+
       var backdrop = dom.el('div', {
         id: 'frose-confirm-modal',
         class: 'saas-sheet-backdrop active',
         on: {
           click: function (e) {
-            if (e.target === backdrop) finish(false);
+            if (e.target === backdrop) finish(options.returnObject ? { confirmed: false, value: '' } : false);
           },
         },
       }, [
-        dom.el('div', { class: 'saas-sheet', role: 'dialog', 'aria-modal': 'true' }, [
-          dom.el('div', { class: 'saas-sheet-handle' }),
-          dom.el('h3', { style: 'margin: 0 0 8px 0; font-size: 17px; font-weight: 800;' }, options.title || 'Confirm Action'),
-          dom.el('p', { style: 'margin: 0 0 18px 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;' }, options.message || 'Are you sure?'),
-          dom.el('div', { style: 'display: grid; grid-template-columns: 1fr 1fr; gap: 10px;' }, [
-            dom.el('button', {
-              type: 'button',
-              class: 'saas-btn saas-btn-secondary',
-              on: { click: function () { finish(false); } },
-            }, options.cancelLabel || 'Cancel'),
-            dom.el('button', {
-              type: 'button',
-              class: options.danger ? 'saas-btn saas-btn-danger' : 'saas-btn saas-btn-primary',
-              on: { click: function () { finish(true); } },
-            }, options.confirmLabel || 'Confirm'),
-          ]),
-        ]),
+        dom.el('div', { class: 'saas-sheet', role: 'dialog', 'aria-modal': 'true' }, bodyNodes),
       ]);
 
+      global.document.addEventListener('keydown', onKeyDown);
       global.document.body.classList.add('saas-modal-open');
       global.document.body.appendChild(backdrop);
+      if (inputNode) setTimeout(function () { inputNode.focus(); }, 30);
     });
   }
 

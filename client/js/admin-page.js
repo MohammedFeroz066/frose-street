@@ -148,6 +148,28 @@
   let currentStallForQR = null;
   let activeQRSetupUrl = '';
   let platformNotifications = [];
+  let pendingDeepLinkVendorId = null;
+
+  function buildAdminUrl(viewName, vendorId) {
+    const params = new URLSearchParams();
+    params.set('tab', viewName || 'dashboard');
+    if (vendorId) params.set('vendor', String(vendorId));
+    return '?' + params.toString();
+  }
+
+  async function withButtonLock(btn, busyLabel, fn) {
+    if (!btn) return fn();
+    if (btn.disabled) return;
+    const prevText = btn.textContent;
+    btn.disabled = true;
+    if (busyLabel) btn.textContent = busyLabel;
+    try {
+      return await fn();
+    } finally {
+      btn.disabled = false;
+      if (busyLabel && btn.textContent === busyLabel) btn.textContent = prevText;
+    }
+  }
 
   function formatRupees(paise) {
     const p = typeof paise === 'string' ? BigInt(paise || '0') : BigInt(paise || 0);
@@ -212,10 +234,46 @@
     document.querySelectorAll('.admin-overflow-menu.open').forEach((m) => m.classList.remove('open'));
   }
 
+  function dismissTopmostLayer() {
+    const confirmModalEl = document.getElementById('frose-confirm-modal');
+    if (confirmModalEl) {
+      confirmModalEl.click();
+      return true;
+    }
+    const activeModals = Array.from(document.querySelectorAll('.modal-overlay.active'));
+    if (activeModals.length > 0) {
+      closeModal(activeModals[activeModals.length - 1].id);
+      return true;
+    }
+    const notifDrawer = document.getElementById('notifications-drawer');
+    if (notifDrawer && notifDrawer.classList.contains('active')) {
+      closeModal('notifications-drawer');
+      return true;
+    }
+    const moreSheet = document.getElementById('mobile-more-sheet');
+    if (moreSheet && moreSheet.classList.contains('active')) {
+      closeModal('mobile-more-sheet');
+      return true;
+    }
+    const inspectorDrawer = document.getElementById('vendor-inspector-drawer');
+    if (inspectorDrawer && inspectorDrawer.classList.contains('active')) {
+      closeVendorInspector(true);
+      return true;
+    }
+    const openMenus = document.querySelectorAll('.admin-overflow-menu.open');
+    const userDrop = document.getElementById('user-dropdown');
+    if (openMenus.length > 0 || (userDrop && userDrop.classList.contains('active'))) {
+      closeAllOverflowMenus();
+      userDrop?.classList.remove('active');
+      return true;
+    }
+    return false;
+  }
+
   function switchView(viewName, pushHistory = true) {
     if (!VIEW_TITLES[viewName]) viewName = 'dashboard';
-    if (pushHistory && activeView !== viewName) {
-      history.pushState({ view: viewName }, '', '?tab=' + encodeURIComponent(viewName));
+    if (pushHistory && (activeView !== viewName || (history.state && history.state.vendorId))) {
+      history.pushState({ view: viewName, vendorId: null }, '', buildAdminUrl(viewName, null));
     }
     activeView = viewName;
 
@@ -382,6 +440,12 @@
     renderStallsTable();
     loadOverview();
     loadNotifications();
+
+    if (pendingDeepLinkVendorId) {
+      const targetId = pendingDeepLinkVendorId;
+      pendingDeepLinkVendorId = null;
+      openVendorInspector(targetId, true);
+    }
   }
 
   function getFilteredSortedVendors() {
@@ -642,19 +706,31 @@
     });
   }
 
-  function closeVendorInspector() {
+  function closeVendorInspector(syncUrl = true) {
     const drawer = document.getElementById('vendor-inspector-drawer');
-    if (drawer) drawer.classList.remove('active');
+    if (!drawer || !drawer.classList.contains('active')) return;
+    drawer.classList.remove('active');
     syncScrollLock();
+    if (syncUrl) {
+      if (history.state && history.state.vendorId) {
+        history.back();
+      } else {
+        history.replaceState({ view: activeView, vendorId: null }, '', buildAdminUrl(activeView, null));
+      }
+    }
   }
 
-  function openVendorInspector(stallId) {
+  function openVendorInspector(stallId, pushHistory = true) {
     const stall = allVendors.find((v) => String(v.id) === String(stallId));
     const drawer = document.getElementById('vendor-inspector-drawer');
     const body = document.getElementById('vendor-inspector-body');
     const titleEl = document.getElementById('vendor-inspector-title');
     const subEl = document.getElementById('vendor-inspector-subtitle');
     if (!stall || !drawer || !body || !window.FroseSafeDom) return;
+
+    if (pushHistory && (!history.state || String(history.state.vendorId || '') !== String(stall.id))) {
+      history.pushState({ view: activeView, vendorId: stall.id }, '', buildAdminUrl(activeView, stall.id));
+    }
 
     const { el, clear } = window.FroseSafeDom;
     const bName = stall.businessName || 'Restaurant Stall';
@@ -1426,7 +1502,10 @@
         return;
       }
 
-      if (target.closest('#btn-close-inspector')) { closeVendorInspector(); return; }
+      if (target.closest('#btn-close-inspector') || target.closest('#btn-inspector-back')) {
+        closeVendorInspector(true);
+        return;
+      }
       if (target.closest('#btn-close-add-modal')) { closeModal('modal-add-stall'); return; }
       if (target.closest('#btn-close-edit-modal')) { closeModal('modal-edit-stall'); return; }
       if (target.closest('#btn-close-menu-modal')) { closeModal('modal-menu-manager'); return; }
@@ -1451,12 +1530,60 @@
         closeModal(target.id);
         return;
       }
+      if (target.id === 'vendor-inspector-drawer' && target.classList.contains('active')) {
+        closeVendorInspector(true);
+        return;
+      }
       if (target.classList.contains('saas-drawer-backdrop') && target.classList.contains('active')) {
         closeModal(target.id);
         return;
       }
       if (target.classList.contains('saas-sheet-backdrop') && target.classList.contains('active')) {
         closeModal(target.id);
+      }
+    });
+
+    // Keyboard ergonomics: Escape closes topmost layer; / or Ctrl/Cmd+K focuses search
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (dismissTopmostLayer()) {
+          e.preventDefault();
+        }
+        return;
+      }
+
+      const activeTag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+      const isTyping = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select' || Boolean(document.activeElement?.isContentEditable);
+
+      if ((e.key === '/' && !isTyping) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) {
+        e.preventDefault();
+        if (activeView !== 'vendors') switchView('vendors');
+        setTimeout(() => document.getElementById('search-vendors-input')?.focus(), 40);
+      }
+    });
+
+    // Browser Back / Forward state sync
+    window.addEventListener('popstate', (e) => {
+      const activeModals = document.querySelectorAll('.modal-overlay.active');
+      if (activeModals.length > 0) {
+        activeModals.forEach((m) => m.classList.remove('active'));
+      }
+      closeModal('notifications-drawer');
+      closeModal('mobile-more-sheet');
+      closeAllOverflowMenus();
+
+      const params = new URLSearchParams(window.location.search);
+      const state = e.state || {};
+      const nextView = state.view || params.get('tab') || 'dashboard';
+      const nextVendor = state.vendorId || params.get('vendor') || null;
+
+      if (nextView !== activeView) {
+        switchView(nextView, false);
+      }
+      if (nextVendor) {
+        openVendorInspector(nextVendor, false);
+      } else {
+        closeVendorInspector(false);
       }
     });
 
@@ -1494,8 +1621,7 @@
           notify('Enter valid dish name and price', 'danger');
           return;
         }
-        if (btn) btn.disabled = true;
-        try {
+        await withButtonLock(btn, 'Saving...', async () => {
           const res = await apiFetch(`/api/v1/admin/vendors/${activeVendorForMenu}/menu`, {
             method: 'POST',
             body: JSON.stringify({ name, pricePaise: Math.round(priceRupees * 100), category }),
@@ -1508,9 +1634,7 @@
           } else {
             notify('Failed to add dish', 'danger');
           }
-        } finally {
-          if (btn) btn.disabled = false;
-        }
+        });
       });
     }
 
@@ -1533,8 +1657,7 @@
         notify('Enter valid stall name, 10-digit mobile number, and 10+ char passphrase', 'danger');
         return;
       }
-      if (submitBtn) submitBtn.disabled = true;
-      try {
+      await withButtonLock(submitBtn, 'Provisioning...', async () => {
         const res = await apiFetch('/api/v1/admin/vendors', {
           method: 'POST',
           body: JSON.stringify(payload),
@@ -1550,9 +1673,7 @@
         switchView('vendors');
         const created = allVendors.find((v) => String(v.phone) === String(payload.phone));
         if (created) window.openStallSetupQR(created);
-      } finally {
-        if (submitBtn) submitBtn.disabled = false;
-      }
+      });
     });
 
     document.getElementById('form-edit-stall')?.addEventListener('submit', async (e) => {
@@ -1569,8 +1690,7 @@
       };
       const pwd = document.getElementById('edit-password').value.trim();
       if (pwd) body.password = pwd;
-      if (btn) btn.disabled = true;
-      try {
+      await withButtonLock(btn, 'Saving...', async () => {
         const res = await apiFetch(`/api/v1/admin/vendors/${id}`, {
           method: 'PATCH',
           body: JSON.stringify(body),
@@ -1583,9 +1703,7 @@
           const err = res ? await res.json().catch(() => ({})) : {};
           notify(err.message || 'Failed to update stall', 'danger');
         }
-      } finally {
-        if (btn) btn.disabled = false;
-      }
+      });
     });
 
     try {
@@ -1601,6 +1719,14 @@
         if (p) p.textContent = '+91 ' + v.phone;
       }
     } catch (_) {}
+
+    // Restore initial tab and vendor deep-link from URL
+    const initParams = new URLSearchParams(window.location.search);
+    const initTab = VIEW_TITLES[initParams.get('tab') || ''] ? initParams.get('tab') : 'dashboard';
+    const initVendor = initParams.get('vendor');
+    history.replaceState({ view: initTab, vendorId: null }, '', buildAdminUrl(initTab, null));
+    if (initTab !== 'dashboard') switchView(initTab, false);
+    if (initVendor) pendingDeepLinkVendorId = initVendor;
 
     loadVendors();
     loadSystemHealth();

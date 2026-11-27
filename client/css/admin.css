@@ -1435,3 +1435,9 @@ body {
 .admin-toast-anchor {
   z-index: var(--z-toast);
 }
+
+@media (max-width: 1023px) {
+  .admin-console-body .saas-toast-stack {
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+  }
+}

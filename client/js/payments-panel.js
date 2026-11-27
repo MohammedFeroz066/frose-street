@@ -39,6 +39,8 @@
     orders: [],
     expenses: [],
     zReportText: null,
+    isClosingDay: false,
+    isLoggingExpense: false,
   };
 
   async function refresh() {
@@ -361,6 +363,7 @@
       on: {
         submit: async function (e) {
           e.preventDefault();
+          if (state.isLoggingExpense) return;
           var desc = descIn.value.trim();
           var rupees = Number(amtIn.value || 0);
           if (!desc || !Number.isFinite(rupees) || rupees <= 0) {
@@ -368,6 +371,12 @@
             return;
           }
           var amountPaise = Math.round(rupees * 100);
+          var submitBtn = global.document.getElementById('btn-submit-expense');
+          state.isLoggingExpense = true;
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+          }
           try {
             var fn = global.froseApiFetch || fetch;
             var res = await fn('/api/v1/galla/expenses', {
@@ -392,6 +401,12 @@
             }
           } catch (_) {
             toast('Network error logging expense', 'danger');
+          } finally {
+            state.isLoggingExpense = false;
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Save Expense';
+            }
           }
         },
       },
@@ -472,6 +487,13 @@
         class: 'saas-btn saas-btn-primary saas-btn-block',
         on: {
           click: async function () {
+            if (state.isClosingDay) return;
+            var closeBtn = global.document.getElementById('btn-submit-close-day');
+            state.isClosingDay = true;
+            if (closeBtn) {
+              closeBtn.disabled = true;
+              closeBtn.textContent = 'Closing Day...';
+            }
             try {
               var fn = global.froseApiFetch || fetch;
               var res = await fn('/api/v1/galla/close-day', {
@@ -512,6 +534,12 @@
               }
             } catch (_) {
               toast('Network error closing day', 'danger');
+            } finally {
+              state.isClosingDay = false;
+              if (closeBtn) {
+                closeBtn.disabled = false;
+                closeBtn.textContent = 'Seal & Generate Z-Report';
+              }
             }
           },
         },

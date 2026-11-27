@@ -23,8 +23,11 @@
     search: '',
     category: 'all',
   };
+  var togglingItemIds = new Set();
 
   async function toggleOptimisticAvailability(item) {
+    if (togglingItemIds.has(item.id)) return;
+    togglingItemIds.add(item.id);
     var prev = item.isAvailable !== false;
     var next = !prev;
     item.isAvailable = next;
@@ -62,7 +65,11 @@
         item.isAvailable = prev;
         render();
         toast('Network error toggling stock', 'danger');
+      } finally {
+        togglingItemIds.delete(item.id);
       }
+    } else {
+      togglingItemIds.delete(item.id);
     }
   }
 

@@ -51,7 +51,21 @@
     loading: false,
     editingOrder: null,
     editDraft: null,
+    isSubmittingEdit: false,
   };
+
+  var sharedOrdersChannel = null;
+  function getOrdersBroadcastChannel() {
+    if (typeof BroadcastChannel === 'undefined') return null;
+    if (!sharedOrdersChannel) {
+      try {
+        sharedOrdersChannel = new BroadcastChannel('frose_orders');
+      } catch (_) {
+        return null;
+      }
+    }
+    return sharedOrdersChannel;
+  }
 
   function getStatusVariant(status) {
     if (status === 'cancelled') return 'rose';
@@ -768,7 +782,7 @@
   }
 
   async function submitOrderEdit() {
-    if (!state.editingOrder || !state.editDraft) return;
+    if (state.isSubmittingEdit || !state.editingOrder || !state.editDraft) return;
     if (state.editDraft.items.length === 0) {
       toast('Order must have at least 1 item', 'warning');
       return;
@@ -798,6 +812,13 @@
       payload.upiPaise = grandTotalPaise - cashPaise;
     }
 
+    var saveBtn = global.document.getElementById('btn-save-order-edit');
+    state.isSubmittingEdit = true;
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+    }
+
     try {
       var fn = global.froseApiFetch || fetch;
       var res = await fn('/api/v1/orders/' + state.editingOrder.id, {
@@ -812,9 +833,10 @@
         return;
       }
 
-      if (typeof BroadcastChannel !== 'undefined' && data.order) {
+      var ch = getOrdersBroadcastChannel();
+      if (ch && data.order) {
         try {
-          new BroadcastChannel('frose_orders').postMessage({ event: 'order:updated', data: data.order });
+          ch.postMessage({ event: 'order:updated', data: data.order });
         } catch (_) {}
       }
 
@@ -824,6 +846,12 @@
       toast('Order updated & synced to Kitchen', 'success');
     } catch (_) {
       toast('Network error updating order', 'danger');
+    } finally {
+      state.isSubmittingEdit = false;
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Order Changes';
+      }
     }
   }
 

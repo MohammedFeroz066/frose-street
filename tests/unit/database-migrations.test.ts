@@ -109,6 +109,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
         '017_add_order_tax_and_receipt_fields',
         '018_phase4_orders_menu_enhancements',
         '019_add_order_type_to_orders',
+        '020_admin_audit_and_suspended',
       ]);
     });
   });

@@ -199,6 +199,13 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     const body = validateSchema(LoginSchema, request.body);
     const vendor = await AuthService.loginWithPassword(db, body.phone, body.password, request.ip);
 
+    if (vendor.subscription_status === 'suspended') {
+      throw AppError.forbidden(
+        'This stall account has been suspended. Please contact FROSE Platform Support.',
+        'ACCOUNT_SUSPENDED',
+      );
+    }
+
     const isSuperadmin = (vendor as any).is_superadmin === true || (vendor as any).role === 'superadmin';
     const role: StaffRole = isSuperadmin ? 'superadmin' : 'owner';
 
@@ -268,6 +275,10 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
     if (!vendor) {
       throw AppError.unauthorized('Vendor account not found for session', 'VENDOR_NOT_FOUND');
+    }
+
+    if (vendor.subscription_status === 'suspended') {
+      throw AppError.forbidden('Account suspended', 'ACCOUNT_SUSPENDED');
     }
 
     const isSuperadmin = (vendor as any).is_superadmin === true || (vendor as any).role === 'superadmin';

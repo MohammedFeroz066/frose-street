@@ -11,8 +11,10 @@ export interface VendorsTable {
   business_type: string;
   city: string | null;
   edition: 'cloud' | 'local';
-  subscription_status: 'trial' | 'active' | 'expired';
+  subscription_status: 'trial' | 'active' | 'expired' | 'suspended';
   subscription_expires_at: Timestamp | null;
+  suspended_reason?: string | null;
+  monthly_fee_paise?: MoneyPaise;
   daily_token_counter: number;
   token_reset_date: string;
   password_hash: string | null;
@@ -181,6 +183,16 @@ export interface RefreshTokensTable {
   created_at: Generated<Timestamp>;
 }
 
+export interface AdminAuditLogsTable {
+  id: Generated<string>;
+  admin_id: string;
+  action: string;
+  target_vendor_id: string | null;
+  details_json: string | null;
+  ip_address: string | null;
+  created_at: Generated<Timestamp>;
+}
+
 export interface Database {
   vendors: VendorsTable;
   staff: StaffTable;
@@ -194,4 +206,5 @@ export interface Database {
   subscriptions: SubscriptionsTable;
   login_lockouts: LoginLockoutsTable;
   refresh_tokens: RefreshTokensTable;
+  admin_audit_logs: AdminAuditLogsTable;
 }

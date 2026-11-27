@@ -720,7 +720,7 @@
     }
   }
 
-  function openVendorInspector(stallId, pushHistory = true) {
+  async function openVendorInspector(stallId, pushHistory = true) {
     const stall = allVendors.find((v) => String(v.id) === String(stallId));
     const drawer = document.getElementById('vendor-inspector-drawer');
     const body = document.getElementById('vendor-inspector-body');
@@ -744,6 +744,10 @@
     if (titleEl) titleEl.textContent = bName;
     if (subEl) subEl.textContent = `${oName} • ${phone} • ${stall.edition === 'local' ? 'Mobile P2P' : 'Cloud Managed'}`;
 
+    const detailSlot = el('div', { class: 'form-group-wrap', id: 'inspector-live-detail' }, [
+      el('div', { class: 'saas-skeleton' }),
+    ]);
+
     clear(body);
     body.appendChild(
       el('div', { class: 'admin-info-box' }, [
@@ -751,6 +755,12 @@
           el('span', { class: 'admin-kv-label' }, ['Subscription Status']),
           el('span', { class: `badge-status ${badge.cls}` }, [badge.label]),
         ]),
+        stall.suspendedReason
+          ? el('div', { class: 'admin-kv-row' }, [
+              el('span', { class: 'admin-kv-label' }, ['Suspend Reason']),
+              el('span', { class: 'admin-kv-value' }, [stall.suspendedReason]),
+            ])
+          : null,
         el('div', { class: 'admin-kv-row' }, [
           el('span', { class: 'admin-kv-label' }, ['License Expires']),
           el('span', { class: 'admin-kv-value' }, [expFormatted]),
@@ -778,7 +788,7 @@
           type: 'button',
           class: 'saas-btn saas-btn-secondary saas-btn-block',
           on: { click: () => { closeVendorInspector(); openEditStallModal(stall.id); } },
-        }, ['Edit Stall Settings']),
+        }, ['Edit Stall & Compliance']),
         el('button', {
           type: 'button',
           class: 'saas-btn saas-btn-secondary saas-btn-block',
@@ -796,14 +806,148 @@
         }, ['Setup QR & Pairing']),
         el('button', {
           type: 'button',
+          class: 'saas-btn saas-btn-secondary saas-btn-block',
+          id: 'btn-inspector-reset-pwd',
+          on: { click: () => triggerPasswordReset(stall.id, bName) },
+        }, ['Reset Passphrase']),
+        el('button', {
+          type: 'button',
           class: stall.subscriptionStatus === 'suspended' ? 'saas-btn saas-btn-primary saas-btn-block' : 'saas-btn saas-btn-danger saas-btn-block',
+          id: 'btn-inspector-suspend',
           on: { click: () => toggleStallSuspension(stall.id) },
         }, [stall.subscriptionStatus === 'suspended' ? 'Reactivate Stall' : 'Suspend Stall (Kill-Switch)']),
       ])
     );
 
+    body.appendChild(detailSlot);
+
     drawer.classList.add('active');
     syncScrollLock();
+
+    const detailRes = await apiFetch(`/api/v1/admin/vendors/${stall.id}/detail`);
+    clear(detailSlot);
+    if (!detailRes || !detailRes.ok) {
+      detailSlot.appendChild(el('div', { class: 'brand-platform-sub' }, ['Live telemetry unavailable.']));
+      return;
+    }
+
+    const detailJson = await detailRes.json().catch(() => ({}));
+    const detail = detailJson.data;
+    if (!detail) return;
+
+    const vInfo = detail.vendor || {};
+    const devices = Array.isArray(detail.devices) ? detail.devices : [];
+    const activeDevices = devices.filter((d) => d.isActive);
+
+    // Compliance + Ed25519 + Security Lockout Panel
+    const unlockBtn = detail.isLocked
+      ? el('button', {
+          type: 'button',
+          class: 'saas-btn saas-btn-primary saas-btn-block',
+          id: 'btn-inspector-unlock',
+          on: {
+            click: async () => {
+              await withButtonLock(unlockBtn, 'Unlocking...', async () => {
+                const uRes = await apiFetch(`/api/v1/admin/vendors/${stall.id}/unlock`, { method: 'POST', body: '{}' });
+                if (uRes && uRes.ok) {
+                  notify(`Unlocked ${bName} lockout`, 'success');
+                  await openVendorInspector(stall.id, false);
+                } else {
+                  notify('Failed to unlock account', 'danger');
+                }
+              });
+            },
+          },
+        }, [`Unlock Account (${detail.lockoutRemainingSeconds}s remaining)`])
+      : null;
+
+    detailSlot.appendChild(
+      el('div', { class: 'admin-info-box' }, [
+        el('div', { class: 'admin-subpanel-title' }, ['Compliance & License']),
+        el('div', { class: 'admin-kv-row' }, [
+          el('span', { class: 'admin-kv-label' }, ['Tax Mode']),
+          el('span', { class: 'admin-kv-value' }, [String(vInfo.taxMode || 'unregistered').toUpperCase()]),
+        ]),
+        el('div', { class: 'admin-kv-row' }, [
+          el('span', { class: 'admin-kv-label' }, ['GSTIN']),
+          el('span', { class: 'admin-kv-value mono-code' }, [vInfo.gstin || 'Not set']),
+        ]),
+        el('div', { class: 'admin-kv-row' }, [
+          el('span', { class: 'admin-kv-label' }, ['FSSAI']),
+          el('span', { class: 'admin-kv-value mono-code' }, [vInfo.fssaiNumber || 'Not set']),
+        ]),
+        el('div', { class: 'admin-kv-row' }, [
+          el('span', { class: 'admin-kv-label' }, ['Ed25519 License']),
+          el('span', { class: 'admin-kv-value' }, [detail.licenseStatus?.signedEd25519 ? `Signed (${detail.licenseStatus.daysRemaining}d left)` : 'Pending']),
+        ]),
+        el('div', { class: 'admin-kv-row' }, [
+          el('span', { class: 'admin-kv-label' }, ['Login Security']),
+          el('span', { class: detail.isLocked ? 'badge-status overdue' : 'badge-status active' }, [detail.isLocked ? 'LOCKED' : 'CLEAR']),
+        ]),
+      ])
+    );
+
+    if (unlockBtn) detailSlot.appendChild(unlockBtn);
+
+    // Paired Devices Card with Revoke action
+    const devBox = el('div', { class: 'admin-info-box' }, [
+      el('div', { class: 'admin-subpanel-title' }, [`Paired Terminals (${activeDevices.length} active)`]),
+    ]);
+    if (activeDevices.length === 0) {
+      devBox.appendChild(el('div', { class: 'brand-platform-sub' }, ['No active Kitchen/Packaging devices paired.']));
+    } else {
+      activeDevices.forEach((d) => {
+        const revBtn = el('button', {
+          type: 'button',
+          class: 'btn-table-action',
+          on: {
+            click: async () => {
+              const ok = window.FroseUI?.confirmModal
+                ? await window.FroseUI.confirmModal({
+                    title: 'Revoke Device?',
+                    message: `Revoke access for ${d.deviceName} (${d.role})?`,
+                    confirmLabel: 'Revoke',
+                    danger: true,
+                  })
+                : false;
+              if (!ok) return;
+              await withButtonLock(revBtn, 'Revoking...', async () => {
+                const dRes = await apiFetch(`/api/v1/admin/vendors/${stall.id}/devices/${d.id}`, { method: 'DELETE' });
+                if (dRes && dRes.ok) {
+                  notify(`${d.deviceName} revoked`, 'success');
+                  await loadVendors();
+                  await openVendorInspector(stall.id, false);
+                } else {
+                  notify('Failed to revoke device', 'danger');
+                }
+              });
+            },
+          },
+        }, ['Revoke']);
+
+        devBox.appendChild(
+          el('div', { class: 'admin-kv-row' }, [
+            el('div', {}, [
+              el('div', { style: 'font-weight: 700;' }, [d.deviceName || 'Device']),
+              el('div', { class: 'brand-platform-sub' }, [`${String(d.role || '').toUpperCase()} • Last seen ${formatDate(d.lastSeenAt, 'Never')}`]),
+            ]),
+            revBtn,
+          ])
+        );
+      });
+    }
+    detailSlot.appendChild(devBox);
+
+    // Daily/Monthly Turnover snapshot
+    const turn = detail.turnover || {};
+    detailSlot.appendChild(
+      el('div', { class: 'admin-info-box' }, [
+        el('div', { class: 'admin-subpanel-title' }, ['Turnover Snapshot']),
+        el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Today']), el('span', { class: 'admin-kv-value' }, [formatRupees(turn.daily?.totalPaise || '0')])]),
+        el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['This Month']), el('span', { class: 'admin-kv-value' }, [formatRupees(turn.monthly?.totalPaise || '0')])]),
+        el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['This Year']), el('span', { class: 'admin-kv-value' }, [formatRupees(turn.yearly?.totalPaise || '0')])]),
+      ])
+    );
   }
 
   function sendWhatsAppNotification(vendorId) {
@@ -823,27 +967,72 @@
     window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
   }
 
-  function openReceiptModal(stallId) {
+  async function triggerPasswordReset(stallId, label) {
+    if (!stallId) return;
+    if (!window.FroseUI?.confirmModal) return;
+    const res = await window.FroseUI.confirmModal({
+      title: `Reset Passphrase — ${label || 'Stall'}`,
+      message: 'Enter a new passphrase (minimum 10 characters) for this stall account.',
+      inputLabel: 'New Passphrase',
+      inputPlaceholder: 'Min 10 characters',
+      inputRequired: true,
+      inputRequiredMessage: 'Enter a new passphrase (min 10 chars)',
+      confirmLabel: 'Reset Passphrase',
+      returnObject: true,
+    });
+    if (!res || !res.confirmed) return;
+    if (res.value.length < 10) {
+      notify('Passphrase must be at least 10 characters', 'danger');
+      return;
+    }
+    const patchRes = await apiFetch(`/api/v1/admin/vendors/${stallId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ password: res.value }),
+    });
+    if (patchRes && patchRes.ok) {
+      notify(`Passphrase updated for ${label || 'stall'}`, 'success');
+    } else {
+      const err = patchRes ? await patchRes.json().catch(() => ({})) : {};
+      notify(err.message || 'Failed to reset passphrase', 'danger');
+    }
+  }
+
+  async function openReceiptModal(stallId) {
     const stall = allVendors.find((v) => String(v.id) === String(stallId));
     const container = document.getElementById('receipt-modal-content');
     if (!stall || !container || !window.FroseSafeDom) return;
     const { el, clear } = window.FroseSafeDom;
-    const fee = formatRupees(BigInt(stall.monthlyFeePaise || '0') > 0n ? stall.monthlyFeePaise : '49900');
-    const receiptId = 'FROSE-REC-' + String(stall.id || '').slice(0, 8).toUpperCase();
+    clear(container);
+    container.appendChild(el('div', { class: 'saas-skeleton' }));
+    openModal('modal-payment-receipt');
+
+    let latestSub = null;
+    const dRes = await apiFetch(`/api/v1/admin/vendors/${stall.id}/detail`);
+    if (dRes && dRes.ok) {
+      const dJson = await dRes.json().catch(() => ({}));
+      const ledger = dJson.data?.paymentLedger || [];
+      latestSub = ledger[0] || null;
+    }
+
+    const amountPaise = latestSub?.amountPaise ?? (BigInt(stall.monthlyFeePaise || '0') > 0n ? stall.monthlyFeePaise : '49900');
+    const fee = formatRupees(amountPaise);
+    const receiptId = latestSub?.paymentReference || ('FROSE-REC-' + String(stall.id || '').slice(0, 8).toUpperCase());
+    const method = latestSub?.paymentMethod ? String(latestSub.paymentMethod).toUpperCase() : 'UPI';
+    const validUntil = latestSub?.periodEnd ? formatDate(latestSub.periodEnd) : formatDate(stall.subscriptionExpiresAt);
 
     clear(container);
     container.append(
-      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Receipt #']), el('span', { class: 'admin-kv-value mono-code' }, [receiptId])]),
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Receipt / Ref #']), el('span', { class: 'admin-kv-value mono-code' }, [receiptId])]),
       el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Restaurant']), el('span', { class: 'admin-kv-value' }, [stall.businessName || ''])]),
       el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Owner']), el('span', { class: 'admin-kv-value' }, [stall.ownerName || ''])]),
       el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Mobile']), el('span', { class: 'admin-kv-value mono-code' }, [stall.phone || ''])]),
-      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Plan Amount']), el('span', { class: 'admin-kv-value' }, [fee])]),
-      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Valid Until']), el('span', { class: 'admin-kv-value' }, [formatDate(stall.subscriptionExpiresAt)])])
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Amount Paid']), el('span', { class: 'admin-kv-value' }, [fee])]),
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Payment Method']), el('span', { class: 'admin-kv-value' }, [method])]),
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Valid Until']), el('span', { class: 'admin-kv-value' }, [validUntil])])
     );
 
     const shareBtn = document.getElementById('btn-receipt-whatsapp-share');
     if (shareBtn) shareBtn.onclick = () => sendWhatsAppNotification(stall.id);
-    openModal('modal-payment-receipt');
   }
 
   function openEditStallModal(stallId) {
@@ -960,47 +1149,73 @@
     if (!stall) return;
     const isSuspended = stall.subscriptionStatus === 'suspended';
     const nextStatus = isSuspended ? 'active' : 'suspended';
-    const confirmed = window.FroseUI?.confirmModal
-      ? await window.FroseUI.confirmModal({
-          title: isSuspended ? 'Reactivate Stall?' : 'Suspend Stall (Kill-Switch)?',
-          message: isSuspended
-            ? `Restore active counter access for ${stall.businessName}?`
-            : `Suspending ${stall.businessName} immediately revokes active refresh sessions.`,
-          confirmLabel: isSuspended ? 'Reactivate' : 'Suspend Stall',
-          danger: !isSuspended,
-        })
-      : false;
-    if (!confirmed) return;
+
+    if (!window.FroseUI?.confirmModal) return;
+    let reason = null;
+    if (isSuspended) {
+      const ok = await window.FroseUI.confirmModal({
+        title: 'Reactivate Stall?',
+        message: `Restore active counter access for ${stall.businessName}?`,
+        confirmLabel: 'Reactivate',
+        danger: false,
+      });
+      if (!ok) return;
+    } else {
+      const modalRes = await window.FroseUI.confirmModal({
+        title: 'Suspend Stall (Kill-Switch)?',
+        message: `Suspending ${stall.businessName} persists in PostgreSQL and immediately revokes all active refresh tokens.`,
+        inputLabel: 'Suspension Reason *',
+        inputPlaceholder: 'e.g. Non-payment overdue beyond grace period',
+        inputRequired: true,
+        inputRequiredMessage: 'Suspension reason is required',
+        confirmLabel: 'Suspend Stall',
+        danger: true,
+        returnObject: true,
+      });
+      if (!modalRes || !modalRes.confirmed) return;
+      reason = modalRes.value;
+    }
 
     const res = await apiFetch(`/api/v1/admin/vendors/${stall.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ subscriptionStatus: nextStatus }),
+      body: JSON.stringify({ subscriptionStatus: nextStatus, ...(reason ? { suspendedReason: reason } : {}) }),
     });
     if (res && res.ok) {
       await loadVendors();
-      closeVendorInspector();
+      closeVendorInspector(false);
+      history.replaceState({ view: activeView, vendorId: null }, '', buildAdminUrl(activeView, null));
       notify(`${stall.businessName} is now ${nextStatus}`, 'success');
     } else {
       notify('Failed to update stall status', 'danger');
     }
   }
 
-  window.openStallAnalytics = function (vendorId) {
+  window.openStallAnalytics = async function (vendorId) {
     const stall = allVendors.find((v) => String(v.id) === String(vendorId));
     if (!stall) return;
     document.getElementById('analytics-stall-title').textContent = `${stall.businessName || 'Stall'} — Fiscal Ledger`;
     document.getElementById('analytics-stall-subtitle').textContent = `${stall.ownerName || 'Owner'} • ${stall.phone || ''} • ${stall.city || ''}`;
+    const ledgerContainer = document.getElementById('payment-ledger-container');
+    const ledgerCount = document.getElementById('payment-ledger-count');
+    if (ledgerContainer && window.FroseSafeDom) {
+      window.FroseSafeDom.clear(ledgerContainer);
+      ledgerContainer.appendChild(window.FroseSafeDom.el('div', { class: 'saas-skeleton' }));
+    }
+    openModal('modal-stall-analytics');
+
+    const res = await apiFetch(`/api/v1/admin/vendors/${stall.id}/detail`);
+    const detail = res && res.ok ? (await res.json().catch(() => ({}))).data : null;
+
     const zero = { totalPaise: '0', cashPaise: '0', upiPaise: '0' };
-    const t = stall.turnover || { daily: zero, weekly: zero, monthly: zero, yearly: zero };
+    const t = detail?.turnover || stall.turnover || { daily: zero, weekly: zero, monthly: zero, yearly: zero };
     ['daily', 'weekly', 'monthly', 'yearly'].forEach((p) => {
       const d = t[p] || zero;
       document.getElementById(`turnover-val-${p}`).textContent = formatRupees(d.totalPaise);
       document.getElementById(`turnover-cash-${p}`).textContent = formatRupees(d.cashPaise);
       document.getElementById(`turnover-upi-${p}`).textContent = formatRupees(d.upiPaise);
     });
-    const ledgerContainer = document.getElementById('payment-ledger-container');
-    const ledgerCount = document.getElementById('payment-ledger-count');
-    const ledger = stall.paymentLedger || [];
+
+    const ledger = detail?.paymentLedger || [];
     if (ledgerCount) ledgerCount.textContent = `${ledger.length} Record${ledger.length === 1 ? '' : 's'}`;
     if (ledgerContainer && window.FroseSafeDom) {
       const { el, clear } = window.FroseSafeDom;
@@ -1012,19 +1227,22 @@
           ledgerContainer.appendChild(
             el('div', { class: 'admin-info-box' }, [
               el('div', { class: 'admin-kv-row' }, [
-                el('span', { class: 'mono-code' }, [rec.paymentReference || rec.receiptId || 'SUB']),
+                el('span', { class: 'mono-code' }, [rec.paymentReference || 'SUB']),
                 el('span', { class: 'badge-status active' }, [rec.status || 'active']),
               ]),
               el('div', { class: 'admin-kv-row' }, [
-                el('span', { class: 'admin-kv-label' }, ['Amount']),
-                el('span', { class: 'admin-kv-value' }, [formatRupees(rec.amountPaise || '0')]),
+                el('span', { class: 'admin-kv-label' }, ['Amount & Method']),
+                el('span', { class: 'admin-kv-value' }, [`${formatRupees(rec.amountPaise || '0')} (${String(rec.paymentMethod || 'upi').toUpperCase()})`]),
+              ]),
+              el('div', { class: 'admin-kv-row' }, [
+                el('span', { class: 'admin-kv-label' }, ['Period']),
+                el('span', { class: 'admin-kv-value' }, [`${formatDate(rec.periodStart)} – ${formatDate(rec.periodEnd)}`]),
               ]),
             ])
           );
         });
       }
     }
-    openModal('modal-stall-analytics');
   };
 
   async function loadUsers() {
@@ -1071,15 +1289,20 @@
           el('td', {}, [el('strong', {}, [u.stallName || ''])]),
           el('td', {}, [el('span', { class: `badge-status ${isAct ? 'active' : 'expired'}` }, [u.status || 'active'])]),
           el('td', { class: 'num-col' }, [
-            el('button', {
-              type: 'button',
-              class: 'btn-table-action',
-              on: {
-                click: () => {
-                  if (u.stallId) openEditStallModal(u.stallId);
-                },
-              },
-            }, ['Manage']),
+            el('div', { class: 'admin-row-actions' }, [
+              el('button', {
+                type: 'button',
+                class: 'btn-table-action',
+                on: { click: () => { if (u.stallId) openEditStallModal(u.stallId); } },
+              }, ['Manage']),
+              u.role !== 'superadmin' && u.stallId
+                ? el('button', {
+                    type: 'button',
+                    class: 'btn-table-action',
+                    on: { click: () => triggerPasswordReset(u.stallId, u.stallName || u.name) },
+                  }, ['Reset Password'])
+                : null,
+            ]),
           ]),
         ])
       );
@@ -1170,18 +1393,23 @@
   async function loadSystemHealth() {
     const container = document.getElementById('system-health-modal-body');
     const stripSummary = document.getElementById('health-strip-summary');
+    const overviewDb = document.getElementById('overview-db-status');
     const res = await apiFetch('/api/v1/admin/system-health');
     if (!res || !res.ok) return;
     const json = await res.json().catch(() => ({}));
     const h = json.data || {};
+    const dbPortText = h.database?.port ? `:${h.database.port}` : '';
+    const dbLabel = `${h.database?.engine || 'PostgreSQL'}${dbPortText}`;
+
+    if (overviewDb) overviewDb.textContent = h.database?.status === 'healthy' ? 'PostgreSQL Live' : 'DB Check';
     if (stripSummary) {
-      stripSummary.textContent = `DB ${h.database?.status || 'healthy'} (${h.database?.latencyMs ?? 0}ms) • WS Clients: ${h.websocketHotspot?.connectedClients ?? 0} • Uptime: ${h.uptimeSeconds ?? 0}s`;
+      stripSummary.textContent = `${dbLabel} ${h.database?.status || 'healthy'} (${h.database?.latencyMs ?? 0}ms) • WS Clients: ${h.websocketHotspot?.connectedClients ?? 0} • Uptime: ${h.uptimeSeconds ?? 0}s`;
     }
     if (container && window.FroseSafeDom) {
       const { el, clear } = window.FroseSafeDom;
       clear(container);
       container.append(
-        el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Database']), el('span', { class: 'admin-kv-value' }, [`${h.database?.status || 'healthy'} (${h.database?.latencyMs ?? 0}ms)`])]),
+        el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Database Engine']), el('span', { class: 'admin-kv-value' }, [`${dbLabel} — ${h.database?.status || 'healthy'} (${h.database?.latencyMs ?? 0}ms)`])]),
         el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['WebSocket Clients']), el('span', { class: 'admin-kv-value' }, [String(h.websocketHotspot?.connectedClients ?? 0)])]),
         el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Process Uptime']), el('span', { class: 'admin-kv-value' }, [`${h.uptimeSeconds ?? 0}s`])])
       );
@@ -1197,11 +1425,13 @@
       const { el, clear } = window.FroseSafeDom;
       const json = await res.json().catch(() => ({}));
       const h = json.data || {};
+      const dbPortText = h.database?.port ? `:${h.database.port}` : '';
+      const dbLabel = `${h.database?.engine || 'PostgreSQL'}${dbPortText}`;
       if (healthRows) {
         clear(healthRows);
         healthRows.append(
-          el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['PostgreSQL / Storage']), el('span', { class: 'admin-kv-value' }, [`${h.database?.status || 'healthy'} (${h.database?.latencyMs ?? 0}ms)`])]),
-          el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Checked At']), el('span', { class: 'admin-kv-value' }, [formatDate(h.timestamp, 'Just now')])])
+          el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Database']), el('span', { class: 'admin-kv-value' }, [`${dbLabel} (${h.database?.latencyMs ?? 0}ms)`])]),
+          el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Status']), el('span', { class: 'badge-status active' }, [String(h.database?.status || 'healthy').toUpperCase()])])
         );
       }
       if (runtimeRows) {
@@ -1211,6 +1441,47 @@
           el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Server Uptime']), el('span', { class: 'admin-kv-value' }, [`${h.uptimeSeconds ?? 0}s`])])
         );
       }
+    }
+
+    const logsBody = document.getElementById('audit-logs-body');
+    const logsMobile = document.getElementById('audit-mobile-cards');
+    if (logsBody && window.FroseSafeDom) {
+      const { el, clear } = window.FroseSafeDom;
+      const logRes = await apiFetch('/api/v1/admin/audit-logs');
+      const logs = logRes && logRes.ok ? ((await logRes.json().catch(() => ({}))).data || []) : [];
+      clear(logsBody);
+      if (logsMobile) clear(logsMobile);
+      if (logs.length === 0) {
+        logsBody.appendChild(el('tr', { 'data-empty-row': 'true' }, [el('td', { colspan: '5', class: 'admin-empty-box' }, ['No Super Admin audit actions logged yet.'])]));
+        if (logsMobile) logsMobile.appendChild(el('div', { class: 'admin-empty-box' }, ['No Super Admin audit actions logged yet.']));
+        return;
+      }
+      logs.forEach((l) => {
+        const ts = formatDate(l.createdAt, 'Recent');
+        const targetVendor = allVendors.find((v) => String(v.id) === String(l.targetVendorId));
+        const targetLabel = targetVendor ? targetVendor.businessName : (l.targetVendorId || '-');
+        logsBody.appendChild(
+          el('tr', {}, [
+            el('td', {}, [ts]),
+            el('td', {}, [el('span', { class: 'badge-status trial' }, [l.action || ''])]),
+            el('td', {}, [targetLabel]),
+            el('td', { class: 'mono-code' }, [l.detailsJson || '-']),
+            el('td', { class: 'mono-code' }, [l.ipAddress || '-']),
+          ])
+        );
+        if (logsMobile) {
+          logsMobile.appendChild(
+            el('div', { class: 'admin-mobile-card' }, [
+              el('div', { class: 'admin-mobile-card-head' }, [
+                el('span', { class: 'badge-status trial' }, [l.action || '']),
+                el('span', { class: 'brand-platform-sub' }, [ts]),
+              ]),
+              el('div', { style: 'font-weight: 700; font-size: 13px;' }, [targetLabel]),
+              el('div', { class: 'brand-platform-sub mono-code' }, [l.detailsJson || '']),
+            ])
+          );
+        }
+      });
     }
   }
 
@@ -1676,6 +1947,52 @@
       });
     });
 
+    document.getElementById('renew-preset-days')?.addEventListener('change', (e) => {
+      const wrap = document.getElementById('renew-custom-date-wrap');
+      if (wrap) wrap.style.display = e.target.value === 'custom' ? 'flex' : 'none';
+    });
+
+    document.getElementById('form-renew-license')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const vendorId = document.getElementById('renew-vendor-id').value;
+      const preset = document.getElementById('renew-preset-days').value;
+      const customDate = document.getElementById('renew-custom-date').value;
+      const amountRupees = Number(document.getElementById('renew-amount-rupees').value || 0);
+      const paymentMethod = document.getElementById('renew-payment-method').value;
+      const paymentReference = document.getElementById('renew-reference').value.trim();
+      const btn = document.getElementById('btn-submit-renew');
+
+      const payload = {
+        amountPaise: Math.max(0, Math.round(amountRupees * 100)),
+        paymentMethod,
+        ...(paymentReference ? { paymentReference } : {}),
+        ...(preset === 'custom' ? { customExpiresAt: customDate } : { days: Number(preset) || 30 }),
+      };
+      if (preset === 'custom' && !customDate) {
+        notify('Select a custom expiry date', 'danger');
+        return;
+      }
+
+      await withButtonLock(btn, 'Renewing...', async () => {
+        const res = await apiFetch(`/api/v1/admin/vendors/${vendorId}/renew`, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        if (res && res.ok) {
+          closeModal('modal-renew-license');
+          document.getElementById('form-renew-license').reset();
+          await loadVendors();
+          if (document.getElementById('vendor-inspector-drawer')?.classList.contains('active')) {
+            await openVendorInspector(vendorId, false);
+          }
+          notify('License renewed and payment logged', 'success');
+        } else {
+          const err = res ? await res.json().catch(() => ({})) : {};
+          notify(err.message || 'Failed to renew license', 'danger');
+        }
+      });
+    });
+
     document.getElementById('form-edit-stall')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = document.getElementById('edit-stall-id').value;
@@ -1687,6 +2004,10 @@
         city: document.getElementById('edit-city').value.trim(),
         edition: document.getElementById('edit-edition').value,
         subscriptionStatus: document.getElementById('edit-status').value,
+        taxMode: document.getElementById('edit-tax-mode').value,
+        monthlyFeeRupees: Number(document.getElementById('edit-monthly-fee').value) || 499,
+        gstin: document.getElementById('edit-gstin').value.trim() || null,
+        fssaiNumber: document.getElementById('edit-fssai').value.trim() || null,
       };
       const pwd = document.getElementById('edit-password').value.trim();
       if (pwd) body.password = pwd;

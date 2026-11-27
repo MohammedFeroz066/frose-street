@@ -2,1594 +2,836 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Super Admin Console — FROSE Street</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#5B0612">
+  <meta name="theme-color" content="#F6F7F9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="/css/tokens.css?v=1.0.0">
-  <link rel="stylesheet" href="/css/ui-kit.css?v=1.0.0">
-  <link rel="stylesheet" href="/css/portals-saas.css?v=1.0.0">
-  <script src="/js/theme.js?v=1.0.0"></script>
-  <script src="/js/api-client.js?v=1.0.0"></script>
-  <script src="/js/safe-dom.js?v=1.0.0"></script>
-  <script src="/js/dom-events.js?v=1.0.0"></script>
-  <script src="/js/idb-store.js?v=1.0.0"></script>
-  <script src="/js/ui-components.js?v=1.0.0"></script>
-  <script src="/js/session-guard.js?v=1.0.0"></script>
 
-  <style>
-    :root {
-      --saas-burgundy-dark: #4A050E;
-      --saas-burgundy-primary: #700A18;
-      --saas-burgundy-light: #8C1123;
-      --saas-gold-accent: #F59E0B;
-      --saas-gold-glow: rgba(245, 158, 11, 0.25);
-      --saas-bg-canvas: #F8F5F0;
-      --saas-card-bg: #FFFFFF;
-      --saas-card-border: #EFE8DE;
-      --saas-card-hover: #FDFBF7;
-      --saas-text-heading: #2D0A0E;
-      --saas-text-body: #4A3E3D;
-      --saas-text-muted: #7C6E68;
-      --saas-crimson: #DC2626;
-      --saas-emerald: #10B981;
-      --saas-amber: #F59E0B;
-      --saas-purple: #8B5CF6;
-      --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-    }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: none;
-      background: var(--saas-bg-canvas);
-      font-family: var(--font-main);
-      color: var(--saas-text-body);
-    }
-
-    body.modal-open {
-      overflow: hidden !important;
-      touch-action: none;
-    }
-
-    /* 1. Sleek Compact Header */
-    .saas-header {
-      background: linear-gradient(135deg, var(--saas-burgundy-dark) 0%, var(--saas-burgundy-primary) 50%, var(--saas-burgundy-light) 100%);
-      color: #FFFFFF;
-      padding: 8px 16px;
-      min-height: 48px;
-      position: sticky;
-      top: 0;
-      box-shadow: 0 2px 12px rgba(74, 5, 14, 0.2);
-      border-bottom: 2px solid var(--saas-gold-accent);
-      z-index: 100;
-    }
-
-    .header-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .brand-lockup {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-      color: #FFFFFF;
-    }
-
-    .brand-receipt-badge {
-      width: 22px;
-      height: 28px;
-      background: #FFFFFF;
-      border-radius: 3px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    }
-
-    .brand-trademark {
-      font-size: 8px;
-      font-weight: 800;
-      color: rgba(255, 255, 255, 0.85);
-      vertical-align: super;
-      margin-left: 2px;
-      line-height: 1;
-      display: inline-block;
-    }
-
-    .brand-receipt-badge svg {
-      width: 12px;
-      height: 12px;
-      color: var(--saas-burgundy-primary);
-    }
-
-    .brand-name-group {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .brand-main-title {
-      font-size: 15px;
-      font-weight: 900;
-      letter-spacing: -0.3px;
-      line-height: 1.1;
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-    }
-
-    .brand-word-frose {
-      color: #FFFFFF;
-    }
-
-    .brand-word-street {
-      color: var(--saas-gold-accent);
-      font-size: 13.5px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-    }
-
-    .brand-platform-sub {
-      font-size: 10px;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.8);
-      letter-spacing: 0.2px;
-      margin-top: 1px;
-    }
-
-    .header-user-badge {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .crown-icon {
-      color: var(--saas-gold-accent);
-      width: 14px;
-      height: 14px;
-      margin-bottom: -3px;
-    }
-
-    .avatar-circle {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: #FFFFFF;
-      border: 1.5px solid var(--saas-gold-accent);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: 900;
-      color: var(--saas-burgundy-primary);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .user-label-wrap {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      margin-top: 2px;
-      font-size: 10.5px;
-      font-weight: 700;
-      color: #FFFFFF;
-    }
-
-    .user-dropdown-menu {
-      position: absolute;
-      top: calc(100% + 6px);
-      right: 0;
-      background: #FFFFFF;
-      border-radius: 10px;
-      padding: 6px;
-      min-width: 170px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      border: 1px solid var(--saas-card-border);
-      display: none;
-      flex-direction: column;
-      gap: 3px;
-      z-index: 200;
-    }
-
-    .user-dropdown-menu.active {
-      display: flex;
-    }
-
-    .dropdown-item {
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--saas-text-heading);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-      background: transparent;
-      width: 100%;
-      text-align: left;
-    }
-
-    .dropdown-item:hover {
-      background: rgba(112, 10, 24, 0.06);
-      color: var(--saas-burgundy-primary);
-    }
-
-    /* 2. Top Navigation Tabs */
-    .saas-nav-bar {
-      background: #FFFFFF;
-      border-bottom: 1px solid var(--saas-card-border);
-      padding: 6px 14px;
-      position: sticky;
-      top: 48px;
-      z-index: 90;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.02);
-    }
-
-    .nav-bar-inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      align-items: center;
-    }
-
-    .nav-bar-inner::-webkit-scrollbar {
-      display: none;
-    }
-
-    .nav-tab-pill {
-      min-width: 0;
-      width: 100%;
-      padding: 7px 4px;
-      border-radius: 12px;
-      border: none;
-      background: transparent;
-      color: var(--saas-text-muted);
-      font-size: 12px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .nav-tab-pill:hover {
-      background: rgba(112, 10, 24, 0.05);
-      color: var(--saas-burgundy-primary);
-    }
-
-    .nav-tab-pill.active {
-      background: var(--saas-burgundy-primary);
-      color: #FFFFFF;
-      box-shadow: 0 2px 8px rgba(112, 10, 24, 0.25);
-    }
-
-    .nav-tab-pill svg {
-      width: 14px;
-      height: 14px;
-      flex-shrink: 0;
-    }
-
-    /* 3. Main Container */
-    .app-main {
-      max-width: 1200px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 12px 14px 84px 14px;
-    }
-
-    .saas-view {
-      display: none;
-      animation: viewFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-
-    .saas-view.active {
-      display: block;
-    }
-
-    @keyframes viewFadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* 4. Compact Hero Announcement Banner */
-    .hero-compact-banner {
-      background: linear-gradient(135deg, #FFFFFF 0%, #FDFBF7 100%);
-      border: 1px solid var(--saas-card-border);
-      border-radius: 14px;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 10px rgba(74, 5, 14, 0.03);
-      position: relative;
-      overflow: hidden;
-      max-height: 80px;
-    }
-
-    .hero-compact-banner::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 4px;
-      height: 100%;
-      background: linear-gradient(to bottom, var(--saas-gold-accent), var(--saas-burgundy-primary));
-    }
-
-    .hero-text-wrap {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .hero-greeting {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--saas-text-muted);
-    }
-
-    .hero-title {
-      font-size: 14.5px;
-      font-weight: 900;
-      color: var(--saas-burgundy-primary);
-      margin: 1px 0 2px 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .hero-sub {
-      font-size: 11.5px;
-      color: var(--saas-text-muted);
-      margin: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .hero-action-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .btn-hero-action {
-      background: var(--saas-burgundy-primary);
-      color: #FFFFFF;
-      border: none;
-      border-radius: 12px;
-      padding: 6px 12px;
-      font-size: 11px;
-      font-weight: 800;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-      box-shadow: 0 2px 8px rgba(112, 10, 24, 0.25);
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .btn-hero-action:hover {
-      background: var(--saas-burgundy-dark);
-      transform: translateY(-1px);
-    }
-
-    .hero-mini-kiosk {
-      width: 44px;
-      height: 38px;
-      flex-shrink: 0;
-    }
-
-    /* 5. 2x2 Interactive KPI Grid */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-
-    .kpi-card {
-      background: #FFFFFF;
-      border: 1px solid var(--saas-card-border);
-      border-radius: 16px;
-      padding: 12px 14px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      overflow: hidden;
-    }
-
-    .kpi-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(74, 5, 14, 0.08);
-      border-color: rgba(112, 10, 24, 0.2);
-    }
-
-    .kpi-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 6px;
-    }
-
-    .kpi-icon-pill {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 800;
-    }
-
-    .kpi-icon-pill.crimson { background: rgba(220, 38, 38, 0.12); color: var(--saas-crimson); }
-    .kpi-icon-pill.emerald { background: rgba(16, 185, 129, 0.12); color: var(--saas-emerald); }
-    .kpi-icon-pill.amber   { background: rgba(245, 158, 11, 0.12); color: var(--saas-amber); }
-    .kpi-icon-pill.purple  { background: rgba(139, 92, 246, 0.12); color: var(--saas-purple); }
-
-    .kpi-arrow-btn {
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: #FDFBF7;
-      border: 1px solid var(--saas-card-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--saas-text-muted);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .kpi-card:hover .kpi-arrow-btn {
-      background: var(--saas-burgundy-primary);
-      color: #FFFFFF;
-      border-color: var(--saas-burgundy-primary);
-    }
-
-    .kpi-title {
-      font-size: 11.5px;
-      font-weight: 700;
-      color: var(--saas-text-muted);
-      margin-bottom: 2px;
-    }
-
-    .kpi-value {
-      font-size: 22px;
-      font-weight: 900;
-      color: var(--saas-text-heading);
-      letter-spacing: -0.5px;
-      line-height: 1.1;
-      margin-bottom: 4px;
-    }
-
-    .kpi-subtext {
-      font-size: 10.5px;
-      font-weight: 600;
-      color: var(--saas-text-muted);
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .kpi-subtext.highlight {
-      color: var(--saas-emerald);
-      font-weight: 700;
-    }
-
-    /* 6. System Status Ribbon */
-    .saas-status-ribbon {
-      background: linear-gradient(135deg, var(--saas-burgundy-dark) 0%, var(--saas-burgundy-primary) 100%);
-      color: #FFFFFF;
-      border-radius: 14px;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      box-shadow: 0 2px 10px rgba(74, 5, 14, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      margin-bottom: 14px;
-    }
-
-    .status-left-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-shield-icon {
-      color: var(--saas-gold-accent);
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-    }
-
-    .status-info-title {
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.2px;
-    }
-
-    .status-info-desc {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.85);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-    }
-
-    .status-dot-pulse {
-      width: 7px;
-      height: 7px;
-      background: var(--saas-emerald);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--saas-emerald);
-      display: inline-block;
-      animation: pulseGreen 2s infinite ease-in-out;
-    }
-
-    @keyframes pulseGreen {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.85); }
-    }
-
-    .btn-status-details {
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: #FFFFFF;
-      padding: 5px 10px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    /* 7. Card Sections, Tables & Badges */
-    .saas-card-section {
-      background: #FFFFFF;
-      border: 1px solid var(--saas-card-border);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 14px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-    }
-
-    .section-header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .section-title-wrap h2 {
-      margin: 0;
-      font-size: 17px;
-      font-weight: 900;
-      color: var(--saas-text-heading);
-    }
-
-    .section-title-wrap p {
-      margin: 2px 0 0 0;
-      font-size: 12px;
-      color: var(--saas-text-muted);
-    }
-
-    .search-filter-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
-    .search-box-wrap {
-      flex: 1;
-      min-width: 200px;
-      position: relative;
-    }
-
-    .search-box-wrap input {
-      width: 100%;
-      height: 38px;
-      padding: 0 12px 0 34px;
-      border: 1px solid var(--saas-card-border);
-      border-radius: 10px;
-      font-size: 13px;
-      font-family: inherit;
-      background: #FDFBF7;
-    }
-
-    .search-box-wrap svg {
-      position: absolute;
-      left: 10px;
-      top: 11px;
-      width: 15px;
-      height: 15px;
-      color: var(--saas-text-muted);
-    }
-
-    .filter-pills-wrap {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      padding-bottom: 2px;
-    }
-
-    .filter-pills-wrap::-webkit-scrollbar { display: none; }
-
-    .filter-pill {
-      padding: 5px 10px;
-      border-radius: 12px;
-      border: 1px solid var(--saas-card-border);
-      background: #FFFFFF;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--saas-text-muted);
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .filter-pill.active {
-      background: var(--saas-burgundy-primary);
-      color: #FFFFFF;
-      border-color: var(--saas-burgundy-primary);
-    }
-
-    .table-responsive-wrapper {
-      overflow-x: auto;
-      overscroll-behavior-x: contain;
-      -webkit-overflow-scrolling: touch;
-      touch-action: pan-x pan-y;
-      border-radius: 12px;
-      border: 1px solid var(--saas-card-border);
-    }
-
-    .saas-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12.5px;
-      text-align: left;
-    }
-
-    .saas-table th {
-      background: #FDFBF7;
-      padding: 10px 12px;
-      font-weight: 800;
-      color: var(--saas-text-muted);
-      border-bottom: 1px solid var(--saas-card-border);
-      white-space: nowrap;
-    }
-
-    .saas-table td {
-      padding: 10px 12px;
-      border-bottom: 1px solid var(--saas-card-border);
-      vertical-align: middle;
-    }
-
-    .badge-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 3px 8px;
-      border-radius: 10px;
-      font-size: 10.5px;
-      font-weight: 800;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .badge-status.active { background: rgba(16, 185, 129, 0.12); color: var(--saas-emerald); }
-    .badge-status.trial  { background: rgba(139, 92, 246, 0.12); color: var(--saas-purple); }
-    .badge-status.due_soon { background: rgba(245, 158, 11, 0.15); color: #B45309; }
-    .badge-status.expired, .badge-status.overdue { background: rgba(220, 38, 38, 0.12); color: var(--saas-crimson); }
-
-    .badge-hosting {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      padding: 2px 7px;
-      border-radius: 8px;
-      font-size: 10.5px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .badge-hosting.cloud { background: rgba(37, 99, 235, 0.1); color: #1D4ED8; border: 1px solid rgba(37, 99, 235, 0.2); }
-    .badge-hosting.local { background: rgba(16, 185, 129, 0.1); color: #047857; border: 1px solid rgba(16, 185, 129, 0.2); }
-
-    .btn-whatsapp-action {
-      background: #25D366;
-      color: #FFFFFF;
-      border: none;
-      border-radius: 8px;
-      padding: 5px 9px;
-      font-size: 11px;
-      font-weight: 800;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
-      text-decoration: none;
-      box-shadow: 0 2px 6px rgba(37, 211, 102, 0.25);
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    }
-
-    .btn-whatsapp-action:hover {
-      background: #1EBE5D;
-      transform: translateY(-1px);
-    }
-
-    .action-btn-group {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      flex-wrap: nowrap;
-    }
-
-    .btn-table-action {
-      background: #FDFBF7;
-      border: 1px solid var(--saas-card-border);
-      border-radius: 8px;
-      padding: 5px 8px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--saas-text-body);
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      white-space: nowrap;
-    }
-
-    .btn-table-action:hover {
-      background: var(--saas-burgundy-primary);
-      color: #FFFFFF;
-      border-color: var(--saas-burgundy-primary);
-    }
-
-    /* 8. Bottom Navigation Dock (Equal Sizing & Standout Add Button) */
-    .saas-bottom-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(255, 255, 255, 0.98);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-top: 1px solid var(--saas-card-border);
-      padding: 4px 6px;
-      box-shadow: 0 -3px 14px rgba(0, 0, 0, 0.05);
-      z-index: 100;
-      height: 52px;
-      padding-bottom: max(4px, env(safe-area-inset-bottom));
-    }
-
-    .bottom-bar-inner {
-      max-width: 480px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1.35fr 1fr 1fr;
-      align-items: center;
-      height: 100%;
-      gap: 2px;
-    }
-
-    .bottom-nav-item {
-      flex: 1 1 0;
-      min-width: 0;
-      height: 44px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2px 1px;
-      gap: 2px;
-      border-radius: 8px;
-      color: var(--saas-text-muted);
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .bottom-nav-item svg {
-      width: 18px;
-      height: 18px;
-      flex-shrink: 0;
-    }
-
-    .bottom-nav-item span {
-      font-size: 10px;
-      font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-    }
-
-    .bottom-nav-item.active {
-      color: var(--saas-burgundy-primary);
-      font-weight: 900;
-    }
-
-    .bottom-nav-item.active::after {
-      content: '';
-      position: absolute;
-      top: 1px;
-      width: 18px;
-      height: 2.5px;
-      background: var(--saas-burgundy-primary);
-      border-radius: 2px;
-    }
-
-    .bottom-nav-add-btn {
-      flex: 1.25 1 0;
-      height: 40px;
-      background: linear-gradient(135deg, var(--saas-burgundy-primary), var(--saas-burgundy-dark));
-      color: #FFFFFF !important;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      box-shadow: 0 4px 14px rgba(112, 10, 24, 0.35);
-      border: none;
-      cursor: pointer;
-      padding: 0 8px;
-      white-space: nowrap;
-      transform: translateY(-2px);
-    }
-
-    .bottom-nav-add-btn span {
-      font-size: 11px !important;
-      font-weight: 800 !important;
-      color: #FFFFFF !important;
-    }
-
-    .bottom-nav-badge {
-      position: absolute;
-      top: 2px;
-      right: calc(50% - 15px);
-      background: var(--saas-crimson);
-      color: #FFFFFF;
-      font-size: 9px;
-      font-weight: 800;
-      width: 15px;
-      height: 15px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1.5px solid #FFFFFF;
-    }
-
-    /* 9. Modals & Drawers */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(4px);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      z-index: 200;
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
-    .modal-card {
-      background: #FFFFFF;
-      border-radius: 18px;
-      max-width: 540px;
-      width: 100%;
-      padding: 20px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
-      position: relative;
-      margin: auto;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .modal-header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--saas-card-border);
-      padding-bottom: 12px;
-    }
-
-    .modal-title {
-      margin: 0;
-      font-size: 17px;
-      font-weight: 800;
-      color: var(--saas-text-heading);
-    }
-
-    .btn-close-modal {
-      background: #FDFBF7;
-      border: 1px solid var(--saas-card-border);
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--saas-text-muted);
-    }
-
-    .form-group-wrap {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .form-field {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .form-field label {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--saas-text-heading);
-    }
-
-    .form-field input, .form-field select {
-      height: 38px;
-      padding: 0 10px;
-      border: 1px solid var(--saas-card-border);
-      border-radius: 8px;
-      font-size: 13px;
-      font-family: inherit;
-      background: #FDFBF7;
-    }
-
-    .form-row-2col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .btn-modal-submit {
-      background: var(--saas-burgundy-primary);
-      color: #FFFFFF;
-      border: none;
-      border-radius: 10px;
-      padding: 12px;
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      margin-top: 14px;
-      width: 100%;
-      box-shadow: 0 4px 12px rgba(112, 10, 24, 0.25);
-    }
-
-    .notifications-drawer {
-      position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 320px;
-      max-width: 85vw;
-      background: #FFFFFF;
-      box-shadow: -6px 0 24px rgba(0, 0, 0, 0.2);
-      z-index: 210;
-      transform: translateX(100%);
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      flex-direction: column;
-      padding: 16px;
-    }
-
-    .notifications-drawer.active {
-      transform: translateX(0);
-    }
-  </style>
+  <link rel="stylesheet" href="/css/tokens.css?v=2.0.0">
+  <link rel="stylesheet" href="/css/ui-kit.css?v=2.0.0">
+  <link rel="stylesheet" href="/css/admin.css?v=2.0.0">
+
+  <script src="/js/theme.js?v=2.0.0"></script>
+  <script src="/js/api-client.js?v=2.0.0"></script>
+  <script src="/js/safe-dom.js?v=2.0.0"></script>
+  <script src="/js/idb-store.js?v=2.0.0"></script>
+  <script src="/js/ui-components.js?v=2.0.0"></script>
+  <script src="/js/session-guard.js?v=2.0.0"></script>
 </head>
-<body class="admin-saas-body">
+<body class="admin-console-body">
+  <div class="admin-shell">
 
-  <!-- 1. Top Imperial Brand Header -->
-  <header class="saas-header">
-    <div class="header-inner">
-      <a href="/admin" class="brand-lockup">
-        <div class="brand-receipt-badge" title="FROSE Receipt Monogram">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16l3-2 3 2 3-2 3 2 3-2 3 2V4a2 2 0 0 0-2-2z"></path></svg>
-        </div>
-        <div class="brand-name-group">
-          <div class="brand-main-title">
-            <span class="brand-word-frose">FROSE</span>
-            <span class="brand-word-street">STREET</span><span class="brand-trademark">TM</span>
+    <!-- Desktop Sidebar Rail (>=1024px) -->
+    <aside class="admin-rail" aria-label="Super Admin Sidebar">
+      <div class="admin-rail-brand">
+        <a href="/admin" class="brand-lockup">
+          <div class="brand-receipt-badge" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/></svg>
           </div>
-          <div class="brand-platform-sub">Restaurant POS Platform</div>
-        </div>
-      </a>
+          <div class="brand-name-group">
+            <div class="brand-main-title">
+              <span class="brand-word-frose">FROSE</span>
+              <span class="brand-word-street">STREET</span><span class="brand-trademark">TM</span>
+            </div>
+            <div class="brand-platform-sub">Platform HQ Console</div>
+          </div>
+        </a>
+      </div>
 
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <button type="button" class="saas-icon-btn" id="btn-admin-theme" title="Switch Theme" aria-label="Switch Theme">
-          <span id="admin-theme-icon">🌤️</span>
+      <nav class="admin-rail-nav">
+        <button type="button" class="admin-rail-btn active" data-nav-view="dashboard">
+          <span class="admin-rail-btn-main">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Overview</span>
+          </span>
         </button>
 
-        <div class="header-user-badge" id="btn-admin-profile" data-click="toggleUserDropdown" data-pass-event="1">
-        <svg class="crown-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5m14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"></path></svg>
-        <div class="avatar-circle">SA</div>
-        <div class="user-label-wrap">
-          <span>Super Admin</span>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        <button type="button" class="admin-rail-btn" data-nav-view="vendors">
+          <span class="admin-rail-btn-main">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span>Vendors</span>
+          </span>
+          <span class="admin-rail-count" id="rail-count-vendors">0</span>
+        </button>
+
+        <button type="button" class="admin-rail-btn" data-nav-view="subscriptions">
+          <span class="admin-rail-btn-main">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            <span>Subscriptions</span>
+          </span>
+        </button>
+
+        <button type="button" class="admin-rail-btn" data-nav-view="analytics">
+          <span class="admin-rail-btn-main">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            <span>Analytics</span>
+          </span>
+        </button>
+
+        <button type="button" class="admin-rail-btn" data-nav-view="users">
+          <span class="admin-rail-btn-main">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Users</span>
+          </span>
+        </button>
+
+        <button type="button" class="admin-rail-btn" data-nav-view="audit">
+          <span class="admin-rail-btn-main">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <span>Audit &amp; Health</span>
+          </span>
+        </button>
+
+        <button type="button" class="admin-rail-btn" data-nav-view="settings">
+          <span class="admin-rail-btn-main">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+            <span>Settings</span>
+          </span>
+        </button>
+      </nav>
+
+      <div class="admin-rail-footer">
+        <button type="button" class="saas-btn saas-btn-primary saas-btn-block" id="btn-rail-add-stall">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>Add Stall</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Workspace Column -->
+    <div class="admin-workspace">
+
+      <!-- Sticky Top Utility Bar -->
+      <header class="admin-topbar">
+        <div class="admin-topbar-left">
+          <div class="admin-topbar-brand-mobile">
+            <a href="/admin" class="brand-lockup">
+              <div class="brand-receipt-badge" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>
+              </div>
+              <div class="brand-name-group">
+                <div class="brand-main-title">
+                  <span class="brand-word-frose">FROSE</span>
+                  <span class="brand-word-street">STREET</span><span class="brand-trademark">TM</span>
+                </div>
+                <div class="brand-platform-sub">Super Admin</div>
+              </div>
+            </a>
+          </div>
+
+          <div class="admin-topbar-crumb">
+            <span class="admin-topbar-crumb-muted">FROSE Street</span>
+            <span class="admin-topbar-crumb-muted">/</span>
+            <span id="topbar-view-title">Platform Overview</span>
+          </div>
         </div>
 
-        <div class="user-dropdown-menu" id="user-dropdown">
-          <div class="dropdown-item" id="btn-menu-profile" data-click="switchView" data-arg="settings">👤 Platform Profile</div>
-          <div class="dropdown-item" id="btn-menu-system" data-click="openModal" data-arg="modal-system-health">🛡️ System Status</div>
-          <div class="dropdown-item" id="btn-menu-logout" data-click="adminLogout" style="color: var(--saas-crimson);">🚪 Sign Out</div>
+        <div class="admin-topbar-actions">
+          <button type="button" class="admin-header-btn" id="btn-header-search" title="Search Vendors (/)" aria-label="Search Vendors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span class="admin-search-kbd">/</span>
+          </button>
+
+          <button type="button" class="admin-header-btn" id="btn-header-notifications" title="Notifications & Alerts" aria-label="Open Notifications">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="admin-notif-badge is-hidden" id="notif-badge">0</span>
+          </button>
+
+          <button type="button" class="admin-header-btn" id="btn-admin-theme" title="Switch Theme" aria-label="Switch Theme">
+            <span id="admin-theme-icon" aria-hidden="true"></span>
+            <span class="admin-theme-label" id="admin-theme-label">Light</span>
+          </button>
+
+          <div class="admin-profile-wrap">
+            <button type="button" class="admin-avatar-pill" id="btn-admin-profile" aria-haspopup="true" aria-expanded="false">
+              <span class="admin-avatar-circle" id="header-avatar-initials">SA</span>
+              <span class="admin-profile-label" id="header-profile-name">Super Admin</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+
+            <div class="admin-dropdown-menu" id="user-dropdown" role="menu">
+              <button type="button" class="admin-dropdown-item" id="btn-menu-profile" role="menuitem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Platform Settings</span>
+              </button>
+              <button type="button" class="admin-dropdown-item" id="btn-menu-system" role="menuitem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Audit &amp; Health</span>
+              </button>
+              <button type="button" class="admin-dropdown-item danger" id="btn-menu-logout" role="menuitem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-      </div>
+      </header>
+
+      <!-- Main Stage -->
+      <main class="admin-main">
+
+        <!-- VIEW 1: OVERVIEW -->
+        <section class="saas-view active" id="view-dashboard">
+          <div class="admin-page-head">
+            <div class="admin-page-title-group">
+              <div class="admin-page-title-row">
+                <h1 class="admin-page-title">Platform Overview</h1>
+                <span class="admin-live-pill" id="overview-health-pill">
+                  <span class="status-dot-pulse"></span>
+                  <span id="overview-db-status">Live</span>
+                </span>
+              </div>
+              <p class="admin-page-sub" id="hero-status-sub">0 Stalls Active • 0 Cloud • 0 Mobile P2P</p>
+            </div>
+            <div class="admin-page-actions">
+              <button type="button" class="saas-btn saas-btn-secondary admin-btn-compact" id="btn-hero-reports">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                <span>Analytics</span>
+              </button>
+              <button type="button" class="saas-btn saas-btn-primary admin-btn-compact" id="btn-overview-add-stall">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add Stall</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-kpi-grid">
+            <button type="button" class="admin-kpi-card" id="card-kpi-restaurants">
+              <div class="admin-kpi-top">
+                <span class="admin-kpi-icon emerald">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </span>
+                <span class="admin-kpi-arrow">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg>
+                </span>
+              </div>
+              <div class="admin-kpi-label">Total Stalls</div>
+              <div class="admin-kpi-value" id="kpi-val-restaurants">0</div>
+              <div class="admin-kpi-sub">
+                <span id="kpi-sub-active">0</span> Active • <span id="kpi-sub-trial">0</span> Trial • <span id="kpi-sub-expired">0</span> Expired
+              </div>
+            </button>
+
+            <button type="button" class="admin-kpi-card" id="card-kpi-revenue">
+              <div class="admin-kpi-top">
+                <span class="admin-kpi-icon blue">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 3h12"/><path d="M6 8h12"/><path d="m6 13 8.5 8"/><path d="M6 13h3"/><path d="M9 13c6.667 0 6.667-10 0-10"/></svg>
+                </span>
+                <span class="admin-kpi-arrow">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg>
+                </span>
+              </div>
+              <div class="admin-kpi-label">Platform Gross Volume</div>
+              <div class="admin-kpi-value" id="kpi-val-revenue">₹0</div>
+              <div class="admin-kpi-sub">
+                Cash: <strong id="kpi-sub-cash">₹0</strong> • UPI: <strong id="kpi-sub-upi">₹0</strong>
+              </div>
+            </button>
+
+            <button type="button" class="admin-kpi-card" id="card-kpi-renewals">
+              <div class="admin-kpi-top">
+                <span class="admin-kpi-icon amber">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                </span>
+                <span class="admin-kpi-arrow">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg>
+                </span>
+              </div>
+              <div class="admin-kpi-label">Subscription MRR &amp; Collected</div>
+              <div class="admin-kpi-value" id="kpi-val-collections">₹0</div>
+              <div class="admin-kpi-sub" id="kpi-sub-renewals">
+                Recv: <strong>₹0</strong> • Due: <strong>₹0</strong>
+              </div>
+            </button>
+
+            <button type="button" class="admin-kpi-card" id="card-kpi-orders">
+              <div class="admin-kpi-top">
+                <span class="admin-kpi-icon rose">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                </span>
+                <span class="admin-kpi-arrow">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg>
+                </span>
+              </div>
+              <div class="admin-kpi-label">Today's Orders</div>
+              <div class="admin-kpi-value" id="kpi-val-orders">0</div>
+              <div class="admin-kpi-sub" id="kpi-sub-devices">0 Active Devices Online</div>
+            </button>
+          </div>
+
+          <div class="admin-health-strip">
+            <div class="admin-health-strip-left">
+              <span class="admin-kpi-icon emerald">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </span>
+              <div>
+                <div class="admin-health-strip-title">System Infrastructure &amp; Audit Trail</div>
+                <div class="admin-health-strip-desc">
+                  <span class="status-dot-pulse"></span>
+                  <span id="health-strip-summary">Checking live database &amp; WebSocket hub...</span>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="saas-btn saas-btn-secondary admin-btn-compact" id="btn-view-health">
+              <span>Inspect Health</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
+          <!-- Action Needed Today -->
+          <div class="admin-card">
+            <div class="admin-page-head">
+              <div class="admin-page-title-group">
+                <h2 class="admin-page-title">Action Needed Today</h2>
+                <p class="admin-page-sub">Expiring licenses, overdue stalls, suspended counters, and locked accounts.</p>
+              </div>
+              <button type="button" class="saas-btn saas-btn-secondary admin-btn-compact" id="btn-action-view-all">
+                <span>View All Alerts</span>
+              </button>
+            </div>
+            <div class="admin-action-list" id="action-needed-list">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 2: VENDORS DIRECTORY -->
+        <section class="saas-view" id="view-vendors">
+          <div class="admin-page-head">
+            <div class="admin-page-title-group">
+              <h1 class="admin-page-title">Vendors Directory</h1>
+              <p class="admin-page-sub">Onboarded stalls, hosting architecture, subscriptions, devices, and remote controls.</p>
+            </div>
+            <div class="admin-page-actions">
+              <button type="button" class="saas-btn saas-btn-secondary admin-btn-compact" id="btn-export-vendors-csv">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Export CSV</span>
+              </button>
+              <button type="button" class="saas-btn saas-btn-primary admin-btn-compact" id="btn-top-add-stall">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add Stall</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-toolbar">
+              <div class="admin-toolbar-top">
+                <div class="admin-search-box">
+                  <span class="admin-search-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  </span>
+                  <input type="text" class="admin-search-input" id="search-vendors-input" placeholder="Search stall, owner, mobile, city, or ID (Press /)">
+                </div>
+                <select class="admin-sort-select" id="sort-vendors-select" aria-label="Sort vendors">
+                  <option value="newest">Sort: Newest</option>
+                  <option value="expiry">Sort: Expiry Soon</option>
+                  <option value="revenue">Sort: Revenue High</option>
+                  <option value="name">Sort: Name A-Z</option>
+                </select>
+              </div>
+
+              <div class="admin-filter-row" id="vendors-filter-row">
+                <button type="button" class="filter-pill active" data-filter="all">All (<span id="count-all">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="active">Active (<span id="count-active">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="trial">Trial (<span id="count-trial">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="expiring">Expiring &lt;=7d (<span id="count-expiring">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="expired">Expired (<span id="count-expired">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="suspended">Suspended (<span id="count-suspended">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="cloud">Cloud (<span id="count-cloud">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="local">Mobile P2P (<span id="count-local">0</span>)</button>
+                <button type="button" class="filter-pill" data-filter="gst">GST Registered (<span id="count-gst">0</span>)</button>
+              </div>
+            </div>
+
+            <div class="admin-table-wrap desktop-only-table">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Stall &amp; Owner</th>
+                    <th>Mobile</th>
+                    <th>Mode</th>
+                    <th class="num-col">Plan</th>
+                    <th>Billing Window</th>
+                    <th>Status</th>
+                    <th class="num-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="stalls-table-body"></tbody>
+              </table>
+            </div>
+
+            <div class="admin-mobile-cards" id="stalls-mobile-cards"></div>
+
+            <div class="admin-pagination" id="vendors-pagination">
+              <span id="vendors-page-info">Showing 0 stalls</span>
+              <div class="admin-pagination-btns">
+                <button type="button" class="btn-table-action" id="btn-vendors-prev">Previous</button>
+                <button type="button" class="btn-table-action" id="btn-vendors-next">Next</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 3: SUBSCRIPTIONS REVENUE LEDGER -->
+        <section class="saas-view" id="view-subscriptions">
+          <div class="admin-page-head">
+            <div class="admin-page-title-group">
+              <h1 class="admin-page-title">Subscriptions Ledger</h1>
+              <p class="admin-page-sub">Platform renewal payments, plan periods, payment references, and total revenue collected.</p>
+            </div>
+            <div class="admin-page-actions">
+              <button type="button" class="saas-btn saas-btn-secondary admin-btn-compact" id="btn-export-subs-csv">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Export CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-kpi-grid">
+            <div class="admin-kpi-card">
+              <div class="admin-kpi-label">Total Collected Revenue</div>
+              <div class="admin-kpi-value" id="subs-total-collected">₹0</div>
+              <div class="admin-kpi-sub">Active verified subscription transactions</div>
+            </div>
+            <div class="admin-kpi-card">
+              <div class="admin-kpi-label">Total Records</div>
+              <div class="admin-kpi-value" id="subs-total-count">0</div>
+              <div class="admin-kpi-sub">Renewals &amp; trial records logged</div>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-table-wrap desktop-only-table">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Stall</th>
+                    <th>Plan</th>
+                    <th>Method &amp; Ref</th>
+                    <th>Period</th>
+                    <th>Status</th>
+                    <th class="num-col">Amount</th>
+                  </tr>
+                </thead>
+                <tbody id="subscriptions-table-body"></tbody>
+              </table>
+            </div>
+            <div class="admin-mobile-cards" id="subscriptions-mobile-cards"></div>
+          </div>
+        </section>
+
+        <!-- VIEW 4: ANALYTICS -->
+        <section class="saas-view" id="view-analytics">
+          <div class="admin-page-head">
+            <div class="admin-page-title-group">
+              <h1 class="admin-page-title">Platform Sales Intelligence</h1>
+              <p class="admin-page-sub">Real-time gross volume, tender splits, deployment mix, and stall leaderboard.</p>
+            </div>
+          </div>
+
+          <div class="admin-grid-2">
+            <div class="admin-card">
+              <h3 class="admin-subpanel-title">Tender Settlement Split</h3>
+              <div class="admin-kv-row" style="margin-bottom: 10px;">
+                <span>Cash: <strong id="analytics-cash-val">₹0</strong> (<span id="analytics-cash-pct">0%</span>)</span>
+                <span>UPI: <strong id="analytics-upi-val">₹0</strong> (<span id="analytics-upi-pct">0%</span>)</span>
+              </div>
+              <div class="saas-split-bar">
+                <div class="saas-split-cash" id="analytics-split-cash-bar"></div>
+                <div class="saas-split-upi" id="analytics-split-upi-bar"></div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h3 class="admin-subpanel-title">Deployment Architecture Breakdown</h3>
+              <div class="admin-info-box">
+                <div class="admin-kv-row">
+                  <span class="admin-kv-label">Cloud Managed</span>
+                  <span class="admin-kv-value" id="analytics-cloud-breakdown">0 Stalls (0%)</span>
+                </div>
+                <div class="admin-kv-row">
+                  <span class="admin-kv-label">Mobile P2P</span>
+                  <span class="admin-kv-value" id="analytics-local-breakdown">0 Stalls (0%)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <h3 class="admin-subpanel-title">Stall Revenue Leaderboard</h3>
+            <div class="admin-table-wrap">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Restaurant Name</th>
+                    <th>City</th>
+                    <th class="num-col">Orders</th>
+                    <th class="num-col">Gross Volume</th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-leaderboard-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 5: USERS DIRECTORY -->
+        <section class="saas-view" id="view-users">
+          <div class="admin-page-head">
+            <div class="admin-page-title-group">
+              <h1 class="admin-page-title">Users &amp; Staff Directory</h1>
+              <p class="admin-page-sub">Platform superadmins, stall owners, cashiers, cooks, and packers.</p>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-toolbar">
+              <div class="admin-toolbar-top">
+                <div class="admin-search-box">
+                  <span class="admin-search-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  </span>
+                  <input type="text" class="admin-search-input" id="search-users-input" placeholder="Search name, phone, or stall...">
+                </div>
+              </div>
+              <div class="admin-filter-row" id="users-role-filter-row">
+                <button type="button" class="filter-pill active" data-user-role="all">All Roles</button>
+                <button type="button" class="filter-pill" data-user-role="owner">Owners</button>
+                <button type="button" class="filter-pill" data-user-role="cashier">Cashiers</button>
+                <button type="button" class="filter-pill" data-user-role="cook">Cooks</button>
+                <button type="button" class="filter-pill" data-user-role="packer">Packers</button>
+                <button type="button" class="filter-pill" data-user-role="superadmin">Superadmin</button>
+              </div>
+            </div>
+
+            <div class="admin-table-wrap desktop-only-table">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Name &amp; Mobile</th>
+                    <th>Role</th>
+                    <th>Assigned Stall</th>
+                    <th>Status</th>
+                    <th class="num-col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-body"></tbody>
+              </table>
+            </div>
+
+            <div class="admin-mobile-cards" id="users-mobile-cards"></div>
+          </div>
+        </section>
+
+        <!-- VIEW 6: AUDIT & SYSTEM HEALTH -->
+        <section class="saas-view" id="view-audit">
+          <div class="admin-page-head">
+            <div class="admin-page-title-group">
+              <h1 class="admin-page-title">Audit &amp; System Health</h1>
+              <p class="admin-page-sub">Live PostgreSQL connectivity, WebSocket hub metrics, and immutable Super Admin action trail.</p>
+            </div>
+            <div class="admin-page-actions">
+              <button type="button" class="saas-btn saas-btn-secondary admin-btn-compact" id="btn-refresh-health">
+                <span>Refresh Telemetry</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="admin-grid-2" id="audit-health-grid">
+            <div class="admin-card">
+              <h3 class="admin-subpanel-title">Live Infrastructure Probes</h3>
+              <div class="admin-info-box" id="audit-health-rows">
+                <div class="admin-kv-row"><span class="admin-kv-label">Database</span><span class="admin-kv-value">Checking...</span></div>
+              </div>
+            </div>
+            <div class="admin-card">
+              <h3 class="admin-subpanel-title">Runtime &amp; WebSocket Hub</h3>
+              <div class="admin-info-box" id="audit-runtime-rows">
+                <div class="admin-kv-row"><span class="admin-kv-label">WebSocket Clients</span><span class="admin-kv-value">Checking...</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <h3 class="admin-subpanel-title">Admin Audit Log</h3>
+            <div class="admin-table-wrap desktop-only-table">
+              <table class="admin-table">
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Target Vendor</th>
+                    <th>Details</th>
+                    <th>IP</th>
+                  </tr>
+                </thead>
+                <tbody id="audit-logs-body"></tbody>
+              </table>
+            </div>
+            <div class="admin-mobile-cards" id="audit-mobile-cards"></div>
+          </div>
+        </section>
+
+        <!-- VIEW 7: SETTINGS -->
+        <section class="saas-view" id="view-settings">
+          <div class="admin-page-head">
+            <div class="admin-page-title-group">
+              <h1 class="admin-page-title">Platform Profile &amp; Security</h1>
+              <p class="admin-page-sub">Active Super Admin session, progressive lockout controls, and platform billing standards.</p>
+            </div>
+            <div class="admin-page-actions">
+              <button type="button" class="saas-btn saas-btn-danger admin-btn-compact" id="btn-settings-logout">Sign Out</button>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-kv-row" style="margin-bottom: 14px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="admin-avatar-circle" id="settings-profile-avatar">SA</span>
+                <div>
+                  <div style="font-weight: 800; font-size: 15px;" id="settings-profile-name">Super Admin</div>
+                  <div class="saas-pill saas-pill-emerald">Authenticated Master Session</div>
+                </div>
+              </div>
+            </div>
+            <div class="admin-info-box">
+              <div class="admin-kv-row"><span class="admin-kv-label">Mobile</span><span class="admin-kv-value" id="settings-profile-phone">-</span></div>
+              <div class="admin-kv-row"><span class="admin-kv-label">Role</span><span class="admin-kv-value" id="settings-profile-role">Platform Superadmin</span></div>
+              <div class="admin-kv-row"><span class="admin-kv-label">Session Transport</span><span class="admin-kv-value">httpOnly Cookie + Rotating Refresh</span></div>
+            </div>
+          </div>
+
+          <div class="admin-grid-2">
+            <div class="admin-card">
+              <h3 class="admin-subpanel-title">Progressive Lockout Policy</h3>
+              <div class="admin-info-box">
+                <div class="admin-kv-row"><span class="admin-kv-label">3 Consecutive Fails</span><span class="admin-kv-value">60s Lockout</span></div>
+                <div class="admin-kv-row"><span class="admin-kv-label">4 Consecutive Fails</span><span class="admin-kv-value">300s (5m) Lockout</span></div>
+                <div class="admin-kv-row"><span class="admin-kv-label">5+ Consecutive Fails</span><span class="admin-kv-value">900s (15m) Lockout</span></div>
+                <div class="admin-kv-row"><span class="admin-kv-label">Remote PIN Login</span><span class="admin-kv-value">Disabled (Local Device Only)</span></div>
+              </div>
+            </div>
+
+            <div class="admin-card">
+              <h3 class="admin-subpanel-title">Platform Defaults</h3>
+              <div class="admin-info-box">
+                <div class="admin-kv-row"><span class="admin-kv-label">Currency &amp; Ledger</span><span class="admin-kv-value">INR (Integer Paise)</span></div>
+                <div class="admin-kv-row"><span class="admin-kv-label">Standard Monthly Plan</span><span class="admin-kv-value">₹499 / Stall / Month</span></div>
+                <div class="admin-kv-row"><span class="admin-kv-label">Offline License Signature</span><span class="admin-kv-value">Ed25519 (EdDSA)</span></div>
+                <div class="admin-kv-row"><span class="admin-kv-label">Default Trial Duration</span><span class="admin-kv-value">14 Days</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VIEW 8: ADD RESTAURANT STALL -->
+        <section class="saas-view" id="view-add-restaurant">
+          <div class="admin-card admin-add-page-card">
+            <div class="modal-header-row">
+              <button type="button" class="saas-btn saas-btn-secondary admin-btn-compact" id="btn-back-to-vendors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <span>Back to Vendors</span>
+              </button>
+              <span class="saas-pill saas-pill-slate">New Stall Onboarding</span>
+            </div>
+
+            <div style="margin-bottom: 18px;">
+              <h1 class="admin-page-title">Provision New Restaurant Stall</h1>
+              <p class="admin-page-sub">Configure owner credentials, hosting architecture, and initial billing terms.</p>
+            </div>
+
+            <form id="form-add-stall-page" class="form-group-wrap">
+              <div class="form-field">
+                <label for="page-add-stall-name">Restaurant / Stall Name *</label>
+                <input type="text" id="page-add-stall-name" placeholder="e.g. Hyderabad Biryani Express" required>
+              </div>
+              <div class="form-row-2col">
+                <div class="form-field">
+                  <label for="page-add-owner-name">Owner Full Name *</label>
+                  <input type="text" id="page-add-owner-name" placeholder="e.g. Mohammed Feroz" required>
+                </div>
+                <div class="form-field">
+                  <label for="page-add-phone">10-Digit Mobile Number *</label>
+                  <input type="tel" id="page-add-phone" placeholder="e.g. 9848012345" maxlength="10" required>
+                </div>
+              </div>
+              <div class="form-row-2col">
+                <div class="form-field">
+                  <label for="page-add-password">Initial Passphrase *</label>
+                  <input type="password" id="page-add-password" placeholder="Min 10 characters" minlength="10" required>
+                </div>
+                <div class="form-field">
+                  <label for="page-add-city">City / Location *</label>
+                  <input type="text" id="page-add-city" value="Hyderabad" required>
+                </div>
+              </div>
+              <div class="form-row-2col">
+                <div class="form-field">
+                  <label for="page-add-edition">Hosting Architecture *</label>
+                  <select id="page-add-edition">
+                    <option value="cloud">Cloud Managed (Real-time Sync)</option>
+                    <option value="local">Mobile P2P (Offline Local DB)</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="page-add-monthly-fee">Monthly Fee (₹) *</label>
+                  <input type="number" id="page-add-monthly-fee" value="499" min="0" step="1" required>
+                </div>
+              </div>
+              <div class="form-row-2col">
+                <div class="form-field">
+                  <label for="page-add-billing-cycle">Billing Cycle *</label>
+                  <select id="page-add-billing-cycle">
+                    <option value="monthly">Monthly (30 Days)</option>
+                    <option value="quarterly">Quarterly (90 Days)</option>
+                    <option value="annual">Annual (365 Days)</option>
+                  </select>
+                </div>
+                <div class="form-field">
+                  <label for="page-add-initial-status">Initial Payment Status *</label>
+                  <select id="page-add-initial-status">
+                    <option value="paid">Paid (Activate Immediately)</option>
+                    <option value="trial">Trial (Collect Later)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-field">
+                <label for="page-add-upi">Stall UPI VPA (Optional)</label>
+                <input type="text" id="page-add-upi" value="" placeholder="stallname@okaxis (optional)">
+              </div>
+              <button type="submit" id="btn-submit-add-stall-page" class="saas-btn saas-btn-primary saas-btn-block">
+                Create &amp; Provision Stall
+              </button>
+            </form>
+          </div>
+        </section>
+
+      </main>
     </div>
-  </header>
 
-  <!-- 2. Top Navigation Tabs Bar -->
-  <nav class="saas-nav-bar">
-    <div class="nav-bar-inner">
-      <button class="nav-tab-pill active" data-view="dashboard" data-click="switchView" data-arg="dashboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
-        <span>Dashboard</span>
+    <!-- Single Unified Mobile/Tablet Bottom Navigation (<1024px) -->
+    <nav class="admin-bottom-nav" aria-label="Mobile Navigation">
+      <button type="button" class="admin-bottom-tab active" data-nav-view="dashboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+        <span>Overview</span>
       </button>
-      <button class="nav-tab-pill" data-view="vendors" data-click="switchView" data-arg="vendors">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 2v7c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V2"></path><path d="M3 7h18"></path><path d="M7 11v9"></path><path d="M17 11v9"></path><path d="M3 20h18"></path></svg>
+      <button type="button" class="admin-bottom-tab" data-nav-view="vendors">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         <span>Vendors</span>
       </button>
-      <button class="nav-tab-pill" data-view="users" data-click="switchView" data-arg="users">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-        <span>Users</span>
+      <button type="button" class="admin-bottom-tab" data-nav-view="subscriptions">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        <span>Subs</span>
       </button>
-      <button class="nav-tab-pill" data-view="settings" data-click="switchView" data-arg="settings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <span>Settings</span>
-      </button>
-    </div>
-  </nav>
-
-  <!-- 3. Main Container & Views -->
-  <main class="app-main">
-
-    <!-- VIEW 1: DASHBOARD -->
-    <section class="saas-view active" id="view-dashboard">
-      
-      <!-- Compact Hero Announcement Banner -->
-      <div class="hero-compact-banner">
-        <div class="hero-text-wrap">
-          <div class="hero-greeting">Welcome Back,</div>
-          <div class="hero-title">Super Admin!</div>
-          <div class="hero-sub" id="hero-status-sub">0 Stalls Active • 0 Cloud • 0 Mobile P2P</div>
-        </div>
-        <div class="hero-action-group">
-          <button class="btn-hero-action" id="btn-hero-reports">
-            <span>Reports →</span>
-          </button>
-          <svg class="hero-mini-kiosk" viewBox="0 0 48 42" fill="none">
-            <rect x="6" y="16" width="36" height="22" rx="3" fill="#D97706"></rect>
-            <path d="M3 16L24 6L45 16H3Z" fill="#DC2626"></path>
-            <path d="M6 16L24 8L42 16" stroke="#FEF3C7" stroke-width="1.5"></path>
-            <rect x="14" y="22" width="20" height="16" rx="2" fill="#78350F"></rect>
-            <circle cx="24" cy="30" r="2" fill="#F59E0B"></circle>
-          </svg>
-        </div>
-      </div>
-
-      <!-- 2x2 Interactive KPI Cards -->
-      <div class="kpi-grid">
-        <div class="kpi-card" id="card-kpi-restaurants" title="Click to view all restaurants">
-          <div class="kpi-header">
-            <div class="kpi-icon-pill crimson">🍽️</div>
-            <div class="kpi-arrow-btn">→</div>
-          </div>
-          <div class="kpi-title">Total Restaurants</div>
-          <div class="kpi-value" id="kpi-val-restaurants">0</div>
-          <div class="kpi-subtext highlight">
-            <span id="kpi-sub-active">0</span> Active • <span id="kpi-sub-trial">0</span> Trial
-          </div>
-        </div>
-
-        <div class="kpi-card" id="card-kpi-revenue" title="Click to view sales intelligence">
-          <div class="kpi-header">
-            <div class="kpi-icon-pill emerald">₹</div>
-            <div class="kpi-arrow-btn">→</div>
-          </div>
-          <div class="kpi-title">Platform Gross Volume</div>
-          <div class="kpi-value" id="kpi-val-revenue">₹0</div>
-          <div class="kpi-subtext">
-            Cash: <strong id="kpi-sub-cash">₹0</strong> • UPI: <strong id="kpi-sub-upi">₹0</strong>
-          </div>
-        </div>
-
-        <div class="kpi-card" id="card-kpi-renewals" title="Click to view subscription collections">
-          <div class="kpi-header">
-            <div class="kpi-icon-pill amber">💳</div>
-            <div class="kpi-arrow-btn">→</div>
-          </div>
-          <div class="kpi-title">Subscription Collections</div>
-          <div class="kpi-value" id="kpi-val-collections">₹0</div>
-          <div class="kpi-subtext" id="kpi-sub-renewals">
-            Recv: <strong>₹0</strong> • Due: <strong>₹0</strong>
-          </div>
-        </div>
-
-        <div class="kpi-card" id="card-kpi-orders" title="Click to view today's orders">
-          <div class="kpi-header">
-            <div class="kpi-icon-pill purple">🛒</div>
-            <div class="kpi-arrow-btn">→</div>
-          </div>
-          <div class="kpi-title">Today's Orders</div>
-          <div class="kpi-value" id="kpi-val-orders">0</div>
-          <div class="kpi-subtext" id="kpi-sub-devices">
-            📲 6 Active Devices Online
-          </div>
-        </div>
-      </div>
-
-      <!-- System Status Ribbon -->
-      <div class="saas-status-ribbon">
-        <div class="status-left-group">
-          <svg class="status-shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-          <div>
-            <div class="status-info-title">System Status</div>
-            <div class="status-info-desc">
-              <span class="status-dot-pulse"></span>
-              <span>All Systems Running Smoothly</span>
-            </div>
-          </div>
-        </div>
-        <button class="btn-status-details" id="btn-view-health" data-click="openModal" data-arg="modal-system-health">
-          <span>View Details →</span>
-        </button>
-      </div>
-
-    </section>
-
-    <!-- VIEW 2: VENDORS & BILLING -->
-    <section class="saas-view" id="view-vendors">
-      <div class="saas-card-section">
-        <div class="section-header-row">
-          <div class="section-title-wrap">
-            <h2>Restaurant Stalls & Subscriptions</h2>
-            <p>Manage on-boarded stalls, cloud vs local hosting, monthly billing, and WhatsApp receipts.</p>
-          </div>
-          <button class="bottom-nav-add-btn" id="btn-top-add-stall" style="padding: 8px 14px; height: 36px; border-radius: 18px;" data-click="switchView" data-arg="add-restaurant">
-            <span>➕ Add a New Restaurant</span>
-          </button>
-        </div>
-
-        <div class="search-filter-toolbar">
-          <div class="search-box-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="search-vendors-input" placeholder="Search stall, owner, mobile, or city...">
-          </div>
-          <div class="filter-pills-wrap">
-            <button type="button" class="filter-pill active" data-filter="all" data-click="filterStalls" data-arg="all">All (<span id="count-all">6</span>)</button>
-            <button type="button" class="filter-pill" data-filter="active" data-click="filterStalls" data-arg="active">Active (<span id="count-active">4</span>)</button>
-            <button type="button" class="filter-pill" data-filter="trial" data-click="filterStalls" data-arg="trial">Trial (<span id="count-trial">1</span>)</button>
-            <button type="button" class="filter-pill" data-filter="expiring" data-click="filterStalls" data-arg="expiring">Due Soon (<span id="count-expiring">1</span>)</button>
-            <button type="button" class="filter-pill" data-filter="expired" data-click="filterStalls" data-arg="expired">Overdue (<span id="count-expired">1</span>)</button>
-            <button type="button" class="filter-pill" data-filter="cloud" data-click="filterStalls" data-arg="cloud">Cloud (4)</button>
-            <button type="button" class="filter-pill" data-filter="local" data-click="filterStalls" data-arg="local">Mobile P2P (2)</button>
-          </div>
-        </div>
-
-        <div class="table-responsive-wrapper">
-          <table class="saas-table">
-            <thead>
-              <tr>
-                <th>Restaurant & Owner</th>
-                <th>Mobile Number</th>
-                <th>Hosting Mode</th>
-                <th>Monthly Fee</th>
-                <th>Billing Dates</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="stalls-table-body">
-              <!-- Rendered via JavaScript -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 3: USERS DIRECTORY -->
-    <section class="saas-view" id="view-users">
-      <div class="saas-card-section">
-        <div class="section-header-row">
-          <div class="section-title-wrap">
-            <h2>Users & Staff Directory</h2>
-            <p>Platform administrators, restaurant stall owners, cashiers, and cooks.</p>
-          </div>
-        </div>
-
-        <div class="table-responsive-wrapper">
-          <table class="saas-table">
-            <thead>
-              <tr>
-                <th>Name & Mobile</th>
-                <th>Role</th>
-                <th>Assigned Restaurant</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="users-table-body">
-              <!-- Rendered via JavaScript -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 4: SETTINGS -->
-    <section class="saas-view" id="view-settings">
-      <!-- Authenticated User & Session Profile Card -->
-      <div class="saas-card-section" style="margin-bottom: 16px; border: 1.5px solid var(--saas-burgundy-primary); box-shadow: 0 4px 14px rgba(91,6,18,0.06);">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 1px solid var(--saas-card-border); padding-bottom: 12px;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--saas-burgundy-primary); color: #FFF; font-weight: 800; font-size: 16px; display: flex; align-items: center; justify-content: center;" id="settings-profile-avatar">SA</div>
-            <div>
-              <div style="font-weight: 800; font-size: 15px; color: var(--saas-text-heading);" id="settings-profile-name">Super Admin</div>
-              <div style="font-size: 11.5px; color: var(--saas-emerald); font-weight: 700;">● Authenticated Master Session</div>
-            </div>
-          </div>
-          <button data-click="logoutSuperAdmin" style="background: none; border: 1.5px solid #DC2626; color: #DC2626; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer;">Sign Out</button>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; font-size: 12px; background: #FDFBF7; padding: 12px; border-radius: 8px; border: 1px solid var(--saas-card-border);">
-          <div>Mobile: <strong id="settings-profile-phone">+91 99999 99999</strong></div>
-          <div>Role: <strong id="settings-profile-role">Platform Superadmin</strong></div>
-          <div>Active Device: <strong>Mobile Web / Desktop Console</strong></div>
-          <div>Auth Type: <strong>Cryptographic Session Token</strong></div>
-        </div>
-      </div>
-
-      <div class="saas-card-section">
-        <div class="section-header-row">
-          <div class="section-title-wrap">
-            <h2>Platform Configuration & Security</h2>
-            <p>Global system rules, rate limit parameters, and payment defaults.</p>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
-          <div style="background: #FDFBF7; border: 1px solid var(--saas-card-border); border-radius: 12px; padding: 14px;">
-            <h4 style="margin: 0 0 8px 0; color: var(--saas-burgundy-primary); font-size: 14px;">🔒 Progressive Lockout Security</h4>
-            <p style="margin: 0 0 10px 0; font-size: 12px; color: var(--saas-text-muted);">Active brute-force protection strictly enforced across all stall logins:</p>
-            <ul style="margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.6;">
-              <li><strong>3 Consecutive Fails:</strong> 1-Minute (60s) Lockout with live countdown</li>
-              <li><strong>4 Consecutive Fails:</strong> 5-Minute (300s) Lockout</li>
-              <li><strong>5+ Consecutive Fails:</strong> 15-Minute (900s) Lockout</li>
-              <li><strong>Quick PIN:</strong> Permanently disabled for high security</li>
-            </ul>
-          </div>
-
-          <div style="background: #FDFBF7; border: 1px solid var(--saas-card-border); border-radius: 12px; padding: 14px;">
-            <h4 style="margin: 0 0 8px 0; color: var(--saas-burgundy-primary); font-size: 14px;">💳 Payment & Hardware Defaults</h4>
-            <div style="display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
-              <div>Platform Currency: <strong>INR (₹ - Indian Rupee)</strong></div>
-              <div>Standard Monthly Rate: <strong>₹499 / Stall / Month</strong></div>
-              <div>Dynamic UPI QR: <strong>Direct Intent UPI + BharatQR v2</strong></div>
-              <div>Default Trial Duration: <strong>14 Days Automatic Provisioning</strong></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 5: ANALYTICS -->
-    <section class="saas-view" id="view-analytics">
-      <div class="saas-card-section">
-        <div class="section-header-row">
-          <div class="section-title-wrap">
-            <h2>Platform Sales Intelligence</h2>
-            <p>Live transaction volumes, settlement splits, and stall leaderboards.</p>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 16px;">
-          <div style="background: #FDFBF7; border: 1px solid var(--saas-card-border); border-radius: 12px; padding: 14px;">
-            <h4 style="margin: 0 0 10px 0; font-size: 13.5px; color: var(--saas-burgundy-primary);">Tender Settlement Split</h4>
-            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; margin-bottom: 6px;">
-              <span>Cash: <span id="analytics-cash-val">₹0</span></span>
-              <span>UPI: <span id="analytics-upi-val">₹0</span></span>
-            </div>
-            <div style="height: 10px; background: rgba(0,0,0,0.06); border-radius: 5px; overflow: hidden; display: flex;">
-              <div style="width: 60%; background: var(--saas-burgundy-primary);"></div>
-              <div style="width: 40%; background: var(--saas-emerald);"></div>
-            </div>
-          </div>
-
-          <div style="background: #FDFBF7; border: 1px solid var(--saas-card-border); border-radius: 12px; padding: 14px;">
-            <h4 style="margin: 0 0 10px 0; font-size: 13.5px; color: var(--saas-burgundy-primary);">Deployment Breakdown</h4>
-            <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700;">
-              <span>🌐 Cloud Managed: <strong>4 Stalls (67%)</strong></span>
-              <span>📱 Mobile P2P: <strong>2 Stalls (33%)</strong></span>
-            </div>
-          </div>
-        </div>
-
-        <h3 style="font-size: 15px; font-weight: 900; margin: 0 0 10px 0; color: var(--saas-text-heading);">Stall Revenue Leaderboard</h3>
-        <div class="table-responsive-wrapper">
-          <table class="saas-table">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Restaurant Name</th>
-                <th>City</th>
-                <th>Total Orders</th>
-                <th>Gross Volume</th>
-              </tr>
-            </thead>
-            <tbody id="analytics-leaderboard-body">
-              <!-- Rendered via JavaScript -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-
-    <!-- VIEW: ADD A NEW RESTAURANT STALL (Full-Page, Straight Top-to-Bottom, Zero Horizontal Overflow) -->
-    <section class="saas-view" id="view-add-restaurant">
-      <div class="saas-card-section" style="max-width: 680px; margin: 0 auto; box-sizing: border-box; overflow: hidden;">
-        
-        <!-- Navigation Back Row -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--saas-card-border); padding-bottom: 12px;">
-          <button type="button" id="btn-back-to-vendors" data-click="switchView" data-arg="vendors" style="background: rgba(112, 10, 24, 0.08); border: 1px solid var(--saas-card-border); color: var(--saas-burgundy-primary); font-size: 13px; font-weight: 800; padding: 8px 14px; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-            <span>Back to Vendors</span>
-          </button>
-          <span style="font-size: 11px; font-weight: 700; color: var(--saas-text-muted); background: #F3F4F6; padding: 4px 8px; border-radius: 6px;">New Stall Setup</span>
-        </div>
-
-        <div style="margin-bottom: 20px;">
-          <h2 style="margin: 0; font-size: 20px; font-weight: 900; color: var(--saas-burgundy-primary);">➕ Add a New Restaurant Stall</h2>
-          <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--saas-text-muted); line-height: 1.4;">Configure stall credentials, cloud/local hosting architecture, monthly subscription fee, and payment terms in a clean top-to-bottom layout.</p>
-        </div>
-
-        <!-- Strict Single-Column Top-to-Bottom Form (No Horizontal Scroll) -->
-        <form id="form-add-stall-page" data-submit="submitAddStallPage" style="display: flex; flex-direction: column; gap: 14px; width: 100%; box-sizing: border-box;">
-          
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Restaurant / Stall Name *</label>
-            <input type="text" id="page-add-stall-name" placeholder="e.g. Hyderabad Biryani Express" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
-          </div>
-
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Owner Full Name *</label>
-            <input type="text" id="page-add-owner-name" placeholder="e.g. Mohammed Feroz" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
-          </div>
-
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">10-Digit Mobile Number (Login ID) *</label>
-            <input type="tel" id="page-add-phone" placeholder="e.g. 9848012345" maxlength="10" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
-          </div>
-
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Initial Password</label>
-            <input type="password" id="page-add-password" placeholder="Min 10 characters passphrase" minlength="10" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
-          </div>
-
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">City / Operational Location *</label>
-            <input type="text" id="page-add-city" value="Hyderabad" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
-          </div>
-
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Hosting Architecture *</label>
-            <select id="page-add-edition" style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; background: #FFFFFF; box-sizing: border-box;">
-              <option value="cloud">🌐 Cloud Managed (Online DB + Real-time Sync)</option>
-              <option value="local">📱 Mobile P2P Hotspot (Offline-First Local DB)</option>
-            </select>
-          </div>
-
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Monthly Subscription Fee (₹) *</label>
-            <input type="number" id="page-add-monthly-fee" value="499" min="0" step="1" required style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
-          </div>
-
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Billing Cycle *</label>
-            <select id="page-add-billing-cycle" style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; background: #FFFFFF; box-sizing: border-box;">
-              <option value="monthly">Monthly (30 Days)</option>
-              <option value="quarterly">Quarterly (90 Days)</option>
-              <option value="annual">Annual (365 Days)</option>
-            </select>
-          </div>
-
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Initial Payment Status *</label>
-            <select id="page-add-initial-status" style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; background: #FFFFFF; box-sizing: border-box;">
-              <option value="paid">Paid (Issue Instant WhatsApp Tax Receipt)</option>
-              <option value="trial">7-Day Free Trial (Collect Fee Later)</option>
-            </select>
-          </div>
-
-          <div class="form-field" style="display: flex; flex-direction: column; gap: 5px; width: 100%;">
-            <label style="font-size: 12.5px; font-weight: 800; color: var(--saas-text-heading);">Stall UPI VPA (Customer QR)</label>
-            <input type="text" id="page-add-upi" value="" placeholder="stallname@okaxis (optional)" style="width: 100%; height: 46px; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 0 14px; font-size: 14px; box-sizing: border-box;">
-          </div>
-
-          <!-- Standout Action Button -->
-          <button type="submit" id="btn-submit-add-stall-page" class="saas-primary-btn" style="width: 100%; height: 50px; font-size: 15px; font-weight: 800; margin-top: 10px; border-radius: 12px; background: linear-gradient(135deg, var(--saas-burgundy-primary), var(--saas-burgundy-dark)); color: #FFFFFF; border: none; cursor: pointer; box-shadow: 0 4px 14px rgba(112, 10, 24, 0.3);">
-            🚀 Create & Provision Stall
-          </button>
-        </form>
-
-      </div>
-    </section>
-
-  </main>
-
-  <!-- 4. Bottom Docked Navigation Bar (Equal Sizing & Standout Add Button) -->
-  <footer class="saas-bottom-bar">
-    <div class="bottom-bar-inner">
-      <button class="bottom-nav-item active" data-view="dashboard" id="btn-bottom-home" data-click="switchView" data-arg="dashboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
-        <span>Home</span>
-      </button>
-
-      <button class="bottom-nav-item" data-view="analytics" id="btn-bottom-analytics" data-click="switchView" data-arg="analytics">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      <button type="button" class="admin-bottom-tab" data-nav-view="analytics">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
         <span>Analytics</span>
       </button>
-
-      <!-- Standout Single-Line Center Action Button -->
-      <button class="bottom-nav-add-btn" id="btn-bottom-add-restaurant" title="Add a New Restaurant" data-click="switchView" data-arg="add-restaurant">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        <span>Add Stall</span>
+      <button type="button" class="admin-bottom-tab" id="btn-mobile-more">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        <span>More</span>
       </button>
+    </nav>
+  </div>
 
-      <button class="bottom-nav-item" id="btn-bottom-notifications" data-click="toggleNotifications">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-        <span class="bottom-nav-badge" id="notif-badge" style="display: none;">0</span>
-        <span>Notifications</span>
-      </button>
-
-      <button class="bottom-nav-item" id="btn-bottom-logout" data-click="adminLogout">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-        <span>Logout</span>
-      </button>
-    </div>
-  </footer>
-
-  <!-- 5. Slide-Over Notifications Drawer -->
-  <aside class="notifications-drawer" id="notifications-drawer">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid var(--saas-card-border); padding-bottom: 10px;">
-      <div>
-        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--saas-text-heading);">Notifications</h3>
-        <div style="font-size: 11px; color: var(--saas-text-muted);" id="notif-unread-subtitle">0 Unread</div>
+  <!-- Mobile "More" Navigation Sheet -->
+  <div class="saas-sheet-backdrop" id="mobile-more-sheet" role="dialog" aria-modal="true" aria-labelledby="mobile-more-title">
+    <div class="saas-sheet">
+      <div class="saas-sheet-handle"></div>
+      <div class="modal-header-row">
+        <h3 class="modal-title" id="mobile-more-title">More Sections</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-more-sheet" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <button id="btn-clear-all-notifs" data-click="clearAllNotifications" style="background: none; border: 1px solid var(--saas-card-border); padding: 4px 8px; border-radius: 6px; font-size: 11px; color: var(--saas-burgundy-primary); font-weight: 700; cursor: pointer;">Clear All</button>
-        <button class="btn-close-modal" id="btn-close-notifications" data-click="toggleNotifications">×</button>
+      <div class="form-group-wrap">
+        <button type="button" class="saas-btn saas-btn-primary saas-btn-block" data-more-view="add-restaurant">Add New Stall</button>
+        <button type="button" class="saas-btn saas-btn-secondary saas-btn-block" data-more-view="users">Users &amp; Staff Directory</button>
+        <button type="button" class="saas-btn saas-btn-secondary saas-btn-block" data-more-view="audit">Audit &amp; System Health</button>
+        <button type="button" class="saas-btn saas-btn-secondary saas-btn-block" data-more-view="settings">Platform Settings</button>
+        <button type="button" class="saas-btn saas-btn-danger saas-btn-block" id="btn-more-logout">Sign Out</button>
       </div>
     </div>
-    <div id="notifications-list-container" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
-      <!-- Dynamically populated via renderNotifications() -->
-    </div>
-  </aside>
+  </div>
 
-  <!-- 6. Modal: Add a New Restaurant (With Hosting Mode & Monthly Billing) -->
-  <div class="modal-overlay" id="modal-add-stall">
+  <!-- Slide-Over Notifications Drawer with Real Dimmed Backdrop -->
+  <div class="saas-drawer-backdrop" id="notifications-drawer" role="dialog" aria-modal="true" aria-labelledby="notifications-drawer-title">
+    <aside class="saas-drawer-panel">
+      <div class="saas-sheet-header">
+        <div>
+          <h3 class="saas-sheet-title" id="notifications-drawer-title">Alerts &amp; Notifications</h3>
+          <div class="brand-platform-sub" id="notif-unread-subtitle">0 Unread</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" class="btn-table-action" id="btn-clear-all-notifs">Mark Read</button>
+          <button type="button" class="btn-close-modal" id="btn-close-notifications" aria-label="Close Notifications">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="notifications-list-container" class="form-group-wrap" style="margin-top: 14px;"></div>
+    </aside>
+  </div>
+
+  <!-- Modal: Add Stall (Quick Modal) -->
+  <div class="modal-overlay" id="modal-add-stall" role="dialog" aria-modal="true">
     <div class="modal-card">
       <div class="modal-header-row">
-        <h3 class="modal-title">➕ Add a New Restaurant Stall</h3>
-        <button class="btn-close-modal" id="btn-close-add-modal" data-click="closeModal" data-arg="modal-add-stall">×</button>
+        <h3 class="modal-title">Add New Restaurant Stall</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-add-modal" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <form id="form-add-stall" class="form-group-wrap">
         <div class="form-row-2col">
           <div class="form-field">
-            <label>Restaurant / Stall Name *</label>
+            <label for="add-stall-name">Restaurant / Stall Name *</label>
             <input type="text" id="add-stall-name" placeholder="e.g. Hyderabad Biryani Express" required>
           </div>
           <div class="form-field">
-            <label>Owner Full Name *</label>
+            <label for="add-owner-name">Owner Full Name *</label>
             <input type="text" id="add-owner-name" placeholder="e.g. Mohammed Feroz" required>
           </div>
         </div>
-
         <div class="form-row-2col">
           <div class="form-field">
-            <label>10-Digit Mobile Number *</label>
+            <label for="add-phone">10-Digit Mobile Number *</label>
             <input type="tel" id="add-phone" placeholder="e.g. 9848012345" maxlength="10" required>
           </div>
           <div class="form-field">
-            <label>Initial Password</label>
-            <input type="password" id="add-password" placeholder="Min 10 characters passphrase" minlength="10" required>
+            <label for="add-password">Initial Passphrase *</label>
+            <input type="password" id="add-password" placeholder="Min 10 characters" minlength="10" required>
           </div>
         </div>
-
         <div class="form-row-2col">
           <div class="form-field">
-            <label>City *</label>
+            <label for="add-city">City *</label>
             <input type="text" id="add-city" value="Hyderabad" required>
           </div>
           <div class="form-field">
-            <label>Hosting Architecture *</label>
+            <label for="add-edition">Hosting Mode *</label>
             <select id="add-edition">
-              <option value="cloud">🌐 Cloud Managed Hosting (Edge Sync)</option>
-              <option value="local">📱 Mobile Self-Hosted (Offline P2P)</option>
+              <option value="cloud">Cloud Managed</option>
+              <option value="local">Mobile P2P</option>
             </select>
           </div>
         </div>
-
         <div class="form-row-2col">
           <div class="form-field">
-            <label>Monthly Subscription Fee (₹) *</label>
+            <label for="add-monthly-fee">Monthly Fee (₹) *</label>
             <input type="number" id="add-monthly-fee" value="499" min="0" required>
           </div>
           <div class="form-field">
-            <label>Billing Cycle *</label>
+            <label for="add-billing-cycle">Billing Cycle *</label>
             <select id="add-billing-cycle">
               <option value="monthly">Monthly (30 Days)</option>
               <option value="quarterly">Quarterly (90 Days)</option>
@@ -1597,302 +839,333 @@
             </select>
           </div>
         </div>
-
         <div class="form-row-2col">
           <div class="form-field">
-            <label>Initial Payment Status *</label>
+            <label for="add-initial-status">Initial Status *</label>
             <select id="add-initial-status">
-              <option value="paid">Paid (Issue Payment Receipt)</option>
-              <option value="trial">Free Trial (14 Days)</option>
+              <option value="paid">Paid</option>
+              <option value="trial">Trial</option>
             </select>
           </div>
           <div class="form-field">
-            <label>Stall UPI VPA (for Direct Customer QR)</label>
+            <label for="add-upi-vpa">Stall UPI VPA (Optional)</label>
             <input type="text" id="add-upi-vpa" value="" placeholder="stallname@okaxis (optional)">
           </div>
         </div>
-
-        <button type="submit" class="btn-modal-submit" id="btn-submit-add-stall">
-          Create & Provision Stall
+        <button type="submit" class="saas-btn saas-btn-primary saas-btn-block" id="btn-submit-add-stall">
+          Create &amp; Provision Stall
         </button>
       </form>
     </div>
   </div>
 
-  <!-- 7. Modal: Edit Stall -->
-  <div class="modal-overlay" id="modal-edit-stall">
+  <!-- Modal: Edit Stall -->
+  <div class="modal-overlay" id="modal-edit-stall" role="dialog" aria-modal="true">
     <div class="modal-card">
       <div class="modal-header-row">
-        <h3 class="modal-title">✏️ Edit Stall & Subscription</h3>
-        <button class="btn-close-modal" id="btn-close-edit-modal" data-click="closeModal" data-arg="modal-edit-stall">×</button>
+        <h3 class="modal-title">Edit Stall &amp; Compliance</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-edit-modal" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <form id="form-edit-stall" class="form-group-wrap">
         <input type="hidden" id="edit-stall-id">
-        <div class="form-field">
-          <label>Restaurant Name</label>
-          <input type="text" id="edit-stall-name" required>
+        <div class="form-row-2col">
+          <div class="form-field">
+            <label for="edit-stall-name">Restaurant Name *</label>
+            <input type="text" id="edit-stall-name" required>
+          </div>
+          <div class="form-field">
+            <label for="edit-owner-name">Owner Name *</label>
+            <input type="text" id="edit-owner-name" required>
+          </div>
         </div>
         <div class="form-row-2col">
           <div class="form-field">
-            <label>Owner Name</label>
-            <input type="text" id="edit-owner-name" required>
+            <label for="edit-phone">10-Digit Mobile *</label>
+            <input type="tel" id="edit-phone" maxlength="10" required>
           </div>
           <div class="form-field">
-            <label>City</label>
+            <label for="edit-city">City *</label>
             <input type="text" id="edit-city" required>
           </div>
         </div>
         <div class="form-row-2col">
           <div class="form-field">
-            <label>Hosting Mode</label>
+            <label for="edit-edition">Hosting Mode</label>
             <select id="edit-edition">
-              <option value="cloud">🌐 Cloud Managed</option>
-              <option value="local">📱 Mobile Self-Hosted</option>
+              <option value="cloud">Cloud Managed</option>
+              <option value="local">Mobile P2P</option>
             </select>
           </div>
           <div class="form-field">
-            <label>Subscription Status</label>
+            <label for="edit-status">Subscription Status</label>
             <select id="edit-status">
               <option value="active">Active</option>
               <option value="trial">Trial</option>
-              <option value="expired">Expired / Overdue</option>
+              <option value="expired">Expired</option>
+              <option value="suspended">Suspended</option>
             </select>
           </div>
         </div>
-        <button type="submit" class="btn-modal-submit">Save Changes</button>
+        <div class="form-row-2col">
+          <div class="form-field">
+            <label for="edit-tax-mode">Tax Mode</label>
+            <select id="edit-tax-mode">
+              <option value="unregistered">Unregistered</option>
+              <option value="composition">Composition</option>
+              <option value="regular">Regular GST</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="edit-monthly-fee">Monthly Fee (₹)</label>
+            <input type="number" id="edit-monthly-fee" min="0" step="1" placeholder="499">
+          </div>
+        </div>
+        <div class="form-row-2col">
+          <div class="form-field">
+            <label for="edit-gstin">GSTIN (15 chars, optional)</label>
+            <input type="text" id="edit-gstin" maxlength="15" placeholder="Optional">
+          </div>
+          <div class="form-field">
+            <label for="edit-fssai">FSSAI (14 digits, optional)</label>
+            <input type="text" id="edit-fssai" maxlength="14" placeholder="Optional">
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="edit-password">Reset Passphrase (optional, min 10 chars)</label>
+          <input type="password" id="edit-password" placeholder="Leave blank to keep existing">
+        </div>
+        <button type="submit" class="saas-btn saas-btn-primary saas-btn-block" id="btn-submit-edit-stall">Save Changes</button>
       </form>
     </div>
   </div>
 
-  <!-- 8. Modal: Menu Manager -->
-  <div class="modal-overlay" id="modal-menu-manager">
-    <div class="modal-card" style="max-width: 600px;">
+  <!-- Modal: Menu Manager -->
+  <div class="modal-overlay" id="modal-menu-manager" role="dialog" aria-modal="true">
+    <div class="modal-card wide">
       <div class="modal-header-row">
-        <h3 class="modal-title" id="menu-modal-stall-name">📋 Stall Menu Manager</h3>
-        <button class="btn-close-modal" id="btn-close-menu-modal" data-click="closeModal" data-arg="modal-menu-manager">×</button>
+        <h3 class="modal-title" id="menu-modal-stall-name">Stall Menu Manager</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-menu-modal" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-      <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 12px; color: var(--saas-text-muted);">Real-time dish availability toggle:</span>
-        <button type="button" class="btn-table-action" id="btn-add-dish-toggle" style="background: var(--saas-burgundy-primary); color: #FFF;">+ Add Dish</button>
+      <div class="admin-kv-row" style="margin-bottom: 12px;">
+        <span class="brand-platform-sub">Live dish availability &amp; catalog control</span>
+        <button type="button" class="saas-btn saas-btn-primary admin-btn-compact" id="btn-add-dish-toggle">+ Add Dish</button>
       </div>
-      <form id="form-add-dish-inline" style="display: none; margin-bottom: 12px; padding: 12px; border: 1px solid var(--saas-card-border); border-radius: 10px; gap: 8px; flex-direction: column;">
+      <form id="form-add-dish-inline" class="admin-subpanel form-group-wrap" style="display: none; margin-bottom: 12px;">
         <div class="form-row-2col">
           <div class="form-field">
-            <label>Dish Name *</label>
+            <label for="menu-add-name">Dish Name *</label>
             <input type="text" id="menu-add-name" placeholder="e.g. Veg Steamed Momos" required>
           </div>
           <div class="form-field">
-            <label>Price (₹) *</label>
+            <label for="menu-add-price">Price (₹) *</label>
             <input type="number" id="menu-add-price" placeholder="60" min="1" step="1" required>
           </div>
         </div>
         <div class="form-row-2col">
           <div class="form-field">
-            <label>Category *</label>
+            <label for="menu-add-category">Category *</label>
             <input type="text" id="menu-add-category" value="General" required>
           </div>
           <div class="form-field" style="justify-content: flex-end;">
-            <button type="submit" id="btn-submit-add-dish" class="btn-table-action" style="background: var(--saas-burgundy-primary); color: #FFF; height: 38px; justify-content: center;">Save Dish</button>
+            <button type="submit" id="btn-submit-add-dish" class="saas-btn saas-btn-primary saas-btn-block">Save Dish</button>
           </div>
         </div>
       </form>
-      <div id="dish-list-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto;">
-        <!-- Rendered via JS -->
-      </div>
+      <div id="dish-list-container" class="form-group-wrap" style="max-height: 52dvh; overflow-y: auto;"></div>
     </div>
   </div>
 
-  <!-- 9. Modal: System Health Inspector -->
-  <div class="modal-overlay" id="modal-system-health">
+  <!-- Modal: System Health -->
+  <div class="modal-overlay" id="modal-system-health" role="dialog" aria-modal="true">
     <div class="modal-card">
       <div class="modal-header-row">
-        <h3 class="modal-title">🛡️ Platform System Health</h3>
-        <button class="btn-close-modal" id="btn-close-health-modal" data-click="closeModal" data-arg="modal-system-health">×</button>
+        <h3 class="modal-title">Platform System Health</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-health-modal" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-        <div style="display: flex; justify-content: space-between; padding: 10px; background: #FDFBF7; border-radius: 8px;">
-          <span>PostgreSQL 16 Engine (Port 55432)</span>
-          <strong style="color: var(--saas-emerald);">🟢 ONLINE (2ms)</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 10px; background: #FDFBF7; border-radius: 8px;">
-          <span>In-Memory Redis Cache & Sessions</span>
-          <strong style="color: var(--saas-emerald);">🟢 ONLINE (1ms)</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 10px; background: #FDFBF7; border-radius: 8px;">
-          <span>Fastify HTTP REST Pipeline</span>
-          <strong style="color: var(--saas-emerald);">🟢 HEALTHY (100 req/min)</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 10px; background: #FDFBF7; border-radius: 8px;">
-          <span>Cloudflare Pages Edge Sync</span>
-          <strong style="color: var(--saas-emerald);">🟢 SYNCED</strong>
-        </div>
-      </div>
+      <div id="system-health-modal-body" class="admin-info-box"></div>
     </div>
   </div>
 
   <!-- Modal: Stall Fiscal Analytics & Payment History Ledger -->
-  <div class="modal-overlay" id="modal-stall-analytics">
-    <div class="modal-card" style="max-width: 580px; max-height: 85vh; overflow-y: auto;">
-      <div class="modal-header-row" style="position: sticky; top: 0; background: #FFF; padding-bottom: 8px; border-bottom: 1px solid var(--saas-card-border); z-index: 10;">
-        <div>
-          <h3 class="modal-title" id="analytics-stall-title" style="margin: 0; font-size: 16px;">📊 Stall Fiscal Analytics & Ledger</h3>
-          <div style="font-size: 12px; color: var(--saas-text-muted);" id="analytics-stall-subtitle">Owner & Mobile</div>
-        </div>
-        <button class="btn-close-modal" data-click="closeModal" data-arg="modal-stall-analytics">×</button>
-      </div>
-
-      <!-- Turnover Intelligence Grid (4 Periods x Cash / UPI) -->
-      <div style="margin: 14px 0 8px;">
-        <h4 style="margin: 0 0 10px; font-size: 13.5px; color: var(--saas-burgundy-primary); font-weight: 800;">📈 Sales Turnover Breakdown</h4>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-          <!-- Daily -->
-          <div style="background: #FDFBF7; border: 1px solid var(--saas-card-border); border-radius: 10px; padding: 10px;">
-            <div style="font-size: 11px; color: var(--saas-text-muted); font-weight: 700; text-transform: uppercase;">Daily Turnover</div>
-            <div style="font-size: 18px; font-weight: 800; color: var(--saas-text-heading); margin: 2px 0;" id="turnover-val-daily">₹0</div>
-            <div style="font-size: 10.5px; color: var(--saas-text-body);">Cash: <strong id="turnover-cash-daily">₹0</strong> • UPI: <strong id="turnover-upi-daily">₹0</strong></div>
-          </div>
-          <!-- Weekly -->
-          <div style="background: #FDFBF7; border: 1px solid var(--saas-card-border); border-radius: 10px; padding: 10px;">
-            <div style="font-size: 11px; color: var(--saas-text-muted); font-weight: 700; text-transform: uppercase;">Weekly Turnover</div>
-            <div style="font-size: 18px; font-weight: 800; color: var(--saas-text-heading); margin: 2px 0;" id="turnover-val-weekly">₹0</div>
-            <div style="font-size: 10.5px; color: var(--saas-text-body);">Cash: <strong id="turnover-cash-weekly">₹0</strong> • UPI: <strong id="turnover-upi-weekly">₹0</strong></div>
-          </div>
-          <!-- Monthly -->
-          <div style="background: #FDFBF7; border: 1px solid var(--saas-card-border); border-radius: 10px; padding: 10px;">
-            <div style="font-size: 11px; color: var(--saas-text-muted); font-weight: 700; text-transform: uppercase;">Monthly Turnover</div>
-            <div style="font-size: 18px; font-weight: 800; color: var(--saas-text-heading); margin: 2px 0;" id="turnover-val-monthly">₹0</div>
-            <div style="font-size: 10.5px; color: var(--saas-text-body);">Cash: <strong id="turnover-cash-monthly">₹0</strong> • UPI: <strong id="turnover-upi-monthly">₹0</strong></div>
-          </div>
-          <!-- Yearly -->
-          <div style="background: #FDFBF7; border: 1px solid var(--saas-card-border); border-radius: 10px; padding: 10px;">
-            <div style="font-size: 11px; color: var(--saas-text-muted); font-weight: 700; text-transform: uppercase;">Yearly Turnover</div>
-            <div style="font-size: 18px; font-weight: 800; color: var(--saas-text-heading); margin: 2px 0;" id="turnover-val-yearly">₹0</div>
-            <div style="font-size: 10.5px; color: var(--saas-text-body);">Cash: <strong id="turnover-cash-yearly">₹0</strong> • UPI: <strong id="turnover-upi-yearly">₹0</strong></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Payment History Ledger -->
-      <div style="margin-top: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <h4 style="margin: 0; font-size: 13.5px; color: var(--saas-burgundy-primary); font-weight: 800;">💳 Subscription Payment Ledger</h4>
-          <span style="font-size: 11px; color: var(--saas-text-muted);" id="payment-ledger-count">0 Records</span>
-        </div>
-        <div id="payment-ledger-container" style="display: flex; flex-direction: column; gap: 8px;">
-          <!-- Dynamically populated -->
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 10. Modal: Branded Payment Receipt -->
-  <div class="modal-overlay" id="modal-payment-receipt">
-    <div class="modal-card" style="max-width: 440px;">
+  <div class="modal-overlay" id="modal-stall-analytics" role="dialog" aria-modal="true">
+    <div class="modal-card wide">
       <div class="modal-header-row">
-        <h3 class="modal-title">📄 Official Subscription Receipt</h3>
-        <button class="btn-close-modal" id="btn-close-receipt-modal" data-click="closeModal" data-arg="modal-payment-receipt">×</button>
-      </div>
-      <div id="receipt-modal-content" style="background: #FDFBF7; border: 1.5px dashed var(--saas-card-border); border-radius: 12px; padding: 16px; margin-bottom: 14px; font-size: 12.5px; line-height: 1.6;">
-        <!-- Rendered via JS -->
-      </div>
-      <div style="display: flex; gap: 10px;">
-        <button class="btn-whatsapp-action" id="btn-receipt-whatsapp-share" style="flex: 1; padding: 10px; justify-content: center; font-size: 12.5px;">
-          Share via WhatsApp 💬
+        <div>
+          <h3 class="modal-title" id="analytics-stall-title">Stall Fiscal Analytics &amp; Ledger</h3>
+          <div class="brand-platform-sub" id="analytics-stall-subtitle">Owner &amp; Mobile</div>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-stall-analytics-modal" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
-        <button class="btn-table-action" id="btn-receipt-print" style="padding: 10px 14px;">
-          Print 🖨️
+      </div>
+
+      <div class="admin-grid-2">
+        <div class="admin-subpanel">
+          <div class="admin-kpi-label">Daily Turnover</div>
+          <div class="admin-kpi-value" id="turnover-val-daily">₹0</div>
+          <div class="admin-kpi-sub">Cash: <strong id="turnover-cash-daily">₹0</strong> • UPI: <strong id="turnover-upi-daily">₹0</strong></div>
+        </div>
+        <div class="admin-subpanel">
+          <div class="admin-kpi-label">Weekly Turnover</div>
+          <div class="admin-kpi-value" id="turnover-val-weekly">₹0</div>
+          <div class="admin-kpi-sub">Cash: <strong id="turnover-cash-weekly">₹0</strong> • UPI: <strong id="turnover-upi-weekly">₹0</strong></div>
+        </div>
+        <div class="admin-subpanel">
+          <div class="admin-kpi-label">Monthly Turnover</div>
+          <div class="admin-kpi-value" id="turnover-val-monthly">₹0</div>
+          <div class="admin-kpi-sub">Cash: <strong id="turnover-cash-monthly">₹0</strong> • UPI: <strong id="turnover-upi-monthly">₹0</strong></div>
+        </div>
+        <div class="admin-subpanel">
+          <div class="admin-kpi-label">Yearly Turnover</div>
+          <div class="admin-kpi-value" id="turnover-val-yearly">₹0</div>
+          <div class="admin-kpi-sub">Cash: <strong id="turnover-cash-yearly">₹0</strong> • UPI: <strong id="turnover-upi-yearly">₹0</strong></div>
+        </div>
+      </div>
+
+      <div class="admin-kv-row" style="margin: 12px 0 8px;">
+        <h4 class="admin-subpanel-title" style="margin: 0;">Subscription Payment Ledger</h4>
+        <span class="brand-platform-sub" id="payment-ledger-count">0 Records</span>
+      </div>
+      <div id="payment-ledger-container" class="form-group-wrap"></div>
+    </div>
+  </div>
+
+  <!-- Modal: Branded Payment Receipt -->
+  <div class="modal-overlay" id="modal-payment-receipt" role="dialog" aria-modal="true">
+    <div class="modal-card narrow">
+      <div class="modal-header-row">
+        <h3 class="modal-title">Subscription Receipt</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-receipt-modal" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="receipt-modal-content" class="admin-info-box" style="margin-bottom: 14px;"></div>
+      <div class="form-row-2col">
+        <button type="button" class="saas-btn saas-btn-primary" id="btn-receipt-whatsapp-share">Share WhatsApp</button>
+        <button type="button" class="saas-btn saas-btn-secondary" id="btn-receipt-print">Print Receipt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Flexible License Renewal -->
+  <div class="modal-overlay" id="modal-renew-license" role="dialog" aria-modal="true">
+    <div class="modal-card narrow">
+      <div class="modal-header-row">
+        <h3 class="modal-title" id="renew-modal-title">Renew License</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-renew-modal" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="form-renew-license" class="form-group-wrap">
+        <input type="hidden" id="renew-vendor-id">
+        <div class="form-field">
+          <label for="renew-preset-days">Extension Duration *</label>
+          <select id="renew-preset-days">
+            <option value="7">+7 Days (Trial Extension)</option>
+            <option value="30" selected>+30 Days (Monthly)</option>
+            <option value="90">+90 Days (Quarterly)</option>
+            <option value="365">+365 Days (Annual)</option>
+            <option value="custom">Custom Expiry Date</option>
+          </select>
+        </div>
+        <div class="form-field" id="renew-custom-date-wrap" style="display: none;">
+          <label for="renew-custom-date">Custom Expiry Date *</label>
+          <input type="date" id="renew-custom-date">
+        </div>
+        <div class="form-row-2col">
+          <div class="form-field">
+            <label for="renew-amount-rupees">Amount Collected (₹) *</label>
+            <input type="number" id="renew-amount-rupees" value="499" min="0" step="1" required>
+          </div>
+          <div class="form-field">
+            <label for="renew-payment-method">Payment Method *</label>
+            <select id="renew-payment-method">
+              <option value="upi">UPI</option>
+              <option value="cash">Cash</option>
+              <option value="bank">Bank Transfer</option>
+              <option value="trial">Trial / Comp</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="renew-reference">Reference Note (UTR / Receipt #)</label>
+          <input type="text" id="renew-reference" placeholder="Optional UTR or note">
+        </div>
+        <button type="submit" class="saas-btn saas-btn-primary saas-btn-block" id="btn-submit-renew">
+          Confirm Renewal &amp; Log Payment
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Stall Setup QR Code -->
+  <div class="modal-overlay" id="modal-stall-setup-qr" role="dialog" aria-modal="true">
+    <div class="modal-card narrow">
+      <div class="modal-header-row">
+        <div>
+          <h3 class="modal-title">Stall Setup &amp; Pairing QR</h3>
+          <div class="brand-platform-sub">1-Tap Counter Onboarding</div>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-qr-modal" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div style="text-align: center;">
+        <div class="admin-segmented-tabs">
+          <button type="button" class="admin-seg-tab active" id="tab-qr-webapp">Web App QR</button>
+          <button type="button" class="admin-seg-tab" id="tab-qr-backend">Local Engine APK</button>
+        </div>
+
+        <div class="admin-qr-box">
+          <img id="qr-modal-image" src="" alt="Stall Setup QR Code" class="admin-qr-img">
+        </div>
+
+        <p id="qr-modal-helper-text" class="admin-page-sub" style="margin-bottom: 14px;">
+          Scan with phone camera to open the login page pre-filled with your stall phone number.
+        </p>
+
+        <div class="admin-info-box" style="margin-bottom: 14px; text-align: left;">
+          <div class="admin-kv-row"><span class="admin-kv-label">Stall Name</span><span class="admin-kv-value" id="qr-modal-stall-name">-</span></div>
+          <div class="admin-kv-row"><span class="admin-kv-label">Mobile Login</span><span class="admin-kv-value mono-code" id="qr-modal-phone">-</span></div>
+          <div class="admin-kv-row"><span class="admin-kv-label">Credentials</span><span class="admin-kv-value" id="qr-modal-pwd">Protected</span></div>
+          <div class="admin-kv-row"><span class="admin-kv-label">Subscription</span><span class="admin-kv-value" id="qr-modal-plan">-</span></div>
+        </div>
+
+        <div class="form-row-2col" style="margin-bottom: 8px;">
+          <button type="button" class="saas-btn saas-btn-primary" id="btn-qr-modal-whatsapp">WhatsApp</button>
+          <button type="button" class="saas-btn saas-btn-secondary" id="btn-qr-modal-copy"><span id="copy-btn-text">Copy Link</span></button>
+        </div>
+        <button type="button" class="saas-btn saas-btn-slate saas-btn-block" id="btn-qr-modal-open">
+          <span id="btn-qr-modal-open-text">Open Counter in New Tab</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- 11. Modal: Stall Setup QR Code & Mobile P2P Pairing Hub -->
-  <div class="modal-overlay" id="modal-stall-setup-qr" style="display: none; align-items: center; justify-content: center; z-index: 100000;">
-    <div class="modal-card" style="max-width: 440px; border-radius: 20px; overflow: hidden; padding: 0; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
-      <!-- Header -->
-      <div style="background: linear-gradient(135deg, #4A0E17 0%, #2D080E 100%); padding: 18px 20px; color: #FFF; display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px;">📲</div>
-          <div>
-            <h3 style="margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -0.2px;">Stall Setup & QR Pairing</h3>
-            <p style="margin: 2px 0 0; font-size: 11px; color: #FDE68A;">1-Tap Phone Cloud Onboarding (10s Setup)</p>
-          </div>
+  <!-- Vendor Slide-Over Inspector Drawer -->
+  <div class="saas-drawer-backdrop" id="vendor-inspector-drawer" role="dialog" aria-modal="true" aria-labelledby="vendor-inspector-title">
+    <div class="saas-drawer-panel">
+      <div class="saas-sheet-header">
+        <div>
+          <h3 class="saas-sheet-title" id="vendor-inspector-title">Vendor Inspector</h3>
+          <p class="brand-platform-sub" id="vendor-inspector-subtitle">Subscription, devices &amp; compliance</p>
         </div>
-        <button class="btn-close-modal" id="btn-close-qr-modal" data-click="closeStallSetupQR" style="background: rgba(255,255,255,0.15); border: none; color: #FFF; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center;">×</button>
-      </div>
-
-      <!-- Content -->
-      <div style="padding: 20px; text-align: center;">
-        <!-- Dual Mode QR Switcher Tabs -->
-        <div style="display: flex; background: #F1F5F9; padding: 4px; border-radius: 12px; margin-bottom: 14px; border: 1px solid #E2E8F0;">
-          <button type="button" id="tab-qr-webapp" data-click="switchSetupQRTab" data-arg="webapp" style="flex: 1; height: 36px; border-radius: 9px; border: none; font-size: 11.5px; font-weight: 800; cursor: pointer; transition: all 0.2s; background: #FFF; color: #4A0E17; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
-            🌐 1. Web App QR
-          </button>
-          <button type="button" id="tab-qr-backend" data-click="switchSetupQRTab" data-arg="backend" style="flex: 1; height: 36px; border-radius: 9px; border: none; font-size: 11.5px; font-weight: 800; cursor: pointer; transition: all 0.2s; background: transparent; color: #64748B;">
-            📥 2. Download APK / Zip
-          </button>
-        </div>
-
-        <div style="background: #F8FAFC; border: 2px dashed #CBD5E1; border-radius: 16px; padding: 14px; display: inline-block; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-          <img id="qr-modal-image" src="" alt="Stall Setup QR Code" style="width: 190px; height: 190px; display: block; border-radius: 8px; margin: 0 auto; object-fit: contain;" />
-        </div>
-
-        <div id="qr-modal-helper-text" style="font-size: 12px; color: #64748B; margin-bottom: 14px; line-height: 1.4;">
-          Scan with phone camera to auto-login & install PWA. Works 100% offline after 10-second setup.
-        </div>
-
-        <!-- Credential Info Box -->
-        <div style="background: #FFF8F6; border: 1px solid #FFE4E6; border-radius: 12px; padding: 12px 14px; text-align: left; margin-bottom: 16px; font-size: 12px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: #64748B;">Stall Name:</span>
-            <strong id="qr-modal-stall-name" style="color: #4A0E17;">-</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: #64748B;">Mobile Login:</span>
-            <strong id="qr-modal-phone" style="font-family: monospace; color: #0F172A;">-</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span style="color: #64748B;">Password:</span>
-            <strong id="qr-modal-pwd" style="font-family: monospace; color: #0F172A;">-</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: #64748B;">Subscription:</span>
-            <strong id="qr-modal-plan" style="color: #059669;">Trial (₹899/mo)</strong>
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-          <button id="btn-qr-modal-whatsapp" style="height: 40px; border-radius: 10px; border: none; background: #25D366; color: #FFF; font-weight: 800; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <span>💬 WhatsApp</span>
-          </button>
-          <button id="btn-qr-modal-copy" data-click="copyStallSetupLink" style="height: 40px; border-radius: 10px; border: 1.5px solid #CBD5E1; background: #FFF; color: #0F172A; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <span id="copy-btn-text">📋 Copy Link</span>
-          </button>
-        </div>
-
-        <button id="btn-qr-modal-open" style="width: 100%; height: 38px; border-radius: 10px; border: none; background: #4A0E17; color: #FFF; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-          <span id="btn-qr-modal-open-text">👁️ Open Counter in New Tab</span>
+        <button type="button" class="btn-close-modal" id="btn-close-inspector" aria-label="Close Vendor Inspector">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
+      <div id="vendor-inspector-body" class="form-group-wrap" style="padding: 16px 0;"></div>
     </div>
   </div>
 
-    <!-- Vendor Slide-Over Inspector Drawer (UX-06) -->
-    <div class="saas-drawer-backdrop" id="vendor-inspector-drawer" role="dialog" aria-modal="true" aria-labelledby="vendor-inspector-title">
-      <div class="saas-drawer-panel">
-        <div class="saas-sheet-header">
-          <div>
-            <h3 class="saas-sheet-title" id="vendor-inspector-title">Vendor Inspector</h3>
-            <p class="saas-muted saas-text-xs" id="vendor-inspector-subtitle">Subscription, telemetry & license control</p>
-          </div>
-          <button type="button" class="saas-icon-btn" id="btn-close-inspector" aria-label="Close Vendor Inspector">✕</button>
-        </div>
-        <div id="vendor-inspector-body" style="padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto;"></div>
-      </div>
-    </div>
-
-    <script src="/js/qr-local.js?v=1.0.0"></script>
-    <script src="/js/admin-page.js?v=1.0.0"></script>
-    </body>
+  <script src="/js/qr-local.js?v=2.0.0"></script>
+  <script src="/js/admin-page.js?v=2.0.0"></script>
+</body>
 </html>

@@ -1,82 +1,177 @@
 /**
  * FROSE STREET — Super Admin Enterprise SaaS Console
- * Full View Controller, Real-time Subscriptions, WhatsApp Billing, & Mobile Self-Hosting Telemetry
+ * CSP-safe, zero-emoji, theme-aware controller built on FroseSafeDom & FroseUI.
  */
-
 (function () {
   'use strict';
 
-  // 1. Session & Auth Verification
   try {
     localStorage.removeItem('frose_vendors_directory');
-  } catch (e) {}
-  const sessionActive = localStorage.getItem('frose_session_active');
-  if (!sessionActive) {
+  } catch (_) {}
+
+  if (!localStorage.getItem('frose_session_active')) {
     window.location.replace('/login');
     return;
   }
 
-  // State Management
-  let activeView = 'dashboard';
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const ICON_PATHS = {
+    search: [
+      ['circle', { cx: '11', cy: '11', r: '8' }],
+      ['line', { x1: '21', y1: '21', x2: '16.65', y2: '16.65' }],
+    ],
+    more: [
+      ['circle', { cx: '12', cy: '12', r: '1.5' }],
+      ['circle', { cx: '19', cy: '12', r: '1.5' }],
+      ['circle', { cx: '5', cy: '12', r: '1.5' }],
+    ],
+    inspect: [
+      ['path', { d: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z' }],
+      ['circle', { cx: '12', cy: '12', r: '3' }],
+    ],
+    message: [
+      ['path', { d: 'M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z' }],
+    ],
+    qr: [
+      ['rect', { x: '3', y: '3', width: '7', height: '7' }],
+      ['rect', { x: '14', y: '3', width: '7', height: '7' }],
+      ['rect', { x: '3', y: '14', width: '7', height: '7' }],
+      ['path', { d: 'M14 14h3v3h-3z' }],
+      ['path', { d: 'M18 18h3v3h-3z' }],
+    ],
+    ledger: [
+      ['line', { x1: '18', y1: '20', x2: '18', y2: '10' }],
+      ['line', { x1: '12', y1: '20', x2: '12', y2: '4' }],
+      ['line', { x1: '6', y1: '20', x2: '6', y2: '14' }],
+    ],
+    edit: [
+      ['path', { d: 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' }],
+      ['path', { d: 'M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' }],
+    ],
+    menu: [
+      ['line', { x1: '8', y1: '6', x2: '21', y2: '6' }],
+      ['line', { x1: '8', y1: '12', x2: '21', y2: '12' }],
+      ['line', { x1: '8', y1: '18', x2: '21', y2: '18' }],
+      ['line', { x1: '3', y1: '6', x2: '3.01', y2: '6' }],
+      ['line', { x1: '3', y1: '12', x2: '3.01', y2: '12' }],
+      ['line', { x1: '3', y1: '18', x2: '3.01', y2: '18' }],
+    ],
+    receipt: [
+      ['path', { d: 'M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z' }],
+      ['path', { d: 'M8 7h8' }],
+      ['path', { d: 'M8 11h8' }],
+    ],
+    power: [
+      ['path', { d: 'M18.36 6.64a9 9 0 1 1-12.73 0' }],
+      ['line', { x1: '12', y1: '2', x2: '12', y2: '12' }],
+    ],
+    cloud: [
+      ['path', { d: 'M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z' }],
+    ],
+    smartphone: [
+      ['rect', { x: '5', y: '2', width: '14', height: '20', rx: '2', ry: '2' }],
+      ['line', { x1: '12', y1: '18', x2: '12.01', y2: '18' }],
+    ],
+    sun: [
+      ['circle', { cx: '12', cy: '12', r: '4' }],
+      ['path', { d: 'M12 2v2' }],
+      ['path', { d: 'M12 20v2' }],
+      ['path', { d: 'm4.93 4.93 1.41 1.41' }],
+      ['path', { d: 'm17.66 17.66 1.41 1.41' }],
+      ['path', { d: 'M2 12h2' }],
+      ['path', { d: 'M20 12h2' }],
+      ['path', { d: 'm6.34 17.66-1.41 1.41' }],
+      ['path', { d: 'm19.07 4.93-1.41 1.41' }],
+    ],
+    moon: [
+      ['path', { d: 'M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z' }],
+    ],
+    contrast: [
+      ['circle', { cx: '12', cy: '12', r: '10' }],
+      ['path', { d: 'M12 18a6 6 0 0 0 0-12v12z' }],
+    ],
+    check: [
+      ['polyline', { points: '20 6 9 17 4 12' }],
+    ],
+    alert: [
+      ['circle', { cx: '12', cy: '12', r: '10' }],
+      ['line', { x1: '12', y1: '8', x2: '12', y2: '12' }],
+      ['line', { x1: '12', y1: '16', x2: '12.01', y2: '16' }],
+    ],
+  };
 
-  // 0. Global Mobile History & Back Navigation Controller
-  if (!history.state) {
-    history.replaceState({ view: 'dashboard', root: true }, '', '');
+  function createIcon(name, size) {
+    const px = size || 16;
+    const svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('width', String(px));
+    svg.setAttribute('height', String(px));
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '1.75');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    const shapes = ICON_PATHS[name] || ICON_PATHS.alert;
+    shapes.forEach(([tag, attrs]) => {
+      const node = document.createElementNS(SVG_NS, tag);
+      Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+      svg.appendChild(node);
+    });
+    return svg;
   }
 
-  window.addEventListener('popstate', (e) => {
-    // Priority 1: Check if notifications drawer is open
-    const notifDrawer = document.getElementById('notifications-drawer');
-    if (notifDrawer && notifDrawer.classList.contains('open')) {
-      notifDrawer.classList.remove('open');
-      return;
-    }
+  window.FroseAdminIcons = { create: createIcon };
 
-    // Priority 2: Check if any modal overlay is active
-    const openModals = document.querySelectorAll('.modal-overlay.active');
-    if (openModals.length > 0) {
-      openModals.forEach(m => m.classList.remove('active'));
-      return;
-    }
+  const VIEW_TITLES = {
+    dashboard: 'Platform Overview',
+    vendors: 'Vendors Directory',
+    subscriptions: 'Subscriptions Ledger',
+    analytics: 'Platform Sales Intelligence',
+    users: 'Users & Staff Directory',
+    audit: 'Audit & System Health',
+    settings: 'Platform Settings',
+    'add-restaurant': 'Provision New Stall',
+  };
 
-    // Priority 3: Check if on a subview (e.g. add-stall-page, vendors, users, settings, analytics)
-    if (activeView !== 'dashboard') {
-      const targetView = (e.state && e.state.view) ? e.state.view : 'dashboard';
-      window.switchView(targetView, false);
-      return;
-    }
-
-    // Priority 4: If at root dashboard, prevent browser from exiting abruptly
-    history.pushState({ view: 'dashboard', root: true }, '', '');
-  });
-
+  let activeView = 'dashboard';
   let allVendors = [];
+  let allUsers = [];
   let currentFilter = 'all';
+  let currentSort = 'newest';
   let searchQuery = '';
+  let usersSearchQuery = '';
+  let usersRoleFilter = 'all';
+  let vendorPage = 1;
+  const VENDORS_PER_PAGE = 20;
   let activeVendorForMenu = null;
+  let currentStallForQR = null;
+  let activeQRSetupUrl = '';
+  let platformNotifications = [];
 
-  const FALLBACK_VENDORS = [];
-
-  // Format integer paise into Indian Rupee format (e.g. ₹1,04,500)
   function formatRupees(paise) {
-    const p = typeof paise === 'string' ? BigInt(paise) : BigInt(paise || 0);
+    const p = typeof paise === 'string' ? BigInt(paise || '0') : BigInt(paise || 0);
     const rupees = Number(p / 100n);
     return '₹' + rupees.toLocaleString('en-IN');
   }
 
-  // Format ISO / Postgres DATE / TIMESTAMPTZ string to readable short string (e.g. 15 Nov 2026)
-  function formatDate(isoStr, fallbackText = 'No active expiry') {
+  function formatDate(isoStr, fallbackText = 'No expiry') {
     if (!isoStr) return fallbackText;
     try {
       const raw = isoStr instanceof Date ? isoStr : new Date(String(isoStr).trim());
       if (Number.isNaN(raw.getTime())) return fallbackText;
       return raw.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-    } catch (e) {
+    } catch (_) {
       return fallbackText;
     }
   }
 
-  // Authenticated API fetch (delegated to shared cookie + single-flight refresh client)
+  function notify(msg, variant = 'info') {
+    if (window.FroseUI && typeof window.FroseUI.showToast === 'function') {
+      window.FroseUI.showToast(msg, variant);
+    }
+  }
+
   async function apiFetch(endpoint, options = {}) {
     try {
       const fn = window.froseApiFetch || fetch;
@@ -86,121 +181,119 @@
         return null;
       }
       return res;
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
 
-  // View Switcher
+  function syncScrollLock() {
+    const anyOpen = document.querySelectorAll(
+      '.modal-overlay.active, .saas-drawer-backdrop.active, .saas-sheet-backdrop.active'
+    ).length > 0;
+    document.body.classList.toggle('saas-modal-open', anyOpen);
+    document.documentElement.classList.toggle('saas-modal-open', anyOpen);
+  }
+
+  function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    modal.classList.add('active');
+    syncScrollLock();
+    if (modalId === 'modal-system-health') loadSystemHealth();
+  }
+
+  function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('active');
+    syncScrollLock();
+  }
+
+  function closeAllOverflowMenus() {
+    document.querySelectorAll('.admin-overflow-menu.open').forEach((m) => m.classList.remove('open'));
+  }
+
   function switchView(viewName, pushHistory = true) {
+    if (!VIEW_TITLES[viewName]) viewName = 'dashboard';
     if (pushHistory && activeView !== viewName) {
-      history.pushState({ view: viewName }, '', '');
+      history.pushState({ view: viewName }, '', '?tab=' + encodeURIComponent(viewName));
     }
     activeView = viewName;
 
-    document.querySelectorAll('.saas-view').forEach(view => {
-      view.classList.remove('active');
-    });
-    const target = document.getElementById('view-' + viewName);
-    if (target) target.classList.add('active');
+    document.querySelectorAll('.saas-view').forEach((v) => v.classList.remove('active'));
+    document.getElementById('view-' + viewName)?.classList.add('active');
 
-    // Update Top Navigation Tabs
-    document.querySelectorAll('.nav-tab-pill').forEach(btn => {
-      if (btn.getAttribute('data-view') === viewName) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
+    document.querySelectorAll('[data-nav-view]').forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-nav-view') === viewName);
     });
 
-    // Update Bottom Navigation Bar
-    document.querySelectorAll('.bottom-nav-item[data-view]').forEach(btn => {
-      if (btn.getAttribute('data-view') === viewName) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
+    const crumbTitle = document.getElementById('topbar-view-title');
+    if (crumbTitle) crumbTitle.textContent = VIEW_TITLES[viewName];
+
+    closeModal('mobile-more-sheet');
+    closeAllOverflowMenus();
 
     if (viewName === 'vendors') renderStallsTable();
     if (viewName === 'users') loadUsers();
     if (viewName === 'analytics') loadAnalytics();
+    if (viewName === 'subscriptions') loadSubscriptionsView();
+    if (viewName === 'audit') loadAuditAndHealthView();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Load Platform Overview & Bind KPI Metrics
   async function loadOverview() {
     let stats = {
       totalVendors: allVendors.length,
-      activeVendors: allVendors.filter(v => v.subscriptionStatus === 'active' || v.paymentStatus === 'paid').length,
-      trialVendors: allVendors.filter(v => v.subscriptionStatus === 'trial' || v.paymentStatus === 'trial').length,
-      expiredVendors: allVendors.filter(v => v.subscriptionStatus === 'expired' || v.paymentStatus === 'overdue').length,
-      expiringVendors: allVendors.filter(v => v.paymentStatus === 'due_soon').length,
-      cloudVendors: allVendors.filter(v => v.edition !== 'local').length,
-      localVendors: allVendors.filter(v => v.edition === 'local').length,
-      grossSalesPaise: allVendors.reduce((sum, v) => sum + BigInt(v.lifetimeSalesPaise || '0'), 0n).toString(),
-      cashSalesPaise: allVendors.reduce((sum, v) => sum + BigInt(v.turnover?.daily?.cashPaise || '0'), 0n).toString(),
-      upiSalesPaise: allVendors.reduce((sum, v) => sum + BigInt(v.turnover?.daily?.upiPaise || '0'), 0n).toString(),
-      totalCollectedPaise: allVendors.reduce((sum, v) => sum + BigInt(v.totalCollectedPaise || '0'), 0n).toString(),
-      totalPendingPaise: allVendors.reduce((sum, v) => sum + BigInt(v.pendingDuePaise || '0'), 0n).toString(),
-      todayOrders: allVendors.reduce((sum, v) => sum + (v.totalOrders || 0), 0),
-      totalOrders: allVendors.reduce((sum, v) => sum + (v.totalOrders || 0), 0),
-      activeDevicesCount: allVendors.reduce((sum, v) => sum + (v.activeDevices || 0), 0)
+      activeVendors: allVendors.filter((v) => v.subscriptionStatus === 'active').length,
+      trialVendors: allVendors.filter((v) => v.subscriptionStatus === 'trial').length,
+      expiredVendors: allVendors.filter((v) => v.subscriptionStatus === 'expired' || v.paymentStatus === 'overdue').length,
+      expiringVendors: allVendors.filter((v) => v.paymentStatus === 'due_soon').length,
+      suspendedVendors: allVendors.filter((v) => v.subscriptionStatus === 'suspended').length,
+      cloudVendors: allVendors.filter((v) => v.edition !== 'local').length,
+      localVendors: allVendors.filter((v) => v.edition === 'local').length,
+      grossSalesPaise: allVendors.reduce((s, v) => s + BigInt(v.lifetimeSalesPaise || '0'), 0n).toString(),
+      cashSalesPaise: '0',
+      upiSalesPaise: '0',
+      totalCollectedPaise: allVendors.reduce((s, v) => s + BigInt(v.totalCollectedPaise || '0'), 0n).toString(),
+      totalPendingPaise: allVendors.reduce((s, v) => s + BigInt(v.pendingDuePaise || '0'), 0n).toString(),
+      todayOrders: 0,
+      activeDevicesCount: allVendors.reduce((s, v) => s + (v.activeDevices || 0), 0),
     };
 
-    try {
-      const res = await apiFetch('/api/v1/admin/overview');
-      if (res && res.ok) {
+    const res = await apiFetch('/api/v1/admin/overview');
+    if (res && res.ok) {
+      try {
         const json = await res.json();
-        if (json.data) {
-          stats.totalVendors = json.data.totalVendors ?? stats.totalVendors;
-          stats.activeVendors = json.data.activeVendors ?? stats.activeVendors;
-          const serverGross = BigInt(json.data.grossSalesPaise || '0');
-          const localGross = BigInt(stats.grossSalesPaise || '0');
-          stats.grossSalesPaise = (serverGross > localGross ? serverGross : localGross).toString();
-
-          const serverCash = BigInt(json.data.cashSalesPaise || '0');
-          const localCash = BigInt(stats.cashSalesPaise || '0');
-          stats.cashSalesPaise = (serverCash > localCash ? serverCash : localCash).toString();
-
-          const serverUpi = BigInt(json.data.upiSalesPaise || '0');
-          const localUpi = BigInt(stats.upiSalesPaise || '0');
-          stats.upiSalesPaise = (serverUpi > localUpi ? serverUpi : localUpi).toString();
-
-          const serverOrders = json.data.todayOrders ?? 0;
-          stats.todayOrders = Math.max(serverOrders, stats.todayOrders);
-        }
-      }
-    } catch (e) {}
-
-    // Bind Subtitle
-    const heroSub = document.getElementById('hero-status-sub');
-    if (heroSub) {
-      heroSub.textContent = stats.totalVendors === 0
-        ? '0 Stalls Active • 0 Cloud • 0 Mobile P2P'
-        : `${stats.activeVendors} Stalls Active • ${stats.cloudVendors} Cloud • ${stats.localVendors} Mobile P2P`;
+        if (json.data) stats = { ...stats, ...json.data };
+      } catch (_) {}
     }
 
-    // Bind Dashboard KPI Cards
-    const elRest = document.getElementById('kpi-val-restaurants');
-    const elSubAct = document.getElementById('kpi-sub-active');
-    const elSubTri = document.getElementById('kpi-sub-trial');
-    if (elRest) elRest.textContent = stats.totalVendors;
-    if (elSubAct) elSubAct.textContent = stats.activeVendors;
-    if (elSubTri) elSubTri.textContent = stats.trialVendors;
+    const heroSub = document.getElementById('hero-status-sub');
+    if (heroSub) {
+      heroSub.textContent = `${stats.activeVendors} Stalls Active • ${stats.cloudVendors} Cloud • ${stats.localVendors} Mobile P2P`;
+    }
 
-    const elRev = document.getElementById('kpi-val-revenue');
-    const elCash = document.getElementById('kpi-sub-cash');
-    const elUpi = document.getElementById('kpi-sub-upi');
-    if (elRev) elRev.textContent = formatRupees(stats.grossSalesPaise);
-    if (elCash) elCash.textContent = formatRupees(stats.cashSalesPaise);
-    if (elUpi) elUpi.textContent = formatRupees(stats.upiSalesPaise);
+    const railCount = document.getElementById('rail-count-vendors');
+    if (railCount) railCount.textContent = String(stats.totalVendors);
 
-    const elCol = document.getElementById('kpi-val-collections');
+    const setTxt = (id, val) => {
+      const node = document.getElementById(id);
+      if (node) node.textContent = String(val);
+    };
+
+    setTxt('kpi-val-restaurants', stats.totalVendors);
+    setTxt('kpi-sub-active', stats.activeVendors);
+    setTxt('kpi-sub-trial', stats.trialVendors);
+    setTxt('kpi-sub-expired', stats.expiredVendors);
+    setTxt('kpi-val-revenue', formatRupees(stats.grossSalesPaise));
+    setTxt('kpi-sub-cash', formatRupees(stats.cashSalesPaise));
+    setTxt('kpi-sub-upi', formatRupees(stats.upiSalesPaise));
+    setTxt('kpi-val-collections', formatRupees(stats.totalCollectedPaise));
+    setTxt('kpi-val-orders', stats.todayOrders);
+    setTxt('kpi-sub-devices', `${stats.activeDevicesCount} Active Devices Online`);
+
     const elSubRenew = document.getElementById('kpi-sub-renewals');
-    if (elCol) elCol.textContent = formatRupees(stats.totalCollectedPaise);
-    if (elSubRenew) {
+    if (elSubRenew && window.FroseSafeDom) {
       const { el, clear } = window.FroseSafeDom;
       clear(elSubRenew);
       elSubRenew.append(
@@ -211,890 +304,856 @@
       );
     }
 
-    const elOrders = document.getElementById('kpi-val-orders');
-    const elSubDev = document.getElementById('kpi-sub-devices');
-    if (elOrders) elOrders.textContent = stats.todayOrders;
-    if (elSubDev) elSubDev.textContent = `📲 ${stats.activeDevicesCount} Active Devices Online`;
+    setTxt('count-all', stats.totalVendors);
+    setTxt('count-active', stats.activeVendors);
+    setTxt('count-trial', stats.trialVendors);
+    setTxt('count-expiring', stats.expiringVendors);
+    setTxt('count-expired', stats.expiredVendors);
+    setTxt('count-suspended', stats.suspendedVendors || 0);
+    setTxt('count-cloud', stats.cloudVendors);
+    setTxt('count-local', stats.localVendors);
+    setTxt('count-gst', allVendors.filter((v) => v.taxMode && v.taxMode !== 'unregistered').length);
 
-    // Filter counts on Vendors tab
-    const cntAll = document.getElementById('count-all');
-    const cntAct = document.getElementById('count-active');
-    const cntTri = document.getElementById('count-trial');
-    const cntExp = document.getElementById('count-expiring');
-    const cntOut = document.getElementById('count-expired');
-    if (cntAll) cntAll.textContent = stats.totalVendors;
-    if (cntAct) cntAct.textContent = stats.activeVendors;
-    if (cntTri) cntTri.textContent = stats.trialVendors;
-    if (cntExp) cntExp.textContent = stats.expiringVendors;
-    if (cntOut) cntOut.textContent = stats.expiredVendors;
+    renderActionNeededToday();
   }
 
-  // Load Vendors Directory strictly in memory from authenticated admin API
-  async function loadVendors() {
-    const stallMap = new Map();
+  function renderActionNeededToday() {
+    const list = document.getElementById('action-needed-list');
+    if (!list || !window.FroseSafeDom) return;
+    const { el, clear } = window.FroseSafeDom;
+    clear(list);
 
-    try {
-      const res = await apiFetch('/api/v1/admin/vendors');
-      if (res && res.ok) {
+    const now = Date.now();
+    const in7Days = now + 7 * 86400000;
+    const urgent = allVendors.filter((v) => {
+      const st = v.subscriptionStatus || 'active';
+      const exp = v.subscriptionExpiresAt ? new Date(v.subscriptionExpiresAt).getTime() : 0;
+      return st === 'suspended' || st === 'expired' || (exp > 0 && exp <= in7Days);
+    }).slice(0, 5);
+
+    if (urgent.length === 0) {
+      list.appendChild(el('div', { class: 'admin-empty-box' }, ['All stalls are healthy and up to date.']));
+      return;
+    }
+
+    urgent.forEach((v) => {
+      const st = v.subscriptionStatus || 'active';
+      const pillClass = st === 'suspended' || st === 'expired' ? 'overdue' : 'due_soon';
+      list.appendChild(
+        el('button', {
+          type: 'button',
+          class: 'admin-action-row',
+          on: { click: () => openVendorInspector(v.id) },
+        }, [
+          el('div', {}, [
+            el('div', { style: 'font-weight: 800; font-size: 13.5px;' }, [v.businessName || 'Stall']),
+            el('div', { class: 'brand-platform-sub' }, [`${v.ownerName || 'Owner'} • ${v.phone || ''} • Due ${formatDate(v.subscriptionExpiresAt)}`]),
+          ]),
+          el('span', { class: `badge-status ${pillClass}` }, [st.toUpperCase()]),
+        ])
+      );
+    });
+  }
+
+  async function loadVendors() {
+    const tbody = document.getElementById('stalls-table-body');
+    if (tbody && window.FroseSafeDom && allVendors.length === 0) {
+      const { el, clear } = window.FroseSafeDom;
+      clear(tbody);
+      tbody.appendChild(
+        el('tr', { 'data-empty-row': 'true' }, [
+          el('td', { colspan: '7', style: 'padding: 16px;' }, [
+            el('div', { class: 'saas-skeleton' }),
+          ]),
+        ])
+      );
+    }
+
+    const res = await apiFetch('/api/v1/admin/vendors');
+    if (res && res.ok) {
+      try {
         const json = await res.json();
         if (Array.isArray(json.data)) {
-          const backendStalls = json.data.filter(v => !v.isSuperadmin && !v.is_superadmin);
-          backendStalls.forEach(s => {
-            stallMap.set(s.id || s.phone, s);
-          });
+          allVendors = json.data.filter((v) => !v.isSuperadmin && !v.is_superadmin);
         }
-      }
-    } catch (e) {}
+      } catch (_) {}
+    }
 
-    allVendors = Array.from(stallMap.values());
     renderStallsTable();
     loadOverview();
+    loadNotifications();
   }
 
-  // Render Vendors Table with Hosting Mode, Monthly Billing, and WhatsApp Action
-  function renderStallsTable() {
-    const tbody = document.getElementById('stalls-table-body');
-    if (!tbody) return;
-
+  function getFilteredSortedVendors() {
     const query = searchQuery.toLowerCase().trim();
     const now = Date.now();
-    const in7Days = now + 7 * 24 * 3600 * 1000;
+    const in7Days = now + 7 * 86400000;
 
-    const filtered = allVendors.filter(v => {
-      const bName = (v.businessName || v.business_name || '').toLowerCase();
-      const oName = (v.ownerName || v.owner_name || '').toLowerCase();
+    const filtered = allVendors.filter((v) => {
+      const bName = (v.businessName || '').toLowerCase();
+      const oName = (v.ownerName || '').toLowerCase();
       const ph = (v.phone || '').toLowerCase();
       const city = (v.city || '').toLowerCase();
-      const matchesSearch = !query || bName.includes(query) || oName.includes(query) || ph.includes(query) || city.includes(query);
-      if (!matchesSearch) return false;
+      const idStr = (v.id || '').toLowerCase();
+      if (query && !bName.includes(query) && !oName.includes(query) && !ph.includes(query) && !city.includes(query) && !idStr.includes(query)) {
+        return false;
+      }
 
-      const status = v.subscriptionStatus || v.subscription_status || 'active';
-      const expiresAt = v.subscriptionExpiresAt || v.subscription_expires_at ? new Date(v.subscriptionExpiresAt || v.subscription_expires_at).getTime() : 0;
+      const status = v.subscriptionStatus || 'active';
+      const expiresAt = v.subscriptionExpiresAt ? new Date(v.subscriptionExpiresAt).getTime() : 0;
       const edition = v.edition || 'cloud';
 
-      if (currentFilter === 'all') return true;
-      if (currentFilter === 'active') return status === 'active';
+      if (currentFilter === 'active') return status === 'active' && expiresAt >= now;
       if (currentFilter === 'trial') return status === 'trial';
-      if (currentFilter === 'expired') return status === 'expired' || expiresAt < now;
-      if (currentFilter === 'expiring') return expiresAt > now && expiresAt <= in7Days;
+      if (currentFilter === 'suspended') return status === 'suspended';
+      if (currentFilter === 'expired') return status === 'expired' || (status !== 'suspended' && status !== 'trial' && expiresAt > 0 && expiresAt < now);
+      if (currentFilter === 'expiring') return status !== 'suspended' && expiresAt > now && expiresAt <= in7Days;
       if (currentFilter === 'cloud') return edition === 'cloud';
       if (currentFilter === 'local') return edition === 'local';
+      if (currentFilter === 'gst') return Boolean(v.taxMode && v.taxMode !== 'unregistered');
       return true;
     });
 
-    const { el, clear } = window.FroseSafeDom;
-    clear(tbody);
+    filtered.sort((a, b) => {
+      if (currentSort === 'name') return (a.businessName || '').localeCompare(b.businessName || '');
+      if (currentSort === 'revenue') {
+        const diff = BigInt(b.lifetimeSalesPaise || '0') - BigInt(a.lifetimeSalesPaise || '0');
+        return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+      }
+      if (currentSort === 'expiry') {
+        const ta = a.subscriptionExpiresAt ? new Date(a.subscriptionExpiresAt).getTime() : Number.MAX_SAFE_INTEGER;
+        const tb = b.subscriptionExpiresAt ? new Date(b.subscriptionExpiresAt).getTime() : Number.MAX_SAFE_INTEGER;
+        return ta - tb;
+      }
+      const ca = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const cb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return cb - ca;
+    });
 
-    if (filtered.length === 0) {
-      if (allVendors.length === 0) {
-        const addBtn = el('button', {
-          type: 'button',
-          class: 'btn-table-action',
-          style: 'background: var(--saas-burgundy-primary); color: #FFF; padding: 8px 18px; border-radius: 8px; font-weight: 700; cursor: pointer;',
-          on: { click: () => { if (typeof window.switchView === 'function') window.switchView('add-restaurant'); } }
-        }, ['+ Add a New Restaurant']);
-        tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [
-          el('td', { colspan: '7', style: 'text-align: center; padding: 48px 16px;' }, [
-            el('div', { style: 'font-size: 36px; margin-bottom: 8px;' }, ['🍽️']),
-            el('div', { style: 'font-size: 15px; font-weight: 800; color: var(--saas-burgundy-primary); margin-bottom: 4px;' }, ['No Restaurant Stalls Created']),
-            el('div', { style: 'font-size: 12.5px; color: var(--saas-text-muted); margin-bottom: 16px;' }, ['Provision your first stall to view live cloud telemetry, billing & orders.']),
-            addBtn
-          ])
-        ]));
-      } else {
-        tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [
-          el('td', { colspan: '7', style: 'text-align: center; padding: 24px; color: var(--saas-text-muted);' }, ['No restaurants found matching current filter or search criteria.'])
-        ]));
+    return filtered;
+  }
+
+  function buildVendorBadge(v) {
+    const now = Date.now();
+    const in7Days = now + 7 * 86400000;
+    const status = v.subscriptionStatus || 'active';
+    const expiresAt = v.subscriptionExpiresAt ? new Date(v.subscriptionExpiresAt).getTime() : 0;
+
+    if (status === 'suspended') return { cls: 'suspended', label: 'SUSPENDED' };
+    if (status === 'trial') return { cls: 'trial', label: 'TRIAL' };
+    if (status === 'expired' || (expiresAt > 0 && expiresAt < now)) return { cls: 'overdue', label: 'EXPIRED' };
+    if (expiresAt > now && expiresAt <= in7Days) return { cls: 'due_soon', label: 'DUE SOON' };
+    return { cls: 'active', label: 'ACTIVE' };
+  }
+
+  function buildOverflowMenu(v, badge) {
+    const { el } = window.FroseSafeDom;
+    const isSuspended = (v.subscriptionStatus || 'active') === 'suspended';
+    const menu = el('div', { class: 'admin-overflow-menu', role: 'menu' }, [
+      el('button', { type: 'button', class: 'admin-overflow-item', 'data-action': 'qr', 'data-phone': v.phone || '' }, [
+        createIcon('qr', 15), el('span', {}, ['Setup QR']),
+      ]),
+      el('button', { type: 'button', class: 'admin-overflow-item', 'data-action': 'ledger', 'data-id': v.id }, [
+        createIcon('ledger', 15), el('span', {}, ['Fiscal Ledger']),
+      ]),
+      el('button', { type: 'button', class: 'admin-overflow-item', 'data-action': 'edit', 'data-id': v.id }, [
+        createIcon('edit', 15), el('span', {}, ['Edit Stall']),
+      ]),
+      el('button', { type: 'button', class: 'admin-overflow-item', 'data-action': 'menu', 'data-id': v.id, 'data-name': v.businessName || '' }, [
+        createIcon('menu', 15), el('span', {}, ['Menu Manager']),
+      ]),
+      el('button', { type: 'button', class: 'admin-overflow-item', 'data-action': 'receipt', 'data-id': v.id }, [
+        createIcon('receipt', 15), el('span', {}, ['Tax Receipt']),
+      ]),
+      el('button', {
+        type: 'button',
+        class: isSuspended ? 'admin-overflow-item' : 'admin-overflow-item danger',
+        'data-action': 'toggle-suspend',
+        'data-id': v.id,
+        'data-status': badge.label,
+      }, [
+        createIcon('power', 15), el('span', {}, [isSuspended ? 'Reactivate Stall' : 'Suspend Stall']),
+      ]),
+    ]);
+
+    const trigger = el('button', {
+      type: 'button',
+      class: 'btn-table-action icon-only admin-overflow-trigger',
+      title: 'More actions',
+      'aria-label': 'More actions for ' + (v.businessName || 'stall'),
+      on: {
+        click: (e) => {
+          e.stopPropagation();
+          const wasOpen = menu.classList.contains('open');
+          closeAllOverflowMenus();
+          if (!wasOpen) menu.classList.add('open');
+        },
+      },
+    }, [createIcon('more', 16)]);
+
+    return el('div', { class: 'admin-overflow-wrap' }, [trigger, menu]);
+  }
+
+  function renderStallsTable() {
+    const tbody = document.getElementById('stalls-table-body');
+    const mobileCards = document.getElementById('stalls-mobile-cards');
+    const pageInfo = document.getElementById('vendors-page-info');
+    const prevBtn = document.getElementById('btn-vendors-prev');
+    const nextBtn = document.getElementById('btn-vendors-next');
+    if (!tbody || !window.FroseSafeDom) return;
+
+    const { el, clear } = window.FroseSafeDom;
+    const filtered = getFilteredSortedVendors();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / VENDORS_PER_PAGE));
+    if (vendorPage > totalPages) vendorPage = totalPages;
+    const startIdx = (vendorPage - 1) * VENDORS_PER_PAGE;
+    const pageItems = filtered.slice(startIdx, startIdx + VENDORS_PER_PAGE);
+
+    clear(tbody);
+    if (mobileCards) clear(mobileCards);
+
+    if (pageInfo) {
+      pageInfo.textContent = filtered.length === 0
+        ? 'Showing 0 stalls'
+        : `Showing ${startIdx + 1}-${startIdx + pageItems.length} of ${filtered.length} stalls`;
+    }
+    if (prevBtn) prevBtn.disabled = vendorPage <= 1;
+    if (nextBtn) nextBtn.disabled = vendorPage >= totalPages;
+
+    if (pageItems.length === 0) {
+      const msg = allVendors.length === 0
+        ? 'No restaurant stalls onboarded yet. Provision your first stall to view live telemetry.'
+        : 'No stalls match your current search or filter criteria.';
+      tbody.appendChild(
+        el('tr', { 'data-empty-row': 'true' }, [
+          el('td', { colspan: '7', class: 'admin-empty-box' }, [
+            el('div', { style: 'margin-bottom: 10px; font-weight: 700;' }, [msg]),
+            allVendors.length === 0
+              ? el('button', {
+                  type: 'button',
+                  class: 'saas-btn saas-btn-primary admin-btn-compact',
+                  on: { click: () => switchView('add-restaurant') },
+                }, ['+ Add Stall'])
+              : null,
+          ]),
+        ])
+      );
+      if (mobileCards) {
+        mobileCards.appendChild(el('div', { class: 'admin-empty-box', 'data-empty-row': 'true' }, [msg]));
       }
       return;
     }
 
-    filtered.forEach(v => {
-      const bName = v.businessName || v.business_name || 'Restaurant Stall';
-      const oName = v.ownerName || v.owner_name || 'Owner';
+    pageItems.forEach((v) => {
+      const bName = v.businessName || 'Restaurant Stall';
+      const oName = v.ownerName || 'Owner';
       const phone = v.phone || 'N/A';
       const edition = v.edition || 'cloud';
       const monthlyFeePaiseVal = BigInt(v.monthlyFeePaise || '0') > 0n ? v.monthlyFeePaise : '49900';
       const monthlyFee = formatRupees(monthlyFeePaiseVal);
       const lastPaid = formatDate(v.lastPaymentDate, 'N/A');
-      const nextDue = formatDate(v.nextDueDate || v.subscriptionExpiresAt || v.expiresAt || v.licenseExpiresAt || v.trialEndsAt, 'No active expiry');
-
-      const status = v.subscriptionStatus || v.subscription_status || 'active';
-      const expiresAt = v.subscriptionExpiresAt || v.subscription_expires_at ? new Date(v.subscriptionExpiresAt || v.subscription_expires_at).getTime() : 0;
-      const isSuspended = status === 'suspended' || status === 'expired';
-      const isOverdue = status === 'expired' || expiresAt < now;
-      const isDueSoon = expiresAt > now && expiresAt <= in7Days;
-
-      let badgeClass = 'active';
-      let badgeLabel = 'PAID';
-      if (status === 'trial') { badgeClass = 'trial'; badgeLabel = 'TRIAL'; }
-      else if (isOverdue) { badgeClass = 'overdue'; badgeLabel = 'OVERDUE'; }
-      else if (isDueSoon) { badgeClass = 'due_soon'; badgeLabel = 'DUE SOON'; }
+      const nextDue = formatDate(v.nextDueDate || v.subscriptionExpiresAt, 'No expiry');
+      const badge = buildVendorBadge(v);
 
       const hostingBadge = edition === 'local'
-        ? el('span', { class: 'badge-hosting local', title: "Runs directly on stall owner's Android phone/tablet with zero internet needed" }, ['📱 Mobile P2P'])
-        : el('span', { class: 'badge-hosting cloud', title: 'FROSE Edge Cloud with live multi-device synchronization' }, ['🌐 Cloud Edge']);
+        ? el('span', { class: 'badge-hosting local' }, [createIcon('smartphone', 13), el('span', {}, ['Mobile P2P'])])
+        : el('span', { class: 'badge-hosting cloud' }, [createIcon('cloud', 13), el('span', {}, ['Cloud'])]);
 
-      tbody.appendChild(el('tr', {
-        style: 'cursor: pointer;',
-        on: {
-          click: (e) => {
-            if (e.target && e.target.closest('button, a, input, select')) return;
-            openVendorInspector(v.id);
-          }
-        }
-      }, [
-        el('td', {}, [
-          el('div', { style: 'font-weight: 800; font-size: 13.5px; color: var(--saas-burgundy-primary);' }, [bName]),
-          el('div', { style: 'font-size: 11.5px; color: var(--saas-text-muted);' }, [`${oName} • ${v.city || 'Hyderabad'}`])
-        ]),
-        el('td', {}, [
-          el('code', { style: 'font-family: var(--font-mono); font-size: 12.5px; font-weight: 700;' }, [phone])
-        ]),
-        el('td', {}, [hostingBadge]),
-        el('td', {}, [
-          el('strong', { style: 'color: var(--saas-burgundy-primary); font-size: 12.5px;' }, [`${monthlyFee}/mo`])
-        ]),
-        el('td', {}, [
-          el('div', { style: 'font-size: 11px;' }, ['Paid: ', el('strong', {}, [lastPaid])]),
-          el('div', { style: `font-size: 11px; color: ${isOverdue ? 'var(--saas-crimson)' : 'var(--saas-text-muted)'};` }, ['Due: ', el('strong', {}, [nextDue])])
-        ]),
-        el('td', {}, [
-          el('div', { style: 'display: flex; align-items: center; gap: 6px;' }, [
-            el('span', { class: `badge-status ${badgeClass}` }, [badgeLabel]),
-            el('button', {
-              type: 'button',
-              class: 'btn-sub-toggle',
-              'data-phone': phone,
-              title: 'Toggle Subscription ON/OFF (Remote Kill-Switch)',
-              style: `padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 800; border: 1.5px solid ${isSuspended ? '#22C55E' : '#EF4444'}; background: ${isSuspended ? '#F0FDF4' : '#FEF2F2'}; color: ${isSuspended ? '#15803D' : '#B91C1C'}; cursor: pointer;`,
-              on: { click: () => { if (typeof window.toggleStallSubscription === 'function') window.toggleStallSubscription(phone); } }
-            }, [isSuspended ? 'Turn ON' : 'Turn OFF'])
-          ])
-        ]),
-        el('td', {}, [
-          el('div', { class: 'action-btn-group' }, [
-            el('button', {
-              type: 'button',
-              class: 'btn-whatsapp-action btn-whatsapp-stall',
-              'data-phone': phone,
-              'data-owner': oName,
-              'data-stall': bName,
-              'data-status': badgeLabel,
-              'data-due': nextDue,
-              'data-fee': monthlyFee,
-              title: 'Send WhatsApp payment reminder / receipt'
-            }, [el('span', {}, ['💬 WhatsApp'])]),
-            el('button', {
-              type: 'button',
-              class: 'btn-table-action btn-setup-qr',
-              'data-phone': phone,
-              title: 'Stall Setup QR & Mobile P2P Pairing',
-              style: 'background: #FFF7ED; border: 1.5px solid #FDBA74; font-weight: 800; color: #C2410C; font-size: 11.5px;',
-              on: { click: () => { if (typeof window.openStallSetupQRByPhone === 'function') window.openStallSetupQRByPhone(phone); } }
-            }, [el('span', {}, ['📲 QR'])]),
-            el('button', {
-              type: 'button',
-              class: 'btn-table-action btn-stall-analytics',
-              'data-id': v.id,
-              title: 'Fiscal Turnover Analytics & Payment History Ledger',
-              style: 'background: #FDFBF7; border: 1.5px solid var(--saas-card-border); font-weight: 700; color: var(--saas-burgundy-primary); font-size: 11.5px;'
-            }, [el('span', {}, ['📊 Ledger'])]),
-            el('button', {
-              type: 'button',
-              class: 'btn-table-action btn-inspect-vendor',
-              'data-id': v.id,
-              title: 'Inspect Stall Details & Renew License',
-              style: 'background: var(--accent-primary-soft, #ECFDF5); border: 1.5px solid var(--accent-primary, #059669); font-weight: 800; color: var(--accent-primary, #059669); font-size: 11.5px;',
-              on: { click: () => { openVendorInspector(v.id); } }
-            }, [el('span', {}, ['🔎 Inspect'])]),
-            el('button', { type: 'button', class: 'btn-table-action btn-view-receipt', 'data-id': v.id, title: 'View Receipt' }, [el('span', {}, ['📄'])]),
-            el('button', { type: 'button', class: 'btn-table-action btn-edit-stall', 'data-id': v.id, title: 'Edit Stall' }, [el('span', {}, ['✏️'])]),
-            el('button', { type: 'button', class: 'btn-table-action btn-manage-menu', 'data-id': v.id, 'data-name': bName, title: 'Menu' }, [el('span', {}, ['📋'])])
-          ])
+      // Desktop Row
+      tbody.appendChild(
+        el('tr', {
+          class: 'clickable-row',
+          on: {
+            click: (e) => {
+              if (e.target && e.target.closest('button, a, input, select, .admin-overflow-menu')) return;
+              openVendorInspector(v.id);
+            },
+          },
+        }, [
+          el('td', {}, [
+            el('div', { style: 'font-weight: 800; font-size: 13.5px;' }, [bName]),
+            el('div', { class: 'brand-platform-sub' }, [`${oName} • ${v.city || 'Hyderabad'}`]),
+          ]),
+          el('td', {}, [el('code', { class: 'mono-code' }, [phone])]),
+          el('td', {}, [hostingBadge]),
+          el('td', { class: 'num-col' }, [el('strong', {}, [`${monthlyFee}/mo`])]),
+          el('td', {}, [
+            el('div', { style: 'font-size: 11.5px;' }, ['Paid: ', el('strong', {}, [lastPaid])]),
+            el('div', { style: 'font-size: 11.5px; color: var(--text-muted);' }, ['Due: ', el('strong', {}, [nextDue])]),
+          ]),
+          el('td', {}, [el('span', { class: `badge-status ${badge.cls}` }, [badge.label])]),
+          el('td', { class: 'num-col' }, [
+            el('div', { class: 'admin-row-actions' }, [
+              el('button', {
+                type: 'button',
+                class: 'btn-table-action primary',
+                'data-action': 'inspect',
+                'data-id': v.id,
+              }, [createIcon('inspect', 14), el('span', {}, ['Inspect'])]),
+              el('button', {
+                type: 'button',
+                class: 'btn-table-action whatsapp icon-only',
+                'data-action': 'whatsapp',
+                'data-id': v.id,
+                title: 'Send WhatsApp Reminder',
+                'aria-label': 'WhatsApp ' + bName,
+              }, [createIcon('message', 15)]),
+              buildOverflowMenu(v, badge),
+            ]),
+          ]),
         ])
-      ]));
+      );
+
+      // Mobile Stacked Card (<768px)
+      if (mobileCards) {
+        mobileCards.appendChild(
+          el('div', { class: 'admin-mobile-card' }, [
+            el('div', { class: 'admin-mobile-card-head' }, [
+              el('div', {}, [
+                el('div', { style: 'font-weight: 800; font-size: 15px;' }, [bName]),
+                el('div', { class: 'brand-platform-sub' }, [`${oName} • ${phone}`]),
+              ]),
+              el('span', { class: `badge-status ${badge.cls}` }, [badge.label]),
+            ]),
+            el('div', { class: 'admin-mobile-card-meta' }, [
+              el('div', {}, [el('div', { class: 'admin-kv-label' }, ['Plan']), el('strong', {}, [`${monthlyFee}/mo`])]),
+              el('div', {}, [el('div', { class: 'admin-kv-label' }, ['Due Date']), el('strong', {}, [nextDue])]),
+              el('div', {}, [el('div', { class: 'admin-kv-label' }, ['Mode']), el('span', {}, [edition === 'local' ? 'Mobile P2P' : 'Cloud Managed'])]),
+              el('div', {}, [el('div', { class: 'admin-kv-label' }, ['Lifetime']), el('strong', {}, [formatRupees(v.lifetimeSalesPaise || '0')])]),
+            ]),
+            el('div', { class: 'admin-mobile-card-actions' }, [
+              el('button', {
+                type: 'button',
+                class: 'btn-table-action primary',
+                'data-action': 'inspect',
+                'data-id': v.id,
+              }, [createIcon('inspect', 16), el('span', {}, ['Inspect'])]),
+              el('button', {
+                type: 'button',
+                class: 'btn-table-action whatsapp',
+                'data-action': 'whatsapp',
+                'data-id': v.id,
+              }, [createIcon('message', 16), el('span', {}, ['WhatsApp'])]),
+              buildOverflowMenu(v, badge),
+            ]),
+          ])
+        );
+      }
     });
   }
 
   function closeVendorInspector() {
-    const backdrop = document.getElementById('vendor-inspector-drawer');
-    if (backdrop) backdrop.classList.remove('active');
+    const drawer = document.getElementById('vendor-inspector-drawer');
+    if (drawer) drawer.classList.remove('active');
+    syncScrollLock();
   }
 
   function openVendorInspector(stallId) {
-    const stall = allVendors.find(v => String(v.id) === String(stallId));
-    const backdrop = document.getElementById('vendor-inspector-drawer');
+    const stall = allVendors.find((v) => String(v.id) === String(stallId));
+    const drawer = document.getElementById('vendor-inspector-drawer');
     const body = document.getElementById('vendor-inspector-body');
     const titleEl = document.getElementById('vendor-inspector-title');
     const subEl = document.getElementById('vendor-inspector-subtitle');
-    if (!stall || !backdrop || !body) return;
+    if (!stall || !drawer || !body || !window.FroseSafeDom) return;
 
     const { el, clear } = window.FroseSafeDom;
-    const bName = stall.businessName || stall.business_name || 'Restaurant Stall';
-    const oName = stall.ownerName || stall.owner_name || 'Owner';
+    const bName = stall.businessName || 'Restaurant Stall';
+    const oName = stall.ownerName || 'Owner';
     const phone = stall.phone || 'N/A';
-    const status = stall.subscriptionStatus || stall.subscription_status || 'active';
-    const expRaw = stall.subscriptionExpiresAt || stall.subscription_expires_at || stall.expiresAt || stall.licenseExpiresAt || stall.trialEndsAt || stall.nextDueDate;
-    const expFormatted = formatDate(expRaw, 'No active expiry');
-    const edition = stall.edition || 'cloud';
-    const feePaiseVal = BigInt(stall.monthlyFeePaise || '0') > 0n ? stall.monthlyFeePaise : '49900';
-    const fee = formatRupees(feePaiseVal);
+    const badge = buildVendorBadge(stall);
+    const expFormatted = formatDate(stall.subscriptionExpiresAt, 'No expiry');
+    const fee = formatRupees(BigInt(stall.monthlyFeePaise || '0') > 0n ? stall.monthlyFeePaise : '49900');
     const lifetime = formatRupees(stall.lifetimeSalesPaise || '0');
 
     if (titleEl) titleEl.textContent = bName;
-    if (subEl) subEl.textContent = `${oName} • ${phone} • ${edition === 'local' ? 'Mobile P2P' : 'Cloud Edge'}`;
+    if (subEl) subEl.textContent = `${oName} • ${phone} • ${stall.edition === 'local' ? 'Mobile P2P' : 'Cloud Managed'}`;
 
     clear(body);
     body.appendChild(
-      el('div', { class: 'saas-card', style: 'padding: 14px;' }, [
-        el('div', { style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;' }, [
-          el('span', { class: 'saas-muted' }, ['Subscription Status']),
-          el('span', { class: `badge-status ${status === 'suspended' || status === 'expired' ? 'overdue' : (status === 'trial' ? 'trial' : 'active')}` }, [status.toUpperCase()])
+      el('div', { class: 'admin-info-box' }, [
+        el('div', { class: 'admin-kv-row' }, [
+          el('span', { class: 'admin-kv-label' }, ['Subscription Status']),
+          el('span', { class: `badge-status ${badge.cls}` }, [badge.label]),
         ]),
-        el('div', { style: 'display: flex; justify-content: space-between; margin-bottom: 6px;' }, [
-          el('span', { class: 'saas-muted' }, ['License Expires']),
-          el('strong', { style: 'font-variant-numeric: tabular-nums;' }, [expFormatted])
+        el('div', { class: 'admin-kv-row' }, [
+          el('span', { class: 'admin-kv-label' }, ['License Expires']),
+          el('span', { class: 'admin-kv-value' }, [expFormatted]),
         ]),
-        el('div', { style: 'display: flex; justify-content: space-between; margin-bottom: 6px;' }, [
-          el('span', { class: 'saas-muted' }, ['Monthly Plan']),
-          el('strong', { style: 'font-variant-numeric: tabular-nums;' }, [`${fee}/mo`])
+        el('div', { class: 'admin-kv-row' }, [
+          el('span', { class: 'admin-kv-label' }, ['Monthly Plan']),
+          el('span', { class: 'admin-kv-value' }, [`${fee}/mo`]),
         ]),
-        el('div', { style: 'display: flex; justify-content: space-between;' }, [
-          el('span', { class: 'saas-muted' }, ['Lifetime Sales']),
-          el('strong', { style: 'font-variant-numeric: tabular-nums;' }, [lifetime])
-        ])
+        el('div', { class: 'admin-kv-row' }, [
+          el('span', { class: 'admin-kv-label' }, ['Lifetime Sales']),
+          el('span', { class: 'admin-kv-value' }, [lifetime]),
+        ]),
       ])
     );
 
-    const renewBtn = el('button', {
-      type: 'button',
-      class: 'saas-btn saas-btn-primary saas-btn-full',
-      id: 'btn-inspector-renew-30d',
-      on: {
-        click: async () => {
-          renewBtn.disabled = true;
-          renewBtn.textContent = 'Renewing...';
-          const baseTs = expRaw && new Date(expRaw).getTime() > Date.now()
-            ? new Date(expRaw).getTime()
-            : Date.now();
-          const newExpiry = new Date(baseTs + 30 * 86400000).toISOString();
-          const res = await apiFetch(`/api/v1/admin/vendors/${stall.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ subscriptionStatus: 'active', subscriptionExpiresAt: newExpiry })
-          });
-          if (res && res.ok) {
-            stall.subscriptionStatus = 'active';
-            stall.subscription_status = 'active';
-            stall.subscriptionExpiresAt = newExpiry;
-            stall.nextDueDate = newExpiry;
-            renderStallsTable();
-            loadOverview();
-            openVendorInspector(stall.id);
-            if (window.FroseUI && window.FroseUI.showToast) {
-              window.FroseUI.showToast(`✅ Renewed ${bName} (+30 Days)`, 'success');
-            }
-          } else {
-            renewBtn.disabled = false;
-            renewBtn.textContent = '✨ Renew License (+30 Days)';
-            if (window.FroseUI && window.FroseUI.showToast) {
-              window.FroseUI.showToast('Failed to renew license', 'error');
-            }
-          }
-        }
-      }
-    }, ['✨ Renew License (+30 Days)']);
+    body.appendChild(
+      el('div', { class: 'form-group-wrap' }, [
+        el('button', {
+          type: 'button',
+          class: 'saas-btn saas-btn-primary saas-btn-block',
+          id: 'btn-inspector-renew',
+          on: { click: () => openRenewModal(stall.id) },
+        }, ['Renew / Extend License']),
+        el('button', {
+          type: 'button',
+          class: 'saas-btn saas-btn-secondary saas-btn-block',
+          on: { click: () => { closeVendorInspector(); openEditStallModal(stall.id); } },
+        }, ['Edit Stall Settings']),
+        el('button', {
+          type: 'button',
+          class: 'saas-btn saas-btn-secondary saas-btn-block',
+          on: { click: () => { closeVendorInspector(); openMenuModal(stall.id, bName); } },
+        }, ['Inspect Menu Catalog']),
+        el('button', {
+          type: 'button',
+          class: 'saas-btn saas-btn-secondary saas-btn-block',
+          on: { click: () => { closeVendorInspector(); window.openStallAnalytics(stall.id); } },
+        }, ['Fiscal Turnover & Ledger']),
+        el('button', {
+          type: 'button',
+          class: 'saas-btn saas-btn-secondary saas-btn-block',
+          on: { click: () => { closeVendorInspector(); window.openStallSetupQR(stall); } },
+        }, ['Setup QR & Pairing']),
+        el('button', {
+          type: 'button',
+          class: stall.subscriptionStatus === 'suspended' ? 'saas-btn saas-btn-primary saas-btn-block' : 'saas-btn saas-btn-danger saas-btn-block',
+          on: { click: () => toggleStallSuspension(stall.id) },
+        }, [stall.subscriptionStatus === 'suspended' ? 'Reactivate Stall' : 'Suspend Stall (Kill-Switch)']),
+      ])
+    );
 
-    const editBtn = el('button', {
-      type: 'button',
-      class: 'saas-btn saas-btn-secondary saas-btn-full',
-      on: { click: () => { closeVendorInspector(); openEditStallModal(stall.id); } }
-    }, ['✏️ Edit Stall Settings']);
-
-    const menuBtn = el('button', {
-      type: 'button',
-      class: 'saas-btn saas-btn-secondary saas-btn-full',
-      on: { click: () => { closeVendorInspector(); openMenuModal(stall.id, bName); } }
-    }, ['📋 Inspect Menu']);
-
-    const ledgerBtn = el('button', {
-      type: 'button',
-      class: 'saas-btn saas-btn-secondary saas-btn-full',
-      on: {
-        click: () => {
-          closeVendorInspector();
-          if (typeof window.openStallAnalytics === 'function') window.openStallAnalytics(stall.id);
-        }
-      }
-    }, ['📊 Fiscal Ledger']);
-
-    body.appendChild(el('div', { style: 'display: flex; flex-direction: column; gap: 10px;' }, [
-      renewBtn,
-      editBtn,
-      menuBtn,
-      ledgerBtn
-    ]));
-
-    backdrop.classList.add('active');
+    drawer.classList.add('active');
+    syncScrollLock();
   }
 
-  // 6. WhatsApp Notification Deep-Link Handler
-  function sendWhatsAppNotification(phone, owner, stall, status, due, fee) {
-    const cleanPhone = (phone || '').replace(/\D/g, '');
+  function sendWhatsAppNotification(vendorId) {
+    const v = allVendors.find((item) => String(item.id) === String(vendorId));
+    if (!v) return;
+    const cleanPhone = (v.phone || '').replace(/\D/g, '').slice(-10);
     if (cleanPhone.length < 10) {
-      alert('Invalid phone number for WhatsApp message.');
+      notify('Invalid phone number for WhatsApp', 'danger');
       return;
     }
-
-    let message = '';
-    if (status === 'OVERDUE' || status === 'DUE SOON' || status === 'TRIAL') {
-      message = `*FROSE Street POS — Subscription Payment Due*\n\nDear ${owner},\n\nYour monthly subscription for *${stall}* (${fee}/month) is due on *${due}*.\n\nPlease complete your renewal payment to ensure uninterrupted billing counter operations.\n\nThank you,\n*FROSE Street POS Team*`;
-    } else {
-      message = `*FROSE Street POS — Official Payment Confirmation*\n\nDear ${owner},\n\nThank you for your payment of *${fee}* for *${stall}*.\n\nYour subscription is active and valid until *${due}*.\nReceipt ID: #REC-${Math.random().toString(36).substring(2, 8).toUpperCase()}\n\nThank you for choosing FROSE Street!\n*FROSE Platform HQ*`;
-    }
-
-    const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(waUrl, '_blank');
+    const badge = buildVendorBadge(v);
+    const fee = formatRupees(BigInt(v.monthlyFeePaise || '0') > 0n ? v.monthlyFeePaise : '49900');
+    const due = formatDate(v.subscriptionExpiresAt, 'Soon');
+    const msg = badge.cls === 'active'
+      ? `*FROSE Street POS — Payment Confirmation*\n\nDear ${v.ownerName || 'Owner'},\n\nYour subscription for *${v.businessName}* (${fee}/month) is active until *${due}*.\n\nThank you,\n*FROSE Street Team*`
+      : `*FROSE Street POS — Subscription Renewal Reminder*\n\nDear ${v.ownerName || 'Owner'},\n\nYour subscription for *${v.businessName}* (${fee}/month) is due on *${due}*.\n\nPlease complete your renewal to ensure uninterrupted billing counter operations.\n\nThank you,\n*FROSE Street Team*`;
+    window.open(`https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
   }
 
-  // 7. Receipt Modal
   function openReceiptModal(stallId) {
-    const stall = allVendors.find(v => v.id === stallId) || allVendors[0];
-    if (!stall) return;
-
-    const bName = stall.businessName || stall.business_name || 'Restaurant Stall';
-    const oName = stall.ownerName || stall.owner_name || 'Owner';
-    const phone = stall.phone || 'N/A';
-    const fee = formatRupees(stall.monthlyFeePaise || '49900');
-    const receiptId = 'FROSE-REC-' + (stall.id.replace('v-', '').toUpperCase() || '01');
-
+    const stall = allVendors.find((v) => String(v.id) === String(stallId));
     const container = document.getElementById('receipt-modal-content');
-    if (container) {
-      const { el, clear } = window.FroseSafeDom;
-      clear(container);
-      container.append(
-        el('div', { style: 'text-align: center; margin-bottom: 12px; border-bottom: 1px solid var(--saas-card-border); padding-bottom: 10px;' }, [
-          el('div', { style: 'font-weight: 900; font-size: 16px; color: var(--saas-burgundy-primary);' }, ['FROSE STREET POS']),
-          el('div', { style: 'font-size: 11px; color: var(--saas-text-muted);' }, ['Official Subscription Tax Receipt']),
-          el('div', { style: 'font-size: 11px; font-weight: 700; margin-top: 4px;' }, [`Receipt: #${receiptId}`])
-        ]),
-        el('div', { style: 'display: flex; flex-direction: column; gap: 6px;' }, [
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Restaurant:']), el('strong', {}, [bName])]),
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Stall Owner:']), el('strong', {}, [oName])]),
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Mobile:']), el('code', {}, [phone])]),
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Hosting Mode:']), el('strong', {}, [stall.edition === 'local' ? 'Mobile P2P (Offline)' : 'Cloud Managed (Edge)'])]),
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Amount Paid:']), el('strong', { style: 'color: var(--saas-emerald); font-size: 14px;' }, [fee])]),
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Payment Mode:']), el('strong', {}, ['UPI Intent / BharatQR'])]),
-          el('div', { style: 'display: flex; justify-content: space-between;' }, [el('span', {}, ['Validity Period:']), el('strong', {}, ['30 Days'])])
-        ])
-      );
-    }
+    if (!stall || !container || !window.FroseSafeDom) return;
+    const { el, clear } = window.FroseSafeDom;
+    const fee = formatRupees(BigInt(stall.monthlyFeePaise || '0') > 0n ? stall.monthlyFeePaise : '49900');
+    const receiptId = 'FROSE-REC-' + String(stall.id || '').slice(0, 8).toUpperCase();
+
+    clear(container);
+    container.append(
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Receipt #']), el('span', { class: 'admin-kv-value mono-code' }, [receiptId])]),
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Restaurant']), el('span', { class: 'admin-kv-value' }, [stall.businessName || ''])]),
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Owner']), el('span', { class: 'admin-kv-value' }, [stall.ownerName || ''])]),
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Mobile']), el('span', { class: 'admin-kv-value mono-code' }, [stall.phone || ''])]),
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Plan Amount']), el('span', { class: 'admin-kv-value' }, [fee])]),
+      el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Valid Until']), el('span', { class: 'admin-kv-value' }, [formatDate(stall.subscriptionExpiresAt)])])
+    );
 
     const shareBtn = document.getElementById('btn-receipt-whatsapp-share');
-    if (shareBtn) {
-      shareBtn.onclick = () => {
-        sendWhatsAppNotification(phone, oName, bName, 'PAID', formatDate(stall.nextDueDate), fee);
-      };
-    }
-
+    if (shareBtn) shareBtn.onclick = () => sendWhatsAppNotification(stall.id);
     openModal('modal-payment-receipt');
   }
 
-  // 8. Load Users & Analytics
-  async function loadUsers() {
-    const tbody = document.getElementById('users-table-body');
-    if (!tbody) return;
-
-    let users = allVendors.map(v => ({
-      id: 'usr-' + v.id,
-      name: v.ownerName || v.owner_name,
-      phone: v.phone,
-      role: v.role || 'owner',
-      stallName: v.businessName || v.business_name,
-      status: v.subscriptionStatus === 'expired' ? 'inactive' : 'active'
-    }));
-
-    const res = await apiFetch('/api/v1/admin/users');
-    if (res && res.ok) {
-      try {
-        const json = await res.json();
-        if (Array.isArray(json.data) && json.data.length > 0) users = json.data;
-      } catch (e) {}
-    }
-
-    const { el, clear } = window.FroseSafeDom;
-    clear(tbody);
-    users.forEach(u => {
-      tbody.appendChild(el('tr', {}, [
-        el('td', {}, [
-          el('div', { style: 'font-weight: 700;' }, [u.name || '']),
-          el('code', { style: 'font-size: 11.5px; color: var(--saas-text-muted);' }, [u.phone || ''])
-        ]),
-        el('td', {}, [el('span', { class: 'badge-status active' }, [u.role || 'owner'])]),
-        el('td', {}, [el('strong', {}, [u.stallName || ''])]),
-        el('td', {}, [el('span', { class: `badge-status ${u.status === 'active' ? 'active' : 'expired'}` }, [u.status || 'active'])]),
-        el('td', {}, [
-          el('button', {
-            type: 'button',
-            class: 'btn-table-action',
-            on: { click: () => alert('Password reset link dispatched via SMS to ' + (u.phone || '')) }
-          }, ['Reset Password'])
-        ])
-      ]));
-    });
-  }
-
-  async function loadAnalytics() {
-    const cashVal = document.getElementById('analytics-cash-val');
-    const upiVal = document.getElementById('analytics-upi-val');
-    const tbody = document.getElementById('analytics-leaderboard-body');
-
-    let data = {
-      grossSalesPaise: '10450000',
-      cashSalesPaise: '6250000',
-      upiSalesPaise: '4200000',
-      leaderboard: allVendors.map((v, i) => ({
-        rank: i + 1,
-        name: v.businessName || v.business_name,
-        city: v.city || 'Hyderabad',
-        orders: v.totalOrders || 0,
-        volume: formatRupees(v.lifetimeSalesPaise || '0')
-      }))
-    };
-
-    const res = await apiFetch('/api/v1/admin/analytics');
-    if (res && res.ok) {
-      try {
-        const json = await res.json();
-        if (json.data) data = json.data;
-      } catch (e) {}
-    }
-
-    if (cashVal) cashVal.textContent = formatRupees(data.cashSalesPaise);
-    if (upiVal) upiVal.textContent = formatRupees(data.upiSalesPaise);
-
-    if (tbody && Array.isArray(data.leaderboard)) {
-      const { el, clear } = window.FroseSafeDom;
-      clear(tbody);
-      data.leaderboard.forEach((item, idx) => {
-        tbody.appendChild(el('tr', {}, [
-          el('td', {}, [el('strong', { style: 'color: var(--saas-burgundy-primary);' }, [`#${item.rank || idx + 1}`])]),
-          el('td', {}, [el('strong', {}, [item.name || ''])]),
-          el('td', {}, [item.city || '']),
-          el('td', {}, [String(item.orders || item.totalOrders || 0)]),
-          el('td', {}, [el('strong', {}, [item.volume || formatRupees(item.salesPaise || '0')])])
-        ]));
-      });
-    }
-  }
-
-  // 9. Modal Management & Touch/Scroll Lockout
-  function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.classList.add('active');
-      document.body.classList.add('modal-open');
-    }
-  }
-
-  function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.classList.remove('active');
-    }
-    // Check if any other modal is still active
-    const anyActive = document.querySelector('.modal-overlay.active');
-    if (!anyActive) {
-      document.body.classList.remove('modal-open');
-    }
-  }
-
-  // Edit Stall Modal
   function openEditStallModal(stallId) {
-    const stall = allVendors.find(v => v.id === stallId);
+    const stall = allVendors.find((v) => String(v.id) === String(stallId));
     if (!stall) return;
-
     document.getElementById('edit-stall-id').value = stall.id;
-    document.getElementById('edit-stall-name').value = stall.businessName || stall.business_name || '';
-    document.getElementById('edit-owner-name').value = stall.ownerName || stall.owner_name || '';
+    document.getElementById('edit-stall-name').value = stall.businessName || '';
+    document.getElementById('edit-owner-name').value = stall.ownerName || '';
+    document.getElementById('edit-phone').value = stall.phone || '';
     document.getElementById('edit-city').value = stall.city || 'Hyderabad';
     document.getElementById('edit-edition').value = stall.edition || 'cloud';
-    document.getElementById('edit-status').value = stall.subscriptionStatus || stall.subscription_status || 'active';
-
+    document.getElementById('edit-status').value = stall.subscriptionStatus || 'active';
+    document.getElementById('edit-tax-mode').value = stall.taxMode || 'unregistered';
+    document.getElementById('edit-monthly-fee').value = String(Math.round(Number(BigInt(stall.monthlyFeePaise || '49900') / 100n)));
+    document.getElementById('edit-gstin').value = stall.gstin || '';
+    document.getElementById('edit-fssai').value = stall.fssaiNumber || '';
+    document.getElementById('edit-password').value = '';
     openModal('modal-edit-stall');
   }
 
-  // Menu Manager Modal
   async function openMenuModal(stallId, stallName) {
     activeVendorForMenu = stallId;
-    const stall = allVendors.find(v => String(v.id) === String(stallId));
-    const resolvedName = stallName || stall?.businessName || stall?.business_name || 'Stall';
+    const stall = allVendors.find((v) => String(v.id) === String(stallId));
+    const resolvedName = stallName || stall?.businessName || 'Stall';
     const title = document.getElementById('menu-modal-stall-name');
-    if (title) title.textContent = resolvedName + ' Menu';
+    if (title) title.textContent = `${resolvedName} — Menu Catalog`;
 
     const addForm = document.getElementById('form-add-dish-inline');
     if (addForm) addForm.style.display = 'none';
 
     const container = document.getElementById('dish-list-container');
-    if (!container) return;
+    if (!container || !window.FroseSafeDom) return;
 
     const { el, clear } = window.FroseSafeDom;
     clear(container);
-    container.appendChild(el('div', { style: 'padding: 16px; text-align: center; color: var(--saas-text-muted);' }, ['Loading dishes...']));
+    container.appendChild(el('div', { class: 'saas-skeleton' }));
     openModal('modal-menu-manager');
 
-    let dishes = [];
-    let loadError = false;
     const res = await apiFetch(`/api/v1/admin/vendors/${stallId}/menu`);
-    if (res && res.ok) {
-      try {
-        const json = await res.json();
-        if (Array.isArray(json.data)) dishes = json.data;
-      } catch (e) {
-        loadError = true;
-      }
-    } else {
-      loadError = true;
-    }
-
     clear(container);
-    if (loadError) {
-      container.appendChild(el('div', { style: 'padding: 20px; text-align: center; color: var(--accent-rose);' }, ['Failed to load menu items from server.']));
-      return;
-    }
-    if (dishes.length === 0) {
-      container.appendChild(el('div', { style: 'padding: 20px; text-align: center; color: var(--saas-text-muted);' }, ['No menu items configured yet. Click "+ Add Dish" above to add one.']));
+    if (!res || !res.ok) {
+      container.appendChild(el('div', { class: 'admin-empty-box' }, ['Failed to load menu items from server.']));
       return;
     }
 
-    dishes.forEach(d => {
+    let dishes = [];
+    try {
+      const json = await res.json();
+      if (Array.isArray(json.data)) dishes = json.data;
+    } catch (_) {}
+
+    if (dishes.length === 0) {
+      container.appendChild(el('div', { class: 'admin-empty-box' }, ['No dishes configured yet. Click "+ Add Dish" to add one.']));
+      return;
+    }
+
+    dishes.forEach((d) => {
       let isAvail = Boolean(d.is_available ?? d.isAvailable ?? true);
       const availBtn = el('button', {
         type: 'button',
-        class: 'btn-table-action',
+        class: isAvail ? 'btn-table-action primary' : 'btn-table-action',
         on: {
-          click: async function () {
+          click: async () => {
             const nextAvail = !isAvail;
             availBtn.disabled = true;
             try {
               const patchRes = await apiFetch(`/api/v1/admin/vendors/${stallId}/menu/${d.id}`, {
                 method: 'PATCH',
-                body: JSON.stringify({ isAvailable: nextAvail })
+                body: JSON.stringify({ isAvailable: nextAvail }),
               });
               if (patchRes && patchRes.ok) {
                 isAvail = nextAvail;
                 availBtn.textContent = isAvail ? 'In Stock' : 'Out of Stock';
-                if (window.FroseUI?.showToast) window.FroseUI.showToast(`${d.name} marked ${isAvail ? 'In Stock' : 'Out of Stock'}`, 'success');
+                availBtn.className = isAvail ? 'btn-table-action primary' : 'btn-table-action';
+                notify(`${d.name} marked ${isAvail ? 'In Stock' : 'Out of Stock'}`, 'success');
               } else {
-                if (window.FroseUI?.showToast) window.FroseUI.showToast('Failed to update dish availability', 'danger');
+                notify('Failed to update dish availability', 'danger');
               }
-            } catch (err) {
-              if (window.FroseUI?.showToast) window.FroseUI.showToast('Network error updating dish', 'danger');
+            } catch (_) {
+              notify('Network error updating dish', 'danger');
             } finally {
               availBtn.disabled = false;
             }
-          }
-        }
+          },
+        },
       }, [isAvail ? 'In Stock' : 'Out of Stock']);
 
-      container.appendChild(el('div', {
-        style: 'display: flex; align-items: center; justify-content: space-between; padding: 10px; border-radius: 8px; border: 1px solid var(--border-subtle);'
-      }, [
-        el('div', {}, [
-          el('div', { style: 'font-weight: 800; font-size: 13px;' }, [d.name || '']),
-          el('div', { style: 'font-size: 11.5px; color: var(--saas-text-muted);' }, [`${d.category || 'General'} • ${formatRupees(d.price_paise || d.pricePaise)}`])
-        ]),
-        availBtn
-      ]));
+      container.appendChild(
+        el('div', { class: 'admin-kv-row', style: 'padding: 10px 12px; border: 1px solid var(--border-subtle); border-radius: 10px;' }, [
+          el('div', {}, [
+            el('div', { style: 'font-weight: 800; font-size: 13.5px;' }, [d.name || '']),
+            el('div', { class: 'brand-platform-sub' }, [`${d.category || 'General'} • ${formatRupees(d.price_paise || d.pricePaise)}`]),
+          ]),
+          availBtn,
+        ])
+      );
     });
   }
 
-    // 10. Unified Delegated Click Listener (Zero-Fail Real-Time Mobile & Desktop Taps)
-  document.addEventListener('click', (e) => {
-    // 1. Top Navigation Tabs
-    const tabBtn = e.target.closest('.nav-tab-pill');
-    if (tabBtn) {
-      const view = tabBtn.getAttribute('data-view');
-      if (view) {
-        switchView(view);
-        return;
-      }
-    }
-
-    // 2. Bottom Bar Navigation
-    const bHome = e.target.closest('#btn-bottom-home');
-    if (bHome) {
-      switchView('dashboard');
-      return;
-    }
-
-    const bAnalytics = e.target.closest('#btn-bottom-analytics');
-    if (bAnalytics) {
-      switchView('analytics');
-      return;
-    }
-
-    const bAdd = e.target.closest('#btn-bottom-add-restaurant, #btn-top-add-stall');
-    if (bAdd) {
-      switchView('add-restaurant');
-      return;
-    }
-
-    const bBackVendors = e.target.closest('#btn-back-to-vendors');
-    if (bBackVendors) {
-      switchView('vendors');
-      return;
-    }
-
-    const filterBtn = e.target.closest('.filter-pill');
-    if (filterBtn) {
-      const f = filterBtn.getAttribute('data-filter') || 'all';
-      filterStalls(f);
-      return;
-    }
-
-    const bNotif = e.target.closest('#btn-bottom-notifications');
-    if (bNotif) {
-      const drawer = document.getElementById('notifications-drawer');
-      if (drawer) {
-        drawer.classList.add('active');
-        document.body.classList.add('modal-open');
-      }
-      return;
-    }
-
-    const bCloseNotif = e.target.closest('#btn-close-notifications');
-    if (bCloseNotif) {
-      const drawer = document.getElementById('notifications-drawer');
-      if (drawer) {
-        drawer.classList.remove('active');
-        document.body.classList.remove('modal-open');
-      }
-      return;
-    }
-
-    const bLogout = e.target.closest('#btn-bottom-logout, #btn-menu-logout');
-    if (bLogout) {
-      if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {
-        window.FroseIdbStore.safeLogout({ confirmMessage: 'Sign out of Super Admin Console?' });
-        return;
-      }
-      if (confirm('Sign out of Super Admin Console?')) {
-        (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
-          .catch(() => {})
-          .finally(() => {
-            localStorage.removeItem('frose_session_active');
-            localStorage.removeItem('frose_vendors_directory');
-            window.location.replace('/login.html');
-          });
-      }
-      return;
-    }
-
-    // 3. KPI Card Clicks
-    if (e.target.closest('#card-kpi-restaurants')) {
-      switchView('vendors');
-      return;
-    }
-    if (e.target.closest('#card-kpi-revenue') || e.target.closest('#card-kpi-orders') || e.target.closest('#btn-hero-reports')) {
-      switchView('analytics');
-      return;
-    }
-    if (e.target.closest('#card-kpi-renewals')) {
-      currentFilter = 'expiring';
-      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-      document.querySelector('.filter-pill[data-filter="expiring"]')?.classList.add('active');
-      switchView('vendors');
-      return;
-    }
-
-    // 4. System Health Modal
-    if (e.target.closest('#btn-view-health')) {
-      openModal('modal-system-health');
-      return;
-    }
-
-    // 5. Modal Close Buttons
-    if (e.target.closest('#btn-close-add-modal')) {
-      closeModal('modal-add-stall');
-      return;
-    }
-    if (e.target.closest('#btn-close-edit-modal')) {
-      closeModal('modal-edit-stall');
-      return;
-    }
-    if (e.target.closest('#btn-close-menu-modal')) {
-      closeModal('modal-menu-manager');
-      return;
-    }
-    if (e.target.closest('#btn-close-health-modal')) {
-      closeModal('modal-system-health');
-      return;
-    }
-    if (e.target.closest('#btn-close-receipt-modal')) {
-      closeModal('modal-payment-receipt');
-      return;
-    }
-
-    // 6. WhatsApp Action
-    const waBtn = e.target.closest('.btn-whatsapp-stall');
-    if (waBtn) {
-      const phone = waBtn.getAttribute('data-phone');
-      const owner = waBtn.getAttribute('data-owner');
-      const stall = waBtn.getAttribute('data-stall');
-      const status = waBtn.getAttribute('data-status');
-      const due = waBtn.getAttribute('data-due');
-      const fee = waBtn.getAttribute('data-fee');
-      sendWhatsAppNotification(phone, owner, stall, status, due, fee);
-      return;
-    }
-
-    // 7. Receipt Action
-    const rcptBtn = e.target.closest('.btn-view-receipt');
-    if (rcptBtn) {
-      const id = rcptBtn.getAttribute('data-id');
-      openReceiptModal(id);
-      return;
-    }
-
-    // Analytics & Ledger Action
-    const analyticsBtn = e.target.closest('.btn-stall-analytics');
-    if (analyticsBtn) {
-      const id = analyticsBtn.getAttribute('data-id');
-      window.openStallAnalytics(id);
-      return;
-    }
-
-    // 8. Edit Stall Action
-    const editBtn = e.target.closest('.btn-edit-stall');
-    if (editBtn) {
-      const id = editBtn.getAttribute('data-id');
-      openEditModal(id);
-      return;
-    }
-
-    // 9. Menu Manager Action
-    const menuBtn = e.target.closest('.btn-manage-menu');
-    if (menuBtn) {
-      const id = menuBtn.getAttribute('data-id');
-      const name = menuBtn.getAttribute('data-name');
-      openMenuModal(id, name);
-      return;
-    }
-  });
-
-
-
-  // 12. Stall Fiscal Turnover Analytics & Payment History Ledger Modal Handler
-  window.openStallAnalytics = function(vendorId) {
-    const stall = allVendors.find(v => v.id === vendorId);
+  function openRenewModal(stallId) {
+    const stall = allVendors.find((v) => String(v.id) === String(stallId));
     if (!stall) return;
+    document.getElementById('renew-vendor-id').value = stall.id;
+    document.getElementById('renew-modal-title').textContent = `Renew ${stall.businessName || 'Stall'}`;
+    const feeRupees = Math.round(Number(BigInt(stall.monthlyFeePaise || '49900') / 100n));
+    document.getElementById('renew-amount-rupees').value = String(feeRupees || 499);
+    document.getElementById('renew-preset-days').value = '30';
+    document.getElementById('renew-custom-date-wrap').style.display = 'none';
+    openModal('modal-renew-license');
+  }
 
-    const bName = stall.businessName || stall.business_name || 'Restaurant Stall';
-    const oName = stall.ownerName || stall.owner_name || 'N/A';
-    const phone = stall.phone || 'N/A';
-    const city = stall.city || 'Hyderabad';
+  async function toggleStallSuspension(stallId) {
+    const stall = allVendors.find((v) => String(v.id) === String(stallId));
+    if (!stall) return;
+    const isSuspended = stall.subscriptionStatus === 'suspended';
+    const nextStatus = isSuspended ? 'active' : 'suspended';
+    const confirmed = window.FroseUI?.confirmModal
+      ? await window.FroseUI.confirmModal({
+          title: isSuspended ? 'Reactivate Stall?' : 'Suspend Stall (Kill-Switch)?',
+          message: isSuspended
+            ? `Restore active counter access for ${stall.businessName}?`
+            : `Suspending ${stall.businessName} immediately revokes active refresh sessions.`,
+          confirmLabel: isSuspended ? 'Reactivate' : 'Suspend Stall',
+          danger: !isSuspended,
+        })
+      : false;
+    if (!confirmed) return;
 
-    const titleEl = document.getElementById('analytics-stall-title');
-    const subEl = document.getElementById('analytics-stall-subtitle');
-    if (titleEl) titleEl.textContent = `📊 ${bName} — Fiscal Analytics`;
-    if (subEl) subEl.textContent = `Owner: ${oName} • 📱 ${phone} • 📍 ${city}`;
+    const res = await apiFetch(`/api/v1/admin/vendors/${stall.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ subscriptionStatus: nextStatus }),
+    });
+    if (res && res.ok) {
+      await loadVendors();
+      closeVendorInspector();
+      notify(`${stall.businessName} is now ${nextStatus}`, 'success');
+    } else {
+      notify('Failed to update stall status', 'danger');
+    }
+  }
 
-    // 4-Period Turnover Intelligence (Daily, Weekly, Monthly, Yearly)
-    const turnover = stall.turnover || {};
-    const daily = turnover.daily || { totalPaise: '0', cashPaise: '0', upiPaise: '0' };
-    const weekly = turnover.weekly || { totalPaise: '0', cashPaise: '0', upiPaise: '0' };
-    const monthly = turnover.monthly || { totalPaise: '0', cashPaise: '0', upiPaise: '0' };
-    const yearly = turnover.yearly || { totalPaise: '0', cashPaise: '0', upiPaise: '0' };
-
-    document.getElementById('turnover-val-daily').textContent = formatRupees(daily.totalPaise);
-    document.getElementById('turnover-cash-daily').textContent = formatRupees(daily.cashPaise);
-    document.getElementById('turnover-upi-daily').textContent = formatRupees(daily.upiPaise);
-
-    document.getElementById('turnover-val-weekly').textContent = formatRupees(weekly.totalPaise);
-    document.getElementById('turnover-cash-weekly').textContent = formatRupees(weekly.cashPaise);
-    document.getElementById('turnover-upi-weekly').textContent = formatRupees(weekly.upiPaise);
-
-    document.getElementById('turnover-val-monthly').textContent = formatRupees(monthly.totalPaise);
-    document.getElementById('turnover-cash-monthly').textContent = formatRupees(monthly.cashPaise);
-    document.getElementById('turnover-upi-monthly').textContent = formatRupees(monthly.upiPaise);
-
-    document.getElementById('turnover-val-yearly').textContent = formatRupees(yearly.totalPaise);
-    document.getElementById('turnover-cash-yearly').textContent = formatRupees(yearly.cashPaise);
-    document.getElementById('turnover-upi-yearly').textContent = formatRupees(yearly.upiPaise);
-
-    // Itemized Subscription & Platform Fee Payment Ledger
+  window.openStallAnalytics = function (vendorId) {
+    const stall = allVendors.find((v) => String(v.id) === String(vendorId));
+    if (!stall) return;
+    document.getElementById('analytics-stall-title').textContent = `${stall.businessName || 'Stall'} — Fiscal Ledger`;
+    document.getElementById('analytics-stall-subtitle').textContent = `${stall.ownerName || 'Owner'} • ${stall.phone || ''} • ${stall.city || ''}`;
+    const zero = { totalPaise: '0', cashPaise: '0', upiPaise: '0' };
+    const t = stall.turnover || { daily: zero, weekly: zero, monthly: zero, yearly: zero };
+    ['daily', 'weekly', 'monthly', 'yearly'].forEach((p) => {
+      const d = t[p] || zero;
+      document.getElementById(`turnover-val-${p}`).textContent = formatRupees(d.totalPaise);
+      document.getElementById(`turnover-cash-${p}`).textContent = formatRupees(d.cashPaise);
+      document.getElementById(`turnover-upi-${p}`).textContent = formatRupees(d.upiPaise);
+    });
     const ledgerContainer = document.getElementById('payment-ledger-container');
     const ledgerCount = document.getElementById('payment-ledger-count');
     const ledger = stall.paymentLedger || [];
-
-    if (ledgerCount) ledgerCount.textContent = `${ledger.length} Payment${ledger.length === 1 ? '' : 's'}`;
-
-    if (ledgerContainer) {
+    if (ledgerCount) ledgerCount.textContent = `${ledger.length} Record${ledger.length === 1 ? '' : 's'}`;
+    if (ledgerContainer && window.FroseSafeDom) {
       const { el, clear } = window.FroseSafeDom;
       clear(ledgerContainer);
       if (ledger.length === 0) {
-        ledgerContainer.appendChild(el('div', {
-          style: 'text-align: center; padding: 24px 10px; color: var(--saas-text-muted); font-size: 12.5px; background: #FDFBF7; border-radius: 8px; border: 1px dashed var(--saas-card-border);'
-        }, [
-          el('div', { style: 'font-size: 24px; margin-bottom: 4px;' }, ['💳']),
-          'No subscription payments recorded for this stall yet.'
-        ]));
+        ledgerContainer.appendChild(el('div', { class: 'admin-empty-box' }, ['No subscription payments recorded yet.']));
       } else {
-        ledger.forEach(rec => {
-          ledgerContainer.appendChild(el('div', {
-            style: 'background: #FDFBF7; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 12px; font-size: 12px;'
-          }, [
-            el('div', { style: 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;' }, [
-              el('span', { style: 'font-family: var(--font-mono); font-weight: 800; color: var(--saas-burgundy-primary);' }, [rec.receiptId || '#REC-VERIFIED']),
-              el('span', { style: 'font-size: 10.5px; background: #ECFDF5; color: #047857; padding: 3px 6px; border-radius: 4px; font-weight: 700;' }, [`● ${rec.status || 'Verified Paid'}`])
-            ]),
-            el('div', { style: 'display: flex; justify-content: space-between; margin-bottom: 4px;' }, [
-              el('span', { style: 'color: var(--saas-text-muted);' }, ['Amount:']),
-              el('strong', { style: 'color: var(--saas-text-heading); font-size: 13.5px;' }, [formatRupees(rec.amountPaise || '49900')])
-            ]),
-            el('div', { style: 'display: flex; justify-content: space-between; margin-bottom: 4px;' }, [
-              el('span', { style: 'color: var(--saas-text-muted);' }, ['Method:']),
-              el('span', {}, [el('strong', {}, [rec.method || 'UPI Intent'])])
-            ]),
-            el('div', { style: 'display: flex; justify-content: space-between; margin-bottom: 4px;' }, [
-              el('span', { style: 'color: var(--saas-text-muted);' }, ['Date & Time:']),
-              el('span', {}, [new Date(rec.date).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })])
-            ]),
-            el('div', { style: 'display: flex; justify-content: space-between; border-top: 1px dashed var(--saas-card-border); padding-top: 6px; margin-top: 6px;' }, [
-              el('span', { style: 'color: var(--saas-text-muted);' }, ['Billing Period:']),
-              el('span', { style: 'font-weight: 600; color: var(--saas-burgundy-primary);' }, [rec.period || 'Monthly Active (30 Days)'])
+        ledger.forEach((rec) => {
+          ledgerContainer.appendChild(
+            el('div', { class: 'admin-info-box' }, [
+              el('div', { class: 'admin-kv-row' }, [
+                el('span', { class: 'mono-code' }, [rec.paymentReference || rec.receiptId || 'SUB']),
+                el('span', { class: 'badge-status active' }, [rec.status || 'active']),
+              ]),
+              el('div', { class: 'admin-kv-row' }, [
+                el('span', { class: 'admin-kv-label' }, ['Amount']),
+                el('span', { class: 'admin-kv-value' }, [formatRupees(rec.amountPaise || '0')]),
+              ]),
             ])
-          ]));
+          );
         });
       }
     }
-
     openModal('modal-stall-analytics');
   };
 
-  // 13. Real Interactive Notifications System
-  let platformNotifications = [];
-  function loadNotifications() {
-    try {
-      const stored = localStorage.getItem('frose_admin_notifications');
-      if (stored) {
-        platformNotifications = JSON.parse(stored);
-      } else {
-        platformNotifications = [
-          {
-            id: 'notif-1',
-            title: '🚀 Cloudflare Edge Network Operational',
-            message: 'FROSE Street v2.4.0 live on Cloudflare Edge with 0ms downtime.',
-            category: 'system',
-            targetView: 'system-health',
-            timestamp: new Date().toLocaleDateString('en-IN')
-          }
-        ];
-      }
-    } catch (e) {
-      platformNotifications = [];
+  async function loadUsers() {
+    const tbody = document.getElementById('users-table-body');
+    const mobileCards = document.getElementById('users-mobile-cards');
+    if (!tbody || !window.FroseSafeDom) return;
+    const { el, clear } = window.FroseSafeDom;
+
+    const res = await apiFetch('/api/v1/admin/users');
+    if (res && res.ok) {
+      try {
+        const json = await res.json();
+        if (Array.isArray(json.data)) allUsers = json.data;
+      } catch (_) {}
     }
+
+    const q = usersSearchQuery.toLowerCase().trim();
+    const filtered = allUsers.filter((u) => {
+      if (usersRoleFilter !== 'all' && String(u.role || 'owner').toLowerCase() !== usersRoleFilter) return false;
+      if (!q) return true;
+      return (u.name || '').toLowerCase().includes(q)
+        || (u.phone || '').toLowerCase().includes(q)
+        || (u.stallName || '').toLowerCase().includes(q);
+    });
+
+    clear(tbody);
+    if (mobileCards) clear(mobileCards);
+
+    if (filtered.length === 0) {
+      tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [el('td', { colspan: '5', class: 'admin-empty-box' }, ['No users match the current filter.'])]));
+      if (mobileCards) mobileCards.appendChild(el('div', { class: 'admin-empty-box' }, ['No users match the current filter.']));
+      return;
+    }
+
+    filtered.forEach((u) => {
+      const isAct = u.status === 'active';
+      tbody.appendChild(
+        el('tr', {}, [
+          el('td', {}, [
+            el('div', { style: 'font-weight: 700;' }, [u.name || '']),
+            el('code', { class: 'mono-code', style: 'color: var(--text-muted);' }, [u.phone || '']),
+          ]),
+          el('td', {}, [el('span', { class: 'badge-status trial' }, [u.role || 'owner'])]),
+          el('td', {}, [el('strong', {}, [u.stallName || ''])]),
+          el('td', {}, [el('span', { class: `badge-status ${isAct ? 'active' : 'expired'}` }, [u.status || 'active'])]),
+          el('td', { class: 'num-col' }, [
+            el('button', {
+              type: 'button',
+              class: 'btn-table-action',
+              on: {
+                click: () => {
+                  if (u.stallId) openEditStallModal(u.stallId);
+                },
+              },
+            }, ['Manage']),
+          ]),
+        ])
+      );
+
+      if (mobileCards) {
+        mobileCards.appendChild(
+          el('div', { class: 'admin-mobile-card' }, [
+            el('div', { class: 'admin-mobile-card-head' }, [
+              el('div', {}, [
+                el('div', { style: 'font-weight: 800;' }, [u.name || '']),
+                el('div', { class: 'brand-platform-sub' }, [`${u.phone || ''} • ${u.stallName || ''}`]),
+              ]),
+              el('span', { class: `badge-status ${isAct ? 'active' : 'expired'}` }, [u.role || 'owner']),
+            ]),
+            u.stallId
+              ? el('button', {
+                  type: 'button',
+                  class: 'saas-btn saas-btn-secondary saas-btn-block',
+                  on: { click: () => openEditStallModal(u.stallId) },
+                }, ['Manage Stall'])
+              : null,
+          ])
+        );
+      }
+    });
+  }
+
+  async function loadAnalytics() {
+    const res = await apiFetch('/api/v1/admin/analytics');
+    if (!res || !res.ok) return;
+    const json = await res.json().catch(() => ({}));
+    const data = json.data;
+    if (!data) return;
+
+    const cash = BigInt(data.cashSalesPaise || '0');
+    const upi = BigInt(data.upiSalesPaise || '0');
+    const sum = cash + upi;
+    const cashPct = sum > 0n ? Number((cash * 100n) / sum) : 0;
+    const upiPct = sum > 0n ? 100 - cashPct : 0;
+
+    document.getElementById('analytics-cash-val').textContent = formatRupees(cash);
+    document.getElementById('analytics-upi-val').textContent = formatRupees(upi);
+    document.getElementById('analytics-cash-pct').textContent = `${cashPct}%`;
+    document.getElementById('analytics-upi-pct').textContent = `${upiPct}%`;
+    document.getElementById('analytics-split-cash-bar').style.width = `${cashPct}%`;
+    document.getElementById('analytics-split-upi-bar').style.width = `${upiPct}%`;
+
+    const cloudN = Number(data.cloudVendors ?? allVendors.filter((v) => v.edition !== 'local').length);
+    const localN = Number(data.localVendors ?? allVendors.filter((v) => v.edition === 'local').length);
+    const totalDeploy = cloudN + localN;
+    const cloudPct = totalDeploy > 0 ? Math.round((cloudN / totalDeploy) * 100) : 0;
+    const localPct = totalDeploy > 0 ? 100 - cloudPct : 0;
+    document.getElementById('analytics-cloud-breakdown').textContent = `${cloudN} Stalls (${cloudPct}%)`;
+    document.getElementById('analytics-local-breakdown').textContent = `${localN} Stalls (${localPct}%)`;
+
+    const tbody = document.getElementById('analytics-leaderboard-body');
+    if (tbody && Array.isArray(data.leaderboard) && window.FroseSafeDom) {
+      const { el, clear } = window.FroseSafeDom;
+      clear(tbody);
+      if (data.leaderboard.length === 0) {
+        tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [el('td', { colspan: '5', class: 'admin-empty-box' }, ['No stall revenue recorded yet.'])]));
+        return;
+      }
+      data.leaderboard.forEach((item, idx) => {
+        tbody.appendChild(
+          el('tr', {}, [
+            el('td', {}, [el('strong', {}, [`#${idx + 1}`])]),
+            el('td', {}, [el('strong', {}, [item.name || ''])]),
+            el('td', {}, [item.city || '-']),
+            el('td', { class: 'num-col' }, [String(item.totalOrders || 0)]),
+            el('td', { class: 'num-col' }, [el('strong', {}, [formatRupees(item.salesPaise || '0')])]),
+          ])
+        );
+      });
+    }
+  }
+
+  async function loadSubscriptionsView() {
+    const tbody = document.getElementById('subscriptions-table-body');
+    const mobileCards = document.getElementById('subscriptions-mobile-cards');
+    if (!tbody || !window.FroseSafeDom) return;
+    const { el, clear } = window.FroseSafeDom;
+    clear(tbody);
+    if (mobileCards) clear(mobileCards);
+    tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [el('td', { colspan: '7', class: 'admin-empty-box' }, ['Loading subscription ledger...'])]));
+  }
+
+  async function loadSystemHealth() {
+    const container = document.getElementById('system-health-modal-body');
+    const stripSummary = document.getElementById('health-strip-summary');
+    const res = await apiFetch('/api/v1/admin/system-health');
+    if (!res || !res.ok) return;
+    const json = await res.json().catch(() => ({}));
+    const h = json.data || {};
+    if (stripSummary) {
+      stripSummary.textContent = `DB ${h.database?.status || 'healthy'} (${h.database?.latencyMs ?? 0}ms) • WS Clients: ${h.websocketHotspot?.connectedClients ?? 0} • Uptime: ${h.uptimeSeconds ?? 0}s`;
+    }
+    if (container && window.FroseSafeDom) {
+      const { el, clear } = window.FroseSafeDom;
+      clear(container);
+      container.append(
+        el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Database']), el('span', { class: 'admin-kv-value' }, [`${h.database?.status || 'healthy'} (${h.database?.latencyMs ?? 0}ms)`])]),
+        el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['WebSocket Clients']), el('span', { class: 'admin-kv-value' }, [String(h.websocketHotspot?.connectedClients ?? 0)])]),
+        el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Process Uptime']), el('span', { class: 'admin-kv-value' }, [`${h.uptimeSeconds ?? 0}s`])])
+      );
+    }
+  }
+
+  async function loadAuditAndHealthView() {
+    await loadSystemHealth();
+    const healthRows = document.getElementById('audit-health-rows');
+    const runtimeRows = document.getElementById('audit-runtime-rows');
+    const res = await apiFetch('/api/v1/admin/system-health');
+    if (res && res.ok && window.FroseSafeDom) {
+      const { el, clear } = window.FroseSafeDom;
+      const json = await res.json().catch(() => ({}));
+      const h = json.data || {};
+      if (healthRows) {
+        clear(healthRows);
+        healthRows.append(
+          el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['PostgreSQL / Storage']), el('span', { class: 'admin-kv-value' }, [`${h.database?.status || 'healthy'} (${h.database?.latencyMs ?? 0}ms)`])]),
+          el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Checked At']), el('span', { class: 'admin-kv-value' }, [formatDate(h.timestamp, 'Just now')])])
+        );
+      }
+      if (runtimeRows) {
+        clear(runtimeRows);
+        runtimeRows.append(
+          el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['WebSocket Clients']), el('span', { class: 'admin-kv-value' }, [String(h.websocketHotspot?.connectedClients ?? 0)])]),
+          el('div', { class: 'admin-kv-row' }, [el('span', { class: 'admin-kv-label' }, ['Server Uptime']), el('span', { class: 'admin-kv-value' }, [`${h.uptimeSeconds ?? 0}s`])])
+        );
+      }
+    }
+  }
+
+  function loadNotifications() {
+    const now = Date.now();
+    const in7Days = now + 7 * 86400000;
+    const alerts = [];
+    allVendors.forEach((v) => {
+      const st = v.subscriptionStatus || 'active';
+      const exp = v.subscriptionExpiresAt ? new Date(v.subscriptionExpiresAt).getTime() : 0;
+      if (st === 'suspended') {
+        alerts.push({ id: 'susp-' + v.id, vendorId: v.id, title: `${v.businessName} Suspended`, message: 'Counter access is currently suspended.', timestamp: formatDate(v.updatedAt, 'Recent') });
+      } else if (st === 'expired' || (exp > 0 && exp < now)) {
+        alerts.push({ id: 'exp-' + v.id, vendorId: v.id, title: `${v.businessName} License Expired`, message: `Expired on ${formatDate(v.subscriptionExpiresAt)}. Tap to inspect & renew.`, timestamp: formatDate(v.subscriptionExpiresAt) });
+      } else if (exp > now && exp <= in7Days) {
+        alerts.push({ id: 'soon-' + v.id, vendorId: v.id, title: `${v.businessName} Expiring Soon`, message: `Expires ${formatDate(v.subscriptionExpiresAt)}.`, timestamp: formatDate(v.subscriptionExpiresAt) });
+      }
+    });
+    platformNotifications = alerts;
     renderNotifications();
   }
 
@@ -1102,429 +1161,45 @@
     const container = document.getElementById('notifications-list-container');
     const badge = document.getElementById('notif-badge');
     const sub = document.getElementById('notif-unread-subtitle');
-    if (!container) return;
-
+    if (!container || !window.FroseSafeDom) return;
     const { el, clear } = window.FroseSafeDom;
     clear(container);
 
-    if (platformNotifications.length === 0) {
-      container.appendChild(el('div', { style: 'text-align: center; padding: 40px 10px; color: var(--saas-text-muted); font-size: 12.5px;' }, [
-        el('div', { style: 'font-size: 32px; margin-bottom: 6px;' }, ['🎉']),
-        el('strong', {}, ["You're all caught up!"]),
-        el('br'),
-        'No active alerts or notifications.'
-      ]));
-      if (badge) {
-        badge.textContent = '0';
-        badge.style.display = 'none';
-      }
-      if (sub) sub.textContent = '0 alerts';
-      return;
-    }
-
     if (badge) {
       badge.textContent = String(platformNotifications.length);
-      badge.style.display = 'inline-block';
+      badge.classList.toggle('is-hidden', platformNotifications.length === 0);
     }
     if (sub) sub.textContent = `${platformNotifications.length} alert${platformNotifications.length === 1 ? '' : 's'}`;
 
-    platformNotifications.forEach(n => {
-      container.appendChild(el('div', {
-        class: 'notif-item',
-        'data-id': n.id || '',
-        'data-target': n.targetView || '',
-        'data-filter': n.filterParam || '',
-        style: 'background: #FDFBF7; border: 1.5px solid var(--saas-card-border); border-radius: 10px; padding: 12px; cursor: pointer; transition: transform 0.15s ease;'
-      }, [
-        el('div', { style: 'font-weight: 800; font-size: 12px; color: var(--saas-burgundy-primary); margin-bottom: 3px;' }, [n.title || '']),
-        el('div', { style: 'font-size: 11.5px; color: var(--saas-text-body); line-height: 1.4;' }, [n.message || '']),
-        el('div', { style: 'font-size: 10px; color: var(--saas-text-muted); margin-top: 6px; display: flex; justify-content: space-between;' }, [
-          el('span', {}, [n.timestamp || '']),
-          el('span', { style: 'color: var(--saas-burgundy-primary); font-weight: 700;' }, ['Tap to view →'])
-        ])
-      ]));
-    });
-
-    // Attach click router to each notification item
-    container.querySelectorAll('.notif-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const target = item.getAttribute('data-target');
-        const filter = item.getAttribute('data-filter');
-        window.toggleNotifications();
-        if (target === 'vendors') {
-          window.switchView('vendors');
-          if (filter) window.filterStalls(filter);
-        } else if (target === 'system-health') {
-          window.openModal('modal-system-health');
-        } else if (target === 'settings') {
-          window.switchView('settings');
-        }
-      });
-    });
-  }
-
-  window.clearAllNotifications = function() {
-    platformNotifications = [];
-    localStorage.setItem('frose_admin_notifications', JSON.stringify([]));
-    renderNotifications();
-  };
-
-  // Full-Page Add Stall Handler (Straight Top-to-Bottom, Zero Horizontal Overflow)
-  async function submitAddStallPage(e) {
-    if (e) e.preventDefault();
-    const submitBtn = document.getElementById('btn-submit-add-stall-page');
-    if (submitBtn) submitBtn.disabled = true;
-
-    const payload = {
-      businessName: document.getElementById('page-add-stall-name').value.trim(),
-      ownerName: document.getElementById('page-add-owner-name').value.trim(),
-      phone: document.getElementById('page-add-phone').value.trim(),
-      password: document.getElementById('page-add-password').value.trim(),
-      city: document.getElementById('page-add-city').value.trim() || 'Hyderabad',
-      edition: document.getElementById('page-add-edition').value,
-      monthlyFeeRupees: Number(document.getElementById('page-add-monthly-fee').value) || 499,
-      billingCycle: document.getElementById('page-add-billing-cycle').value,
-      initialPaymentStatus: document.getElementById('page-add-initial-status').value,
-      upiId: document.getElementById('page-add-upi').value.trim()
-    };
-
-    if (!payload.businessName || !payload.phone || payload.phone.length !== 10 || !payload.password || payload.password.length < 10) {
-      if (window.FroseUI?.showToast) {
-        window.FroseUI.showToast('Please enter a valid stall name, 10-digit mobile number, and passphrase (min 10 characters)', 'danger');
-      }
-      if (submitBtn) submitBtn.disabled = false;
+    if (platformNotifications.length === 0) {
+      container.appendChild(el('div', { class: 'admin-empty-box' }, ['All caught up. Zero pending alerts.']));
       return;
     }
 
-    try {
-      const res = await apiFetch('/api/v1/admin/vendors', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      if (!res || !res.ok) {
-        let errMsg = 'Failed to create stall on server';
-        if (res) {
-          try {
-            const errJson = await res.json();
-            errMsg = errJson.message || errJson.error || errMsg;
-          } catch (_) {}
-        }
-        if (window.FroseUI?.showToast) window.FroseUI.showToast(errMsg, 'danger');
-        if (submitBtn) submitBtn.disabled = false;
-        return;
-      }
-
-      await res.json().catch(() => ({}));
-      await loadVendors();
-
-      // Record notification
-      platformNotifications.unshift({
-        id: 'notif-' + Date.now(),
-        title: 'New Restaurant Provisioned',
-        message: `${payload.businessName} onboarded successfully with mobile ${payload.phone}.`,
-        category: 'subscription',
-        targetView: 'vendors',
-        timestamp: new Date().toLocaleDateString('en-IN')
-      });
-      renderNotifications();
-
-      document.getElementById('form-add-stall-page')?.reset();
-      if (window.FroseUI?.showToast) window.FroseUI.showToast(`${payload.businessName} created successfully`, 'success');
-      window.switchView('vendors');
-
-      const created = allVendors.find(v => String(v.phone) === String(payload.phone));
-      if (created) window.openStallSetupQR(created);
-    } catch (err) {
-      if (window.FroseUI?.showToast) window.FroseUI.showToast('Network error creating stall', 'danger');
-    } finally {
-      if (submitBtn) submitBtn.disabled = false;
-    }
-  }
-
-  // 11. Core Initialization Function
-  
-  function filterStalls(f) {
-    currentFilter = f;
-    document.querySelectorAll('.filter-pill').forEach(p => {
-      if (p.getAttribute('data-filter') === f) {
-        p.classList.add('active');
-      } else {
-        p.classList.remove('active');
-      }
+    platformNotifications.forEach((n) => {
+      container.appendChild(
+        el('button', {
+          type: 'button',
+          class: 'admin-notif-item unread',
+          on: {
+            click: () => {
+              closeModal('notifications-drawer');
+              if (n.vendorId) {
+                switchView('vendors');
+                openVendorInspector(n.vendorId);
+              }
+            },
+          },
+        }, [
+          el('strong', { style: 'font-size: 13px;' }, [n.title]),
+          el('span', { style: 'font-size: 12px; color: var(--text-secondary);' }, [n.message]),
+          el('span', { style: 'font-size: 11px; color: var(--text-muted);' }, [n.timestamp || '']),
+        ])
+      );
     });
-    renderStallsTable();
   }
 
-  function openEditModal(vendorId) {
-    const v = allVendors.find((item) => item.id === vendorId);
-    if (!v) return;
-    const idInput = document.getElementById('edit-stall-id');
-    if (idInput) idInput.value = v.id;
-    const nameInput = document.getElementById('edit-stall-name');
-    if (nameInput) nameInput.value = v.businessName || '';
-    const ownerInput = document.getElementById('edit-owner-name');
-    if (ownerInput) ownerInput.value = v.ownerName || '';
-    const cityInput = document.getElementById('edit-city');
-    if (cityInput) cityInput.value = v.city || '';
-    const editionInput = document.getElementById('edit-edition');
-    if (editionInput) editionInput.value = v.edition || 'cloud';
-    const statusInput = document.getElementById('edit-status');
-    if (statusInput) statusInput.value = v.subscriptionStatus || 'active';
-    openModal('modal-edit-stall');
-  }
-
-  function initAdminConsole() {
-    // Print Receipt
-    document.getElementById('btn-receipt-print')?.addEventListener('click', () => window.print());
-
-    // Menu Manager: Add Dish Toggle & Inline Form Submit
-    const btnAddDishToggle = document.getElementById('btn-add-dish-toggle');
-    const addDishForm = document.getElementById('form-add-dish-inline');
-    if (btnAddDishToggle && addDishForm) {
-      btnAddDishToggle.addEventListener('click', () => {
-        const isOpen = addDishForm.style.display === 'flex';
-        addDishForm.style.display = isOpen ? 'none' : 'flex';
-      });
-      addDishForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!activeVendorForMenu) return;
-        const submitDishBtn = document.getElementById('btn-submit-add-dish');
-        const name = document.getElementById('menu-add-name')?.value.trim() || '';
-        const priceRupees = Number(document.getElementById('menu-add-price')?.value || 0);
-        const category = document.getElementById('menu-add-category')?.value.trim() || 'General';
-        if (!name || priceRupees <= 0) {
-          if (window.FroseUI?.showToast) window.FroseUI.showToast('Enter valid dish name and price', 'danger');
-          return;
-        }
-        if (submitDishBtn) submitDishBtn.disabled = true;
-        try {
-          const res = await apiFetch(`/api/v1/admin/vendors/${activeVendorForMenu}/menu`, {
-            method: 'POST',
-            body: JSON.stringify({
-              name,
-              pricePaise: Math.round(priceRupees * 100),
-              category
-            })
-          });
-          if (res && res.ok) {
-            addDishForm.reset();
-            addDishForm.style.display = 'none';
-            if (window.FroseUI?.showToast) window.FroseUI.showToast('Dish added to menu', 'success');
-            await openMenuModal(activeVendorForMenu);
-          } else {
-            if (window.FroseUI?.showToast) window.FroseUI.showToast('Failed to add dish', 'danger');
-          }
-        } catch (_) {
-          if (window.FroseUI?.showToast) window.FroseUI.showToast('Network error adding dish', 'danger');
-        } finally {
-          if (submitDishBtn) submitDishBtn.disabled = false;
-        }
-      });
-    }
-
-    // Search Input
-    const sInput = document.getElementById('search-vendors-input');
-    if (sInput) {
-      sInput.addEventListener('input', (e) => {
-        searchQuery = e.target.value;
-        renderStallsTable();
-      });
-    }
-
-    // Admin Profile Dropdown close on outside click
-    const userMenu = document.getElementById('user-dropdown');
-    if (userMenu) {
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('#btn-admin-profile')) {
-          userMenu.classList.remove('active');
-        }
-      });
-    }
-
-    // Form Add Stall Submission (Modal)
-    const addForm = document.getElementById('form-add-stall');
-    if (addForm) {
-      addForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = document.getElementById('btn-submit-add-stall');
-        if (submitBtn) submitBtn.disabled = true;
-
-        const payload = {
-          businessName: document.getElementById('add-stall-name').value.trim(),
-          ownerName: document.getElementById('add-owner-name').value.trim(),
-          phone: document.getElementById('add-phone').value.trim(),
-          password: document.getElementById('add-password').value.trim(),
-          city: document.getElementById('add-city').value.trim() || 'Hyderabad',
-          edition: document.getElementById('add-edition').value,
-          monthlyFeeRupees: Number(document.getElementById('add-monthly-fee').value) || 499,
-          billingCycle: document.getElementById('add-billing-cycle').value,
-          initialPaymentStatus: document.getElementById('add-initial-status').value
-        };
-
-        try {
-          const res = await apiFetch('/api/v1/admin/vendors', {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          });
-
-          if (!res || !res.ok) {
-            let errMsg = 'Failed to create restaurant stall';
-            if (res) {
-              try {
-                const errJson = await res.json();
-                errMsg = errJson.message || errJson.error || errMsg;
-              } catch (_) {}
-            }
-            if (window.FroseUI?.showToast) window.FroseUI.showToast(errMsg, 'danger');
-            return;
-          }
-
-          await loadVendors();
-          closeModal('modal-add-stall');
-          addForm.reset();
-          if (window.FroseUI?.showToast) window.FroseUI.showToast('Restaurant stall created successfully', 'success');
-        } catch (_) {
-          if (window.FroseUI?.showToast) window.FroseUI.showToast('Network error creating stall', 'danger');
-        } finally {
-          if (submitBtn) submitBtn.disabled = false;
-        }
-      });
-    }
-
-    // Form Edit Stall Submission
-    const editForm = document.getElementById('form-edit-stall');
-    if (editForm) {
-      editForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const id = document.getElementById('edit-stall-id').value;
-        const bName = document.getElementById('edit-stall-name').value.trim();
-        const oName = document.getElementById('edit-owner-name').value.trim();
-        const city = document.getElementById('edit-city').value.trim();
-        const edition = document.getElementById('edit-edition').value;
-        const status = document.getElementById('edit-status').value;
-
-        await apiFetch(`/api/v1/admin/vendors/${id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ businessName: bName, ownerName: oName, city, edition, subscriptionStatus: status })
-        });
-
-        const v = allVendors.find(vend => vend.id === id);
-        if (v) {
-          v.businessName = bName;
-          v.ownerName = oName;
-          v.city = city;
-          v.edition = edition;
-          v.subscriptionStatus = status;
-        }
-
-        closeModal('modal-edit-stall');
-        renderStallsTable();
-        loadOverview();
-      });
-    }
-
-    // Initial Data Fetch & Render
-    const btnAdminTheme = document.getElementById('btn-admin-theme');
-    const adminThemeIcon = document.getElementById('admin-theme-icon');
-    if (btnAdminTheme && window.FroseTheme) {
-      const syncAdminThemeIcon = (theme) => {
-        if (adminThemeIcon) {
-          adminThemeIcon.textContent = theme === 'dark' ? '🌙' : (theme === 'sunlight' ? '☀️' : '🌤️');
-        }
-      };
-      syncAdminThemeIcon(window.FroseTheme.getTheme());
-      btnAdminTheme.addEventListener('click', () => {
-        const next = window.FroseTheme.cycleTheme();
-        syncAdminThemeIcon(next);
-        if (window.FroseUI && window.FroseUI.showToast) {
-          window.FroseUI.showToast(`Theme: ${next}`, 'info');
-        }
-      });
-    }
-
-    const btnCloseInspector = document.getElementById('btn-close-inspector');
-    const inspectorDrawer = document.getElementById('vendor-inspector-drawer');
-    if (btnCloseInspector) btnCloseInspector.addEventListener('click', closeVendorInspector);
-    if (inspectorDrawer) {
-      inspectorDrawer.addEventListener('click', (e) => {
-        if (e.target === inspectorDrawer) closeVendorInspector();
-      });
-    }
-
-    loadVendors();
-    loadOverview();
-    updateSettingsProfile();
-  }
-
-  function updateSettingsProfile() {
-    try {
-      const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
-      if (v.ownerName) {
-        const el = document.getElementById('settings-profile-name');
-        if (el) el.textContent = v.ownerName;
-      }
-      if (v.phone) {
-        const el = document.getElementById('settings-profile-phone');
-        if (el) el.textContent = '+91 ' + v.phone;
-      }
-      if (v.role) {
-        const el = document.getElementById('settings-profile-role');
-        if (el) el.textContent = v.role === 'superadmin' ? 'Platform Superadmin' : 'Stall Owner';
-      }
-    } catch (e) {}
-  }
-
-
-  // Export Global Window Functions for Immediate Zero-Latency Inline Calling
-  window.switchView = switchView;
-  window.openModal = openModal;
-  window.closeModal = closeModal;
-  window.toggleNotifications = function() {
-    const d = document.getElementById('notifications-drawer');
-    if (d) {
-      d.classList.toggle('active');
-      document.body.classList.toggle('modal-open');
-    }
-  };
-  window.logoutSuperAdmin = function() {
-    (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
-      .catch(() => {})
-      .finally(() => {
-        localStorage.removeItem('frose_session_active');
-        localStorage.removeItem('frose_current_vendor');
-        localStorage.removeItem('frose_vendors_directory');
-        window.location.replace('/login.html');
-      });
-  };
-  window.adminLogout = function() {
-    if (confirm('Sign out of Super Admin Console?')) {
-      (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
-        .catch(() => {})
-        .finally(() => {
-          localStorage.removeItem('frose_session_active');
-          localStorage.removeItem('frose_vendors_directory');
-          window.location.replace('/login.html');
-        });
-    }
-  };
-  window.toggleUserDropdown = function(e) {
-    if (e) e.stopPropagation();
-    const u = document.getElementById('user-dropdown');
-    if (u) u.classList.toggle('active');
-  };
-  window.filterExpiringAndSwitch = function() {
-    currentFilter = 'expiring';
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-    document.querySelector('.filter-pill[data-filter="expiring"]')?.classList.add('active');
-    switchView('vendors');
-  };
-  
-  let currentStallForQR = null;
-  let activeQRMode = 'webapp';
-  let activeQRSetupUrl = '';
-
-  window.switchSetupQRTab = function(mode) {
-    activeQRMode = mode;
+  window.switchSetupQRTab = function (mode) {
     const tabWeb = document.getElementById('tab-qr-webapp');
     const tabBackend = document.getElementById('tab-qr-backend');
     const qrImg = document.getElementById('qr-modal-image');
@@ -1532,185 +1207,412 @@
     const openBtnText = document.getElementById('btn-qr-modal-open-text');
     const openBtn = document.getElementById('btn-qr-modal-open');
     const waBtn = document.getElementById('btn-qr-modal-whatsapp');
-
     if (!currentStallForQR) return;
-    const phone = (currentStallForQR.phone || '').replace(/\D/g, '').slice(-10);
-    const bName = currentStallForQR.businessName || currentStallForQR.business_name || 'Restaurant Stall';
 
+    const phone = (currentStallForQR.phone || '').replace(/\D/g, '').slice(-10);
+    const bName = currentStallForQR.businessName || 'Restaurant Stall';
     const webUrl = window.location.origin + '/login?stall=' + phone;
     const downloadUrl = window.location.origin + '/downloads/frose-street-local-cloud.apk';
 
     if (mode === 'backend') {
-      if (tabWeb) { tabWeb.style.background = 'transparent'; tabWeb.style.color = '#64748B'; tabWeb.style.boxShadow = 'none'; }
-      if (tabBackend) { tabBackend.style.background = '#FFF'; tabBackend.style.color = '#4A0E17'; tabBackend.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)'; }
+      tabWeb?.classList.remove('active');
+      tabBackend?.classList.add('active');
       if (qrImg && window.FroseQrLocal) qrImg.src = window.FroseQrLocal.toDataUrl(downloadUrl, 220);
-      if (helperText) {
-        const { el, clear } = window.FroseSafeDom;
-        clear(helperText);
-        helperText.append(
-          '📲 ',
-          el('strong', {}, ['Scan to Download Phone Local Cloud APK & Zip.']),
-          el('br'),
-          'Runs local offline Fastify server on Port 3100 directly on customer phone with zero internet.'
-        );
-      }
-      if (openBtnText) openBtnText.textContent = '📥 Download Phone Local Cloud APK';
-      if (openBtn) openBtn.onclick = () => { window.open(downloadUrl, '_blank'); };
+      if (helperText) helperText.textContent = 'Scan to download the offline local Android APK bundle.';
+      if (openBtnText) openBtnText.textContent = 'Download Local APK';
       activeQRSetupUrl = downloadUrl;
-
-      if (waBtn) {
-        const waMsg = '🎉 *FROSE Street — Phone Local Cloud Engine*\n\nDownload the offline server for *' + bName + '* on your Android phone:\n' + downloadUrl + '\n\nRuns on Port 3100 with zero internet needed!';
-        waBtn.onclick = () => {
-          window.open('https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(waMsg), '_blank');
-        };
-      }
+      if (openBtn) openBtn.onclick = () => window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+      if (waBtn) waBtn.onclick = () => window.open('https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(`Download FROSE Street Local Engine for *${bName}*:\n${downloadUrl}`), '_blank', 'noopener,noreferrer');
     } else {
-      if (tabWeb) { tabWeb.style.background = '#FFF'; tabWeb.style.color = '#4A0E17'; tabWeb.style.boxShadow = '0 2px 6px rgba(0,0,0,0.08)'; }
-      if (tabBackend) { tabBackend.style.background = 'transparent'; tabBackend.style.color = '#64748B'; tabBackend.style.boxShadow = 'none'; }
+      tabWeb?.classList.add('active');
+      tabBackend?.classList.remove('active');
       if (qrImg && window.FroseQrLocal) qrImg.src = window.FroseQrLocal.toDataUrl(webUrl, 220);
-      if (helperText) helperText.textContent = 'Scan with phone camera to auto-login & install PWA. Works 100% offline after 10-second setup.';
-      if (openBtnText) openBtnText.textContent = '👁️ Open Counter in New Tab';
-      if (openBtn) openBtn.onclick = () => { window.open(webUrl, '_blank'); };
+      if (helperText) helperText.textContent = 'Scan with phone camera to open the login page pre-filled with your stall mobile number.';
+      if (openBtnText) openBtnText.textContent = 'Open Counter in New Tab';
       activeQRSetupUrl = webUrl;
-
-      if (waBtn) {
-        const waMsg = 'Welcome to FROSE Street!\n\nYour billing counter for *' + bName + '* is ready.\n\nSetup counter on your phone:\n' + webUrl + '\n\nMobile Login: ' + phone + '\n(Use the passphrase set during onboarding to sign in.)';
-        waBtn.onclick = () => {
-          window.open('https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(waMsg), '_blank');
-        };
-      }
+      if (openBtn) openBtn.onclick = () => window.open(webUrl, '_blank', 'noopener,noreferrer');
+      if (waBtn) waBtn.onclick = () => window.open('https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(`Welcome to FROSE Street!\n\nBilling counter for *${bName}*:\n${webUrl}\n\nMobile Login: ${phone}`), '_blank', 'noopener,noreferrer');
     }
   };
 
-  window.openStallSetupQR = function(stall) {
+  window.openStallSetupQR = function (stall) {
     if (!stall) return;
     currentStallForQR = stall;
-    const modal = document.getElementById('modal-stall-setup-qr');
-    if (!modal) return;
-
     const phone = (stall.phone || '').replace(/\D/g, '').slice(-10);
-    const bName = stall.businessName || stall.business_name || 'Restaurant Stall';
-    const plan = (stall.subscriptionStatus || stall.subscription_status || 'trial').toUpperCase() + ' (' + formatRupees(stall.monthlyFeePaise || '49900') + '/mo)';
-
-    document.getElementById('qr-modal-stall-name').textContent = bName;
+    const fee = formatRupees(BigInt(stall.monthlyFeePaise || '0') > 0n ? stall.monthlyFeePaise : '49900');
+    document.getElementById('qr-modal-stall-name').textContent = stall.businessName || 'Restaurant Stall';
     document.getElementById('qr-modal-phone').textContent = phone;
-    document.getElementById('qr-modal-pwd').textContent = 'Protected (never shown in URL)';
-    document.getElementById('qr-modal-plan').textContent = plan;
-
+    document.getElementById('qr-modal-pwd').textContent = 'Protected (never embedded in URL)';
+    document.getElementById('qr-modal-plan').textContent = `${(stall.subscriptionStatus || 'trial').toUpperCase()} (${fee}/mo)`;
     window.switchSetupQRTab('webapp');
-
-    const copyBtnText = document.getElementById('copy-btn-text');
-    if (copyBtnText) copyBtnText.textContent = '📋 Copy Link';
-
-    modal.style.display = 'flex';
+    openModal('modal-stall-setup-qr');
   };
 
-  window.openStallSetupQRByPhone = function(phone) {
-    const clean = (phone || '').replace(/\D/g, '').slice(-10);
-    const stall = allVendors.find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === clean) || {
-        phone: clean,
-        businessName: 'Restaurant Stall',
-        monthlyFeePaise: '89900',
-        subscriptionStatus: 'trial'
-      };
-    window.openStallSetupQR(stall);
-  };
-
-  window.closeStallSetupQR = function() {
-    const modal = document.getElementById('modal-stall-setup-qr');
-    if (modal) modal.style.display = 'none';
-  };
-
-  window.copyStallSetupLink = function() {
-    if (!activeQRSetupUrl) return;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(activeQRSetupUrl).then(() => {
-        const t = document.getElementById('copy-btn-text');
-        if (t) {
-          t.textContent = '✓ Copied!';
-          setTimeout(() => { t.textContent = '📋 Copy Link'; }, 2000);
-        }
+  async function handleLogout() {
+    const confirmed = window.FroseUI?.confirmModal
+      ? await window.FroseUI.confirmModal({
+          title: 'Sign Out?',
+          message: 'Sign out of the Super Admin Console on this device?',
+          confirmLabel: 'Sign Out',
+          danger: true,
+        })
+      : true;
+    if (!confirmed) return;
+    try {
+      await (window.froseApiFetch || fetch)('/api/v1/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-FROSE-CSRF': '1' },
       });
-    } else {
-      prompt('Copy link:', activeQRSetupUrl);
-    }
-  };
-
-  
-  // Part 2: Real-Time Subscription Control & Telemetry Broadcast Channel
-  const telemetryChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('frose_telemetry') : null;
-  window.telemetryChannel = telemetryChannel;
-  if (telemetryChannel) {
-    telemetryChannel.onmessage = (event) => {
-      const data = event.data;
-      if (data && data.type === 'ORDER_COMPLETED') {
-        const cleanPhone = (data.stallPhone || '').replace(/\D/g, '').slice(-10);
-        const stall = allVendors.find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === cleanPhone);
-        if (stall) {
-          stall.totalOrders = (stall.totalOrders || 0) + 1;
-          const currPaise = BigInt(stall.lifetimeSalesPaise || '0');
-          stall.lifetimeSalesPaise = (currPaise + BigInt(data.amountPaise || '0')).toString();
-          if (!stall.turnover) stall.turnover = { daily: { totalPaise: '0', cashPaise: '0', upiPaise: '0' } };
-          stall.turnover.daily.totalPaise = (BigInt(stall.turnover.daily.totalPaise || '0') + BigInt(data.amountPaise || '0')).toString();
-          const mLower = String(data.method || '').toLowerCase();
-          if (mLower.includes('cash')) {
-            stall.turnover.daily.cashPaise = (BigInt(stall.turnover.daily.cashPaise || '0') + BigInt(data.amountPaise || '0')).toString();
-          } else {
-            stall.turnover.daily.upiPaise = (BigInt(stall.turnover.daily.upiPaise || '0') + BigInt(data.amountPaise || '0')).toString();
-          }
-        }
-        loadOverview();
-        renderStallsTable();
-      }
-    };
+    } catch (_) {}
+    localStorage.removeItem('frose_session_active');
+    localStorage.removeItem('frose_current_vendor');
+    localStorage.removeItem('frose_vendors_directory');
+    window.location.replace('/login.html');
   }
 
-  window.toggleStallSubscription = async function(phone) {
-    const clean = (phone || '').replace(/\D/g, '').slice(-10);
-    const stall = allVendors.find(v => (v.phone || '').replace(/\D/g, '').slice(-10) === clean);
-    if (!stall) return;
+  function syncThemeButton() {
+    if (!window.FroseTheme) return;
+    const theme = window.FroseTheme.getTheme();
+    const iconSlot = document.getElementById('admin-theme-icon');
+    const labelSlot = document.getElementById('admin-theme-label');
+    if (iconSlot && window.FroseSafeDom) {
+      window.FroseSafeDom.clear(iconSlot);
+      const iconName = theme === 'dark' ? 'moon' : (theme === 'sunlight' ? 'contrast' : 'sun');
+      iconSlot.appendChild(createIcon(iconName, 16));
+    }
+    if (labelSlot) {
+      labelSlot.textContent = theme === 'dark' ? 'Dark' : (theme === 'sunlight' ? 'Sunlight' : 'Light');
+    }
+  }
 
-    const currentStatus = stall.subscriptionStatus || stall.subscription_status || 'active';
-    const isNowSuspended = (currentStatus !== 'suspended' && currentStatus !== 'expired');
-    const newStatus = isNowSuspended ? 'suspended' : 'active';
-    const newPaymentStatus = isNowSuspended ? 'overdue' : 'paid';
+  function initAdminConsole() {
+    syncThemeButton();
 
-    stall.subscriptionStatus = newStatus;
-    stall.subscription_status = newStatus;
-    stall.paymentStatus = newPaymentStatus;
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      if (!target || !target.closest) return;
 
-    // Broadcast Remote Kill-Switch frame over Telemetry & WebSockets
-    if (telemetryChannel) {
-      telemetryChannel.postMessage({
-        type: 'SUBSCRIPTION_CHANGE',
-        stallPhone: clean,
-        status: newStatus,
-        lockout: isNowSuspended,
-        amountDuePaise: stall.monthlyFeePaise || '89900'
+      if (!target.closest('.admin-overflow-wrap')) closeAllOverflowMenus();
+      if (!target.closest('.admin-profile-wrap')) {
+        document.getElementById('user-dropdown')?.classList.remove('active');
+      }
+
+      const navBtn = target.closest('[data-nav-view]');
+      if (navBtn) {
+        switchView(navBtn.getAttribute('data-nav-view'));
+        return;
+      }
+
+      const moreBtn = target.closest('[data-more-view]');
+      if (moreBtn) {
+        switchView(moreBtn.getAttribute('data-more-view'));
+        return;
+      }
+
+      const filterBtn = target.closest('#vendors-filter-row .filter-pill');
+      if (filterBtn) {
+        document.querySelectorAll('#vendors-filter-row .filter-pill').forEach((p) => p.classList.remove('active'));
+        filterBtn.classList.add('active');
+        currentFilter = filterBtn.getAttribute('data-filter') || 'all';
+        vendorPage = 1;
+        renderStallsTable();
+        return;
+      }
+
+      const roleBtn = target.closest('#users-role-filter-row .filter-pill');
+      if (roleBtn) {
+        document.querySelectorAll('#users-role-filter-row .filter-pill').forEach((p) => p.classList.remove('active'));
+        roleBtn.classList.add('active');
+        usersRoleFilter = roleBtn.getAttribute('data-user-role') || 'all';
+        loadUsers();
+        return;
+      }
+
+      const actionEl = target.closest('[data-action]');
+      if (actionEl) {
+        const act = actionEl.getAttribute('data-action');
+        const id = actionEl.getAttribute('data-id');
+        closeAllOverflowMenus();
+        if (act === 'inspect') openVendorInspector(id);
+        else if (act === 'whatsapp') sendWhatsAppNotification(id);
+        else if (act === 'qr') {
+          const clean = (actionEl.getAttribute('data-phone') || '').replace(/\D/g, '').slice(-10);
+          const stall = allVendors.find((v) => (v.phone || '').replace(/\D/g, '').slice(-10) === clean);
+          if (stall) window.openStallSetupQR(stall);
+        } else if (act === 'ledger') window.openStallAnalytics(id);
+        else if (act === 'edit') openEditStallModal(id);
+        else if (act === 'menu') openMenuModal(id, actionEl.getAttribute('data-name'));
+        else if (act === 'receipt') openReceiptModal(id);
+        else if (act === 'toggle-suspend') toggleStallSuspension(id);
+        return;
+      }
+
+      if (target.closest('#btn-admin-theme') && window.FroseTheme) {
+        const next = window.FroseTheme.cycleTheme();
+        syncThemeButton();
+        notify(`Theme: ${next}`, 'info');
+        return;
+      }
+
+      if (target.closest('#btn-admin-profile')) {
+        document.getElementById('user-dropdown')?.classList.toggle('active');
+        return;
+      }
+
+      if (target.closest('#btn-header-notifications') || target.closest('#btn-action-view-all')) {
+        openModal('notifications-drawer');
+        return;
+      }
+      if (target.closest('#btn-close-notifications')) {
+        closeModal('notifications-drawer');
+        return;
+      }
+      if (target.closest('#btn-mobile-more')) {
+        openModal('mobile-more-sheet');
+        return;
+      }
+      if (target.closest('#btn-close-more-sheet')) {
+        closeModal('mobile-more-sheet');
+        return;
+      }
+      if (target.closest('#btn-header-search')) {
+        switchView('vendors');
+        setTimeout(() => document.getElementById('search-vendors-input')?.focus(), 40);
+        return;
+      }
+
+      if (target.closest('#btn-rail-add-stall') || target.closest('#btn-overview-add-stall') || target.closest('#btn-top-add-stall')) {
+        switchView('add-restaurant');
+        return;
+      }
+      if (target.closest('#btn-back-to-vendors')) {
+        switchView('vendors');
+        return;
+      }
+      if (target.closest('#btn-hero-reports') || target.closest('#card-kpi-revenue') || target.closest('#card-kpi-orders')) {
+        switchView('analytics');
+        return;
+      }
+      if (target.closest('#card-kpi-restaurants')) {
+        switchView('vendors');
+        return;
+      }
+      if (target.closest('#card-kpi-renewals')) {
+        currentFilter = 'expiring';
+        document.querySelectorAll('#vendors-filter-row .filter-pill').forEach((p) => {
+          p.classList.toggle('active', p.getAttribute('data-filter') === 'expiring');
+        });
+        switchView('vendors');
+        return;
+      }
+      if (target.closest('#btn-view-health')) {
+        openModal('modal-system-health');
+        return;
+      }
+      if (target.closest('#btn-menu-profile')) {
+        document.getElementById('user-dropdown')?.classList.remove('active');
+        switchView('settings');
+        return;
+      }
+      if (target.closest('#btn-menu-system')) {
+        document.getElementById('user-dropdown')?.classList.remove('active');
+        switchView('audit');
+        return;
+      }
+      if (target.closest('#btn-menu-logout') || target.closest('#btn-settings-logout') || target.closest('#btn-more-logout')) {
+        document.getElementById('user-dropdown')?.classList.remove('active');
+        handleLogout();
+        return;
+      }
+
+      if (target.closest('#btn-close-inspector')) { closeVendorInspector(); return; }
+      if (target.closest('#btn-close-add-modal')) { closeModal('modal-add-stall'); return; }
+      if (target.closest('#btn-close-edit-modal')) { closeModal('modal-edit-stall'); return; }
+      if (target.closest('#btn-close-menu-modal')) { closeModal('modal-menu-manager'); return; }
+      if (target.closest('#btn-close-health-modal')) { closeModal('modal-system-health'); return; }
+      if (target.closest('#btn-close-stall-analytics-modal')) { closeModal('modal-stall-analytics'); return; }
+      if (target.closest('#btn-close-receipt-modal')) { closeModal('modal-payment-receipt'); return; }
+      if (target.closest('#btn-close-renew-modal')) { closeModal('modal-renew-license'); return; }
+      if (target.closest('#btn-close-qr-modal')) { closeModal('modal-stall-setup-qr'); return; }
+      if (target.closest('#tab-qr-webapp')) { window.switchSetupQRTab('webapp'); return; }
+      if (target.closest('#tab-qr-backend')) { window.switchSetupQRTab('backend'); return; }
+      if (target.closest('#btn-qr-modal-copy') && activeQRSetupUrl && navigator.clipboard) {
+        navigator.clipboard.writeText(activeQRSetupUrl).then(() => notify('Setup link copied', 'success'));
+        return;
+      }
+      if (target.closest('#btn-receipt-print')) { window.print(); return; }
+      if (target.closest('#btn-vendors-prev') && vendorPage > 1) { vendorPage--; renderStallsTable(); return; }
+      if (target.closest('#btn-vendors-next')) { vendorPage++; renderStallsTable(); return; }
+      if (target.closest('#btn-refresh-health')) { loadAuditAndHealthView(); return; }
+
+      // Tap-outside backdrop close for modals, drawers & sheets
+      if (target.classList.contains('modal-overlay') && target.classList.contains('active')) {
+        closeModal(target.id);
+        return;
+      }
+      if (target.classList.contains('saas-drawer-backdrop') && target.classList.contains('active')) {
+        closeModal(target.id);
+        return;
+      }
+      if (target.classList.contains('saas-sheet-backdrop') && target.classList.contains('active')) {
+        closeModal(target.id);
+      }
+    });
+
+    document.getElementById('search-vendors-input')?.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      vendorPage = 1;
+      renderStallsTable();
+    });
+
+    document.getElementById('sort-vendors-select')?.addEventListener('change', (e) => {
+      currentSort = e.target.value;
+      vendorPage = 1;
+      renderStallsTable();
+    });
+
+    document.getElementById('search-users-input')?.addEventListener('input', (e) => {
+      usersSearchQuery = e.target.value;
+      loadUsers();
+    });
+
+    const btnAddDishToggle = document.getElementById('btn-add-dish-toggle');
+    const addDishForm = document.getElementById('form-add-dish-inline');
+    if (btnAddDishToggle && addDishForm) {
+      btnAddDishToggle.addEventListener('click', () => {
+        addDishForm.style.display = addDishForm.style.display === 'flex' ? 'none' : 'flex';
+      });
+      addDishForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!activeVendorForMenu) return;
+        const btn = document.getElementById('btn-submit-add-dish');
+        const name = document.getElementById('menu-add-name')?.value.trim() || '';
+        const priceRupees = Number(document.getElementById('menu-add-price')?.value || 0);
+        const category = document.getElementById('menu-add-category')?.value.trim() || 'General';
+        if (!name || priceRupees <= 0) {
+          notify('Enter valid dish name and price', 'danger');
+          return;
+        }
+        if (btn) btn.disabled = true;
+        try {
+          const res = await apiFetch(`/api/v1/admin/vendors/${activeVendorForMenu}/menu`, {
+            method: 'POST',
+            body: JSON.stringify({ name, pricePaise: Math.round(priceRupees * 100), category }),
+          });
+          if (res && res.ok) {
+            addDishForm.reset();
+            addDishForm.style.display = 'none';
+            notify('Dish added to menu', 'success');
+            await openMenuModal(activeVendorForMenu);
+          } else {
+            notify('Failed to add dish', 'danger');
+          }
+        } finally {
+          if (btn) btn.disabled = false;
+        }
       });
     }
 
-    renderStallsTable();
-    loadOverview();
+    document.getElementById('form-add-stall-page')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('btn-submit-add-stall-page');
+      const payload = {
+        businessName: document.getElementById('page-add-stall-name').value.trim(),
+        ownerName: document.getElementById('page-add-owner-name').value.trim(),
+        phone: document.getElementById('page-add-phone').value.trim(),
+        password: document.getElementById('page-add-password').value.trim(),
+        city: document.getElementById('page-add-city').value.trim() || 'Hyderabad',
+        edition: document.getElementById('page-add-edition').value,
+        monthlyFeeRupees: Number(document.getElementById('page-add-monthly-fee').value) || 499,
+        billingCycle: document.getElementById('page-add-billing-cycle').value,
+        initialPaymentStatus: document.getElementById('page-add-initial-status').value,
+        upiId: document.getElementById('page-add-upi').value.trim() || undefined,
+      };
+      if (!payload.businessName || payload.phone.length !== 10 || payload.password.length < 10) {
+        notify('Enter valid stall name, 10-digit mobile number, and 10+ char passphrase', 'danger');
+        return;
+      }
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const res = await apiFetch('/api/v1/admin/vendors', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        if (!res || !res.ok) {
+          const err = res ? await res.json().catch(() => ({})) : {};
+          notify(err.message || 'Failed to provision stall', 'danger');
+          return;
+        }
+        await loadVendors();
+        document.getElementById('form-add-stall-page').reset();
+        notify(`${payload.businessName} provisioned`, 'success');
+        switchView('vendors');
+        const created = allVendors.find((v) => String(v.phone) === String(payload.phone));
+        if (created) window.openStallSetupQR(created);
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
 
-    const actionText = isNowSuspended ? 'SUSPENDED (Counter Locked)' : 'ACTIVATED (Counter Unlocked)';
-    console.log(`⚡ Subscription for ${stall.businessName} (${clean}) is now ${actionText}`);
-  };
+    document.getElementById('form-edit-stall')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('edit-stall-id').value;
+      const btn = document.getElementById('btn-submit-edit-stall');
+      const body = {
+        businessName: document.getElementById('edit-stall-name').value.trim(),
+        ownerName: document.getElementById('edit-owner-name').value.trim(),
+        phone: document.getElementById('edit-phone').value.trim(),
+        city: document.getElementById('edit-city').value.trim(),
+        edition: document.getElementById('edit-edition').value,
+        subscriptionStatus: document.getElementById('edit-status').value,
+      };
+      const pwd = document.getElementById('edit-password').value.trim();
+      if (pwd) body.password = pwd;
+      if (btn) btn.disabled = true;
+      try {
+        const res = await apiFetch(`/api/v1/admin/vendors/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(body),
+        });
+        if (res && res.ok) {
+          await loadVendors();
+          closeModal('modal-edit-stall');
+          notify('Stall updated', 'success');
+        } else {
+          const err = res ? await res.json().catch(() => ({})) : {};
+          notify(err.message || 'Failed to update stall', 'danger');
+        }
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    });
 
-  window.loadOverview = loadOverview;
-  window.loadVendors = loadVendors;
-  window.filterStalls = filterStalls;
-  window.sendWhatsAppNotification = sendWhatsAppNotification;
-  window.openReceiptModal = openReceiptModal;
-  window.openEditModal = openEditModal;
-  window.openMenuModal = openMenuModal;
-  window.submitAddStallPage = submitAddStallPage;
+    try {
+      const v = JSON.parse(localStorage.getItem('frose_current_vendor') || '{}');
+      if (v.ownerName) {
+        const n = document.getElementById('settings-profile-name');
+        const h = document.getElementById('header-profile-name');
+        if (n) n.textContent = v.ownerName;
+        if (h) h.textContent = v.ownerName;
+      }
+      if (v.phone) {
+        const p = document.getElementById('settings-profile-phone');
+        if (p) p.textContent = '+91 ' + v.phone;
+      }
+    } catch (_) {}
 
-  // Dual-State Initialization: Handles both early-run and late-run script lifecycles
+    loadVendors();
+    loadSystemHealth();
+  }
+
+  window.switchView = switchView;
+  window.openModal = openModal;
+  window.closeModal = closeModal;
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAdminConsole);
   } else {
     initAdminConsole();
   }
-
 })();

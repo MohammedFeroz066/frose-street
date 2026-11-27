@@ -110,7 +110,7 @@ describe('SEC-05-CLIENT-AUTH: Shared Cookie/CSRF API Client & Single-Flight 401 
 
   it('client scripts and pages do not send Authorization: Bearer or call disabled /pin-login', () => {
     const filesToCheck = [
-      'js/admin.js',
+      'js/admin-page.js',
       'js/app.js',
       'js/billing.js',
       'js/kitchen.js',

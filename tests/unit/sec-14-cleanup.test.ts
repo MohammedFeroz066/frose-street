@@ -41,9 +41,11 @@ describe('SEC-14-CLEANUP: Purge Remaining Hardcoded Defaults (VPA, Password, Lic
     expect(vpa).toBeUndefined();
   });
 
-  it('client/js/admin.js does NOT contain hardcoded fallback password or VPA defaults', () => {
-    const adminJsPath = path.resolve(__dirname, '../../client/js/admin.js');
-    const content = fs.readFileSync(adminJsPath, 'utf8');
+  it('dead client/js/admin.js is deleted and client/js/admin-page.js does NOT contain hardcoded fallback password or VPA defaults', () => {
+    const legacyAdminJsPath = path.resolve(__dirname, '../../client/js/admin.js');
+    expect(fs.existsSync(legacyAdminJsPath)).toBe(false);
+    const adminPageJsPath = path.resolve(__dirname, '../../client/js/admin-page.js');
+    const content = fs.readFileSync(adminPageJsPath, 'utf8');
     expect(content).not.toContain('Feroz@123');
     expect(content).not.toContain('frosestall@okaxis');
   });

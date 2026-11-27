@@ -57,6 +57,7 @@ export class AdminService {
     let trialCount = 0;
     let expiredCount = 0;
     let expiringCount = 0;
+    let suspendedCount = 0;
 
     let cloudVendors = 0;
     let localVendors = 0;
@@ -67,7 +68,9 @@ export class AdminService {
       else cloudVendors++;
 
       const expiresAt = v.subscription_expires_at ? new Date(v.subscription_expires_at).getTime() : 0;
-      if (v.subscription_status === 'trial') {
+      if (v.subscription_status === 'suspended') {
+        suspendedCount++;
+      } else if (v.subscription_status === 'trial') {
         trialCount++;
       } else if (expiresAt < now || v.subscription_status === 'expired') {
         expiredCount++;
@@ -75,7 +78,7 @@ export class AdminService {
         activeCount++;
       }
 
-      if (expiresAt > now && expiresAt <= in7Days) {
+      if (v.subscription_status !== 'suspended' && expiresAt > now && expiresAt <= in7Days) {
         expiringCount++;
       }
     }
@@ -84,10 +87,12 @@ export class AdminService {
     let cashPaise = 0n;
     let upiPaise = 0n;
     let todayOrdersCount = 0;
+    let nonCancelledOrdersCount = 0;
 
     for (const o of orders) {
       const status = (o as any).order_status || (o as any).status;
       if (status !== 'cancelled') {
+        nonCancelledOrdersCount++;
         const paise = BigInt(o.total_paise || 0);
         grossPaise += paise;
         if (o.payment_method === 'cash') cashPaise += paise;
@@ -118,6 +123,7 @@ export class AdminService {
       trialVendors: trialCount,
       expiredVendors: expiredCount,
       expiringVendors: expiringCount,
+      suspendedVendors: suspendedCount,
       cloudVendors,
       localVendors,
       grossSalesPaise: grossPaise.toString(),
@@ -126,7 +132,7 @@ export class AdminService {
       totalCollectedPaise: totalCollectedPaise.toString(),
       totalPendingPaise: totalPendingPaise.toString(),
       todayOrders: todayOrdersCount,
-      totalOrders: orders.length,
+      totalOrders: nonCancelledOrdersCount,
       activeDevicesCount,
       totalDevicesCount: devices.length,
     };
@@ -480,36 +486,51 @@ export class AdminService {
     const orders = await db.selectFrom('orders').selectAll().execute();
     const items = await db.selectFrom('menu_items').selectAll().execute();
 
+    const clientVendors = vendors.filter((v: any) => !v.is_superadmin);
+    const clientVendorIds = new Set(clientVendors.map((v) => v.id));
+
     let totalGrossPaise = 0n;
     let cashPaise = 0n;
     let upiPaise = 0n;
+    let validOrdersCount = 0;
 
     const vendorSalesMap = new Map<string, { count: number; salesPaise: bigint }>();
 
     for (const o of orders) {
+      const status = (o as any).order_status || (o as any).status;
+      if (status === 'cancelled') continue;
+
+      validOrdersCount++;
       const p = BigInt(o.total_paise || 0);
       totalGrossPaise += p;
       if (o.payment_method === 'cash') cashPaise += p;
-      if (o.payment_method === 'upi') upiPaise += p;
+      else if (o.payment_method === 'upi') upiPaise += p;
+      else if (o.payment_method === 'split') {
+        cashPaise += BigInt((o as any).cash_paise || 0);
+        upiPaise += BigInt((o as any).upi_paise || 0);
+      }
 
-      const vId = o.vendor_id || 'unknown';
-      const cur = vendorSalesMap.get(vId) || { count: 0, salesPaise: 0n };
-      cur.count += 1;
-      cur.salesPaise += p;
-      vendorSalesMap.set(vId, cur);
+      if (o.vendor_id && clientVendorIds.has(o.vendor_id)) {
+        const cur = vendorSalesMap.get(o.vendor_id) || { count: 0, salesPaise: 0n };
+        cur.count += 1;
+        cur.salesPaise += p;
+        vendorSalesMap.set(o.vendor_id, cur);
+      }
     }
 
-    const leaderboard = vendors.map((v) => {
-      const stats = vendorSalesMap.get(v.id) || { count: 0, salesPaise: 0n };
-      return {
-        id: v.id,
-        name: v.business_name,
-        city: v.city,
-        totalOrders: stats.count,
-        salesPaise: stats.salesPaise.toString(),
-        subscriptionStatus: v.subscription_status,
-      };
-    }).sort((a, b) => Number(BigInt(b.salesPaise) - BigInt(a.salesPaise)));
+    const leaderboard = clientVendors
+      .map((v) => {
+        const stats = vendorSalesMap.get(v.id) || { count: 0, salesPaise: 0n };
+        return {
+          id: v.id,
+          name: v.business_name,
+          city: v.city,
+          totalOrders: stats.count,
+          salesPaise: stats.salesPaise.toString(),
+          subscriptionStatus: v.subscription_status,
+        };
+      })
+      .sort((a, b) => Number(BigInt(b.salesPaise) - BigInt(a.salesPaise)));
 
     const categoryMap = new Map<string, number>();
     for (const item of items) {
@@ -519,11 +540,20 @@ export class AdminService {
 
     const categories = Array.from(categoryMap.entries()).map(([name, count]) => ({ name, count }));
 
+    let cloudVendors = 0;
+    let localVendors = 0;
+    for (const v of clientVendors) {
+      if (v.edition === 'local') localVendors++;
+      else cloudVendors++;
+    }
+
     return {
       grossSalesPaise: totalGrossPaise.toString(),
       cashSalesPaise: cashPaise.toString(),
       upiSalesPaise: upiPaise.toString(),
-      totalOrders: orders.length,
+      totalOrders: validOrdersCount,
+      cloudVendors,
+      localVendors,
       leaderboard,
       categories,
     };

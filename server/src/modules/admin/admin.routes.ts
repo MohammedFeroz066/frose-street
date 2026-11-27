@@ -57,6 +57,7 @@ const UpdateMenuItemAdminSchema = z.object({
 function serializeBigInt(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj === 'bigint') return Number(obj);
+  if (obj instanceof Date) return Number.isNaN(obj.getTime()) ? null : obj.toISOString();
   if (Array.isArray(obj)) return obj.map(serializeBigInt);
   if (typeof obj === 'object') {
     const res: any = {};

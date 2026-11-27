@@ -53,6 +53,7 @@
   let allVendors = [];
   let currentFilter = 'all';
   let searchQuery = '';
+  let activeVendorForMenu = null;
 
   const FALLBACK_VENDORS = [];
 
@@ -174,11 +175,11 @@
     } catch (e) {}
 
     // Bind Subtitle
-    const heroSub = document.getElementById('admin-header-subtitle');
+    const heroSub = document.getElementById('hero-status-sub');
     if (heroSub) {
-      heroSub.textContent = stats.totalVendors === 0 
-        ? '0 Stalls Active • 🌐 0 Cloud Stalls'
-        : `${stats.activeVendors} Stalls Active • 🌐 ${stats.cloudVendors} Cloud`;
+      heroSub.textContent = stats.totalVendors === 0
+        ? '0 Stalls Active • 0 Cloud • 0 Mobile P2P'
+        : `${stats.activeVendors} Stalls Active • ${stats.cloudVendors} Cloud • ${stats.localVendors} Mobile P2P`;
     }
 
     // Bind Dashboard KPI Cards
@@ -292,7 +293,7 @@
           style: 'background: var(--saas-burgundy-primary); color: #FFF; padding: 8px 18px; border-radius: 8px; font-weight: 700; cursor: pointer;',
           on: { click: () => { if (typeof window.switchView === 'function') window.switchView('add-restaurant'); } }
         }, ['+ Add a New Restaurant']);
-        tbody.appendChild(el('tr', {}, [
+        tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [
           el('td', { colspan: '7', style: 'text-align: center; padding: 48px 16px;' }, [
             el('div', { style: 'font-size: 36px; margin-bottom: 8px;' }, ['🍽️']),
             el('div', { style: 'font-size: 15px; font-weight: 800; color: var(--saas-burgundy-primary); margin-bottom: 4px;' }, ['No Restaurant Stalls Created']),
@@ -301,7 +302,7 @@
           ])
         ]));
       } else {
-        tbody.appendChild(el('tr', {}, [
+        tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [
           el('td', { colspan: '7', style: 'text-align: center; padding: 24px; color: var(--saas-text-muted);' }, ['No restaurants found matching current filter or search criteria.'])
         ]));
       }
@@ -414,40 +415,6 @@
         ])
       ]));
     });
-
-    // Attach WhatsApp trigger listeners
-    document.querySelectorAll('.btn-whatsapp-stall').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const phone = btn.getAttribute('data-phone');
-        const owner = btn.getAttribute('data-owner');
-        const stall = btn.getAttribute('data-stall');
-        const status = btn.getAttribute('data-status');
-        const due = btn.getAttribute('data-due');
-        const fee = btn.getAttribute('data-fee');
-        sendWhatsAppNotification(phone, owner, stall, status, due, fee);
-      });
-    });
-
-    // Attach Receipt modal listeners
-    document.querySelectorAll('.btn-view-receipt').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        openReceiptModal(id);
-      });
-    });
-
-    // Attach Edit and Menu listeners
-    document.querySelectorAll('.btn-edit-stall').forEach(btn => {
-      btn.addEventListener('click', () => {
-        openEditStallModal(btn.getAttribute('data-id'));
-      });
-    });
-
-    document.querySelectorAll('.btn-manage-menu').forEach(btn => {
-      btn.addEventListener('click', () => {
-        openMenuModal(btn.getAttribute('data-id'), btn.getAttribute('data-name'));
-      });
-    });
   }
 
   function closeVendorInspector() {
@@ -556,7 +523,7 @@
       on: {
         click: () => {
           closeVendorInspector();
-          if (typeof window.openStallAnalyticsModal === 'function') window.openStallAnalyticsModal(stall.id);
+          if (typeof window.openStallAnalytics === 'function') window.openStallAnalytics(stall.id);
         }
       }
     }, ['📊 Fiscal Ledger']);
@@ -581,7 +548,7 @@
 
     let message = '';
     if (status === 'OVERDUE' || status === 'DUE SOON' || status === 'TRIAL') {
-      message = `*FROSE Street POS — Subscription Payment Due*\n\nDear ${owner},\n\nYour monthly subscription for *${stall}* (${fee}/month) is due on *${due}*.\n\nPlease settle via UPI: *frosestall@okaxis* to ensure continuous uninterrupted billing counter operations.\n\nThank you,\n*FROSE Street POS Team*`;
+      message = `*FROSE Street POS — Subscription Payment Due*\n\nDear ${owner},\n\nYour monthly subscription for *${stall}* (${fee}/month) is due on *${due}*.\n\nPlease complete your renewal payment to ensure uninterrupted billing counter operations.\n\nThank you,\n*FROSE Street POS Team*`;
     } else {
       message = `*FROSE Street POS — Official Payment Confirmation*\n\nDear ${owner},\n\nThank you for your payment of *${fee}* for *${stall}*.\n\nYour subscription is active and valid until *${due}*.\nReceipt ID: #REC-${Math.random().toString(36).substring(2, 8).toUpperCase()}\n\nThank you for choosing FROSE Street!\n*FROSE Platform HQ*`;
     }
@@ -759,8 +726,14 @@
 
   // Menu Manager Modal
   async function openMenuModal(stallId, stallName) {
+    activeVendorForMenu = stallId;
+    const stall = allVendors.find(v => String(v.id) === String(stallId));
+    const resolvedName = stallName || stall?.businessName || stall?.business_name || 'Stall';
     const title = document.getElementById('menu-modal-stall-name');
-    if (title) title.textContent = '📋 ' + stallName + ' Menu';
+    if (title) title.textContent = resolvedName + ' Menu';
+
+    const addForm = document.getElementById('form-add-dish-inline');
+    if (addForm) addForm.style.display = 'none';
 
     const container = document.getElementById('dish-list-container');
     if (!container) return;
@@ -770,35 +743,62 @@
     container.appendChild(el('div', { style: 'padding: 16px; text-align: center; color: var(--saas-text-muted);' }, ['Loading dishes...']));
     openModal('modal-menu-manager');
 
-    let dishes = [
-      { id: 'd-1', name: 'Steamed Momos (8 Pcs)', pricePaise: 6000, category: 'Momos', isAvailable: true },
-      { id: 'd-2', name: 'Fried Momos (8 Pcs)', pricePaise: 7000, category: 'Momos', isAvailable: true },
-      { id: 'd-3', name: 'Special Chicken Shawarma', pricePaise: 12000, category: 'Shawarma', isAvailable: true },
-      { id: 'd-4', name: 'Irani Chai Cup', pricePaise: 1500, category: 'Beverages', isAvailable: true }
-    ];
-
+    let dishes = [];
+    let loadError = false;
     const res = await apiFetch(`/api/v1/admin/vendors/${stallId}/menu`);
     if (res && res.ok) {
       try {
         const json = await res.json();
-        if (Array.isArray(json.data) && json.data.length > 0) dishes = json.data;
-      } catch (e) {}
+        if (Array.isArray(json.data)) dishes = json.data;
+      } catch (e) {
+        loadError = true;
+      }
+    } else {
+      loadError = true;
     }
 
     clear(container);
+    if (loadError) {
+      container.appendChild(el('div', { style: 'padding: 20px; text-align: center; color: var(--accent-rose);' }, ['Failed to load menu items from server.']));
+      return;
+    }
+    if (dishes.length === 0) {
+      container.appendChild(el('div', { style: 'padding: 20px; text-align: center; color: var(--saas-text-muted);' }, ['No menu items configured yet. Click "+ Add Dish" above to add one.']));
+      return;
+    }
+
     dishes.forEach(d => {
+      let isAvail = Boolean(d.is_available ?? d.isAvailable ?? true);
       const availBtn = el('button', {
         type: 'button',
         class: 'btn-table-action',
         on: {
-          click: function () {
-            this.textContent = this.textContent === '🟢 In Stock' ? '🔴 Out of Stock' : '🟢 In Stock';
+          click: async function () {
+            const nextAvail = !isAvail;
+            availBtn.disabled = true;
+            try {
+              const patchRes = await apiFetch(`/api/v1/admin/vendors/${stallId}/menu/${d.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ isAvailable: nextAvail })
+              });
+              if (patchRes && patchRes.ok) {
+                isAvail = nextAvail;
+                availBtn.textContent = isAvail ? 'In Stock' : 'Out of Stock';
+                if (window.FroseUI?.showToast) window.FroseUI.showToast(`${d.name} marked ${isAvail ? 'In Stock' : 'Out of Stock'}`, 'success');
+              } else {
+                if (window.FroseUI?.showToast) window.FroseUI.showToast('Failed to update dish availability', 'danger');
+              }
+            } catch (err) {
+              if (window.FroseUI?.showToast) window.FroseUI.showToast('Network error updating dish', 'danger');
+            } finally {
+              availBtn.disabled = false;
+            }
           }
         }
-      }, [(d.is_available ?? d.isAvailable) ? '🟢 In Stock' : '🔴 Out of Stock']);
+      }, [isAvail ? 'In Stock' : 'Out of Stock']);
 
       container.appendChild(el('div', {
-        style: 'display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #FDFBF7; border-radius: 8px; border: 1px solid var(--saas-card-border);'
+        style: 'display: flex; align-items: center; justify-content: space-between; padding: 10px; border-radius: 8px; border: 1px solid var(--border-subtle);'
       }, [
         el('div', {}, [
           el('div', { style: 'font-weight: 800; font-size: 13px;' }, [d.name || '']),
@@ -977,7 +977,8 @@
     const menuBtn = e.target.closest('.btn-manage-menu');
     if (menuBtn) {
       const id = menuBtn.getAttribute('data-id');
-      openMenuModal(id);
+      const name = menuBtn.getAttribute('data-name');
+      openMenuModal(id, name);
       return;
     }
   });
@@ -1188,91 +1189,56 @@
     };
 
     if (!payload.businessName || !payload.phone || payload.phone.length !== 10 || !payload.password || payload.password.length < 10) {
-      alert('Please enter a valid stall name, 10-digit mobile number, and passphrase (min 10 characters)');
+      if (window.FroseUI?.showToast) {
+        window.FroseUI.showToast('Please enter a valid stall name, 10-digit mobile number, and passphrase (min 10 characters)', 'danger');
+      }
       if (submitBtn) submitBtn.disabled = false;
       return;
     }
-
-    const isPaid = (payload.initialPaymentStatus === 'paid');
-    const paymentRecord = isPaid ? {
-      receiptId: '#REC-' + Math.floor(100000 + Math.random() * 900000),
-      amountPaise: String(payload.monthlyFeeRupees * 100),
-      amountRupees: payload.monthlyFeeRupees,
-      method: 'UPI Intent',
-      date: new Date().toISOString(),
-      period: `${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} – ${new Date(Date.now() + 30 * 86400000).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`,
-      status: 'Verified Paid'
-    } : null;
-
-    let newStall = {
-      id: 'v-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 6),
-      businessName: payload.businessName,
-      ownerName: payload.ownerName,
-      phone: payload.phone,
-      password: payload.password,
-      city: payload.city,
-      edition: payload.edition,
-      monthlyFeePaise: String(payload.monthlyFeeRupees * 100),
-      subscriptionStatus: isPaid ? 'active' : 'trial',
-      subscriptionExpiresAt: new Date(Date.now() + 30 * 86400000).toISOString(),
-      paymentStatus: isPaid ? 'paid' : 'trial',
-      lastPaymentDate: isPaid ? new Date().toISOString() : null,
-      nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
-      totalCollectedPaise: isPaid ? String(payload.monthlyFeeRupees * 100) : '0',
-      pendingDuePaise: isPaid ? '0' : String(payload.monthlyFeeRupees * 100),
-      lifetimeSalesPaise: '0',
-      totalOrders: 0,
-      deviceCount: 1,
-      activeDevices: 1,
-      role: 'owner',
-      isSuperadmin: false,
-      paymentLedger: paymentRecord ? [paymentRecord] : [],
-      turnover: {
-        daily: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
-        weekly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
-        monthly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' },
-        yearly: { totalPaise: '0', cashPaise: '0', upiPaise: '0' }
-      },
-      createdAt: new Date().toISOString()
-    };
 
     try {
       const res = await apiFetch('/api/v1/admin/vendors', {
         method: 'POST',
         body: JSON.stringify(payload)
       });
-      if (res && res.ok) {
-        const json = await res.json();
-        if (json.data?.vendor) {
-          newStall.id = json.data.vendor.id;
+      if (!res || !res.ok) {
+        let errMsg = 'Failed to create stall on server';
+        if (res) {
+          try {
+            const errJson = await res.json();
+            errMsg = errJson.message || errJson.error || errMsg;
+          } catch (_) {}
         }
+        if (window.FroseUI?.showToast) window.FroseUI.showToast(errMsg, 'danger');
+        if (submitBtn) submitBtn.disabled = false;
+        return;
       }
-    } catch (err) {}
 
-    // In-memory state update only (never cache cross-tenant vendor PII in localStorage)
-    allVendors.unshift(newStall);
+      await res.json().catch(() => ({}));
+      await loadVendors();
 
-    // Record notification
-    platformNotifications.unshift({
-      id: 'notif-' + Date.now(),
-      title: '🎉 New Restaurant Provisioned',
-      message: `${payload.businessName} onboarded successfully with mobile ${payload.phone}.`,
-      category: 'subscription',
-      targetView: 'vendors',
-      timestamp: new Date().toLocaleDateString('en-IN')
-    });
-    localStorage.setItem('frose_admin_notifications', JSON.stringify(platformNotifications));
-    renderNotifications();
+      // Record notification
+      platformNotifications.unshift({
+        id: 'notif-' + Date.now(),
+        title: 'New Restaurant Provisioned',
+        message: `${payload.businessName} onboarded successfully with mobile ${payload.phone}.`,
+        category: 'subscription',
+        targetView: 'vendors',
+        timestamp: new Date().toLocaleDateString('en-IN')
+      });
+      renderNotifications();
 
-    if (submitBtn) submitBtn.disabled = false;
-    document.getElementById('form-add-stall-page')?.reset();
+      document.getElementById('form-add-stall-page')?.reset();
+      if (window.FroseUI?.showToast) window.FroseUI.showToast(`${payload.businessName} created successfully`, 'success');
+      window.switchView('vendors');
 
-    // Switch view back to vendors
-    window.switchView('vendors');
-    renderStallsTable();
-    loadOverview();
-
-    window.openStallSetupQR(newStall);
+      const created = allVendors.find(v => String(v.phone) === String(payload.phone));
+      if (created) window.openStallSetupQR(created);
+    } catch (err) {
+      if (window.FroseUI?.showToast) window.FroseUI.showToast('Network error creating stall', 'danger');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
   }
 
   // 11. Core Initialization Function
@@ -1307,26 +1273,54 @@
     openModal('modal-edit-stall');
   }
 
-  function openMenuModal(vendorId, stallName) {
-    activeVendorForMenu = vendorId;
-    const titleEl = document.getElementById('menu-modal-stall-name');
-    if (titleEl) titleEl.textContent = `${stallName || 'Stall'} — Menu Dishes`;
-    openModal('modal-menu-manager');
-  }
-
   function initAdminConsole() {
     // Print Receipt
     document.getElementById('btn-receipt-print')?.addEventListener('click', () => window.print());
 
-    // Filter Pills
-    document.querySelectorAll('.filter-pill').forEach(pill => {
-      pill.addEventListener('click', () => {
-        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-        pill.classList.add('active');
-        currentFilter = pill.getAttribute('data-filter') || 'all';
-        renderStallsTable();
+    // Menu Manager: Add Dish Toggle & Inline Form Submit
+    const btnAddDishToggle = document.getElementById('btn-add-dish-toggle');
+    const addDishForm = document.getElementById('form-add-dish-inline');
+    if (btnAddDishToggle && addDishForm) {
+      btnAddDishToggle.addEventListener('click', () => {
+        const isOpen = addDishForm.style.display === 'flex';
+        addDishForm.style.display = isOpen ? 'none' : 'flex';
       });
-    });
+      addDishForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!activeVendorForMenu) return;
+        const submitDishBtn = document.getElementById('btn-submit-add-dish');
+        const name = document.getElementById('menu-add-name')?.value.trim() || '';
+        const priceRupees = Number(document.getElementById('menu-add-price')?.value || 0);
+        const category = document.getElementById('menu-add-category')?.value.trim() || 'General';
+        if (!name || priceRupees <= 0) {
+          if (window.FroseUI?.showToast) window.FroseUI.showToast('Enter valid dish name and price', 'danger');
+          return;
+        }
+        if (submitDishBtn) submitDishBtn.disabled = true;
+        try {
+          const res = await apiFetch(`/api/v1/admin/vendors/${activeVendorForMenu}/menu`, {
+            method: 'POST',
+            body: JSON.stringify({
+              name,
+              pricePaise: Math.round(priceRupees * 100),
+              category
+            })
+          });
+          if (res && res.ok) {
+            addDishForm.reset();
+            addDishForm.style.display = 'none';
+            if (window.FroseUI?.showToast) window.FroseUI.showToast('Dish added to menu', 'success');
+            await openMenuModal(activeVendorForMenu);
+          } else {
+            if (window.FroseUI?.showToast) window.FroseUI.showToast('Failed to add dish', 'danger');
+          }
+        } catch (_) {
+          if (window.FroseUI?.showToast) window.FroseUI.showToast('Network error adding dish', 'danger');
+        } finally {
+          if (submitDishBtn) submitDishBtn.disabled = false;
+        }
+      });
+    }
 
     // Search Input
     const sInput = document.getElementById('search-vendors-input');
@@ -1337,49 +1331,17 @@
       });
     }
 
-    // Admin Profile Dropdown
-    const userBadge = document.getElementById('btn-admin-profile');
+    // Admin Profile Dropdown close on outside click
     const userMenu = document.getElementById('user-dropdown');
-    if (userBadge && userMenu) {
-      userBadge.addEventListener('click', (e) => {
-        e.stopPropagation();
-        userMenu.classList.toggle('active');
-      });
-      document.addEventListener('click', () => userMenu.classList.remove('active'));
-    }
-
-    const mProfile = document.getElementById('btn-menu-profile');
-    if (mProfile) {
-      mProfile.addEventListener('click', () => {
-        userMenu.classList.remove('active');
-        switchView('settings');
-      });
-    }
-
-    const mSystem = document.getElementById('btn-menu-system');
-    if (mSystem) {
-      mSystem.addEventListener('click', () => {
-        userMenu.classList.remove('active');
-        openModal('modal-system-health');
-      });
-    }
-
-    const mLogout = document.getElementById('btn-menu-logout');
-    if (mLogout) {
-      mLogout.addEventListener('click', () => {
-        if (confirm('Sign out of Super Admin Console?')) {
-          (window.froseApiFetch || fetch)('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'X-FROSE-CSRF': '1' } })
-            .catch(() => {})
-            .finally(() => {
-              localStorage.removeItem('frose_session_active');
-              localStorage.removeItem('frose_vendors_directory');
-              window.location.replace('/login.html');
-            });
+    if (userMenu) {
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#btn-admin-profile')) {
+          userMenu.classList.remove('active');
         }
       });
     }
 
-    // Form Add Stall Submission
+    // Form Add Stall Submission (Modal)
     const addForm = document.getElementById('form-add-stall');
     if (addForm) {
       addForm.addEventListener('submit', async (e) => {
@@ -1399,54 +1361,33 @@
           initialPaymentStatus: document.getElementById('add-initial-status').value
         };
 
-        const res = await apiFetch('/api/v1/admin/vendors', {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-
-        if (res && res.ok) {
-          try {
-            const json = await res.json();
-            if (json.data?.vendor) {
-              allVendors.unshift({
-                ...json.data.vendor,
-                monthlyFeePaise: String(payload.monthlyFeeRupees * 100),
-                paymentStatus: payload.initialPaymentStatus === 'paid' ? 'paid' : 'trial',
-                edition: payload.edition,
-                lastPaymentDate: new Date().toISOString(),
-                nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString()
-              });
-            }
-          } catch (e) {}
-        } else {
-          // Local fallback entry
-          allVendors.unshift({
-            id: 'v-' + Math.random().toString(36).substring(2, 8),
-            businessName: payload.businessName,
-            ownerName: payload.ownerName,
-            phone: payload.phone,
-            city: payload.city,
-            edition: payload.edition,
-            monthlyFeePaise: String(payload.monthlyFeeRupees * 100),
-            subscriptionStatus: payload.initialPaymentStatus === 'paid' ? 'active' : 'trial',
-            paymentStatus: payload.initialPaymentStatus === 'paid' ? 'paid' : 'trial',
-            lastPaymentDate: new Date().toISOString(),
-            nextDueDate: new Date(Date.now() + 30 * 86400000).toISOString(),
-            lifetimeSalesPaise: '0',
-            totalOrders: 0,
-            deviceCount: 1,
-            activeDevices: 1,
-            createdAt: new Date().toISOString()
+        try {
+          const res = await apiFetch('/api/v1/admin/vendors', {
+            method: 'POST',
+            body: JSON.stringify(payload)
           });
+
+          if (!res || !res.ok) {
+            let errMsg = 'Failed to create restaurant stall';
+            if (res) {
+              try {
+                const errJson = await res.json();
+                errMsg = errJson.message || errJson.error || errMsg;
+              } catch (_) {}
+            }
+            if (window.FroseUI?.showToast) window.FroseUI.showToast(errMsg, 'danger');
+            return;
+          }
+
+          await loadVendors();
+          closeModal('modal-add-stall');
+          addForm.reset();
+          if (window.FroseUI?.showToast) window.FroseUI.showToast('Restaurant stall created successfully', 'success');
+        } catch (_) {
+          if (window.FroseUI?.showToast) window.FroseUI.showToast('Network error creating stall', 'danger');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
         }
-
-        closeModal('modal-add-stall');
-        renderStallsTable();
-        loadOverview();
-        if (submitBtn) submitBtn.disabled = false;
-        addForm.reset();
-
-        alert('Restaurant Stall successfully created & provisioned!');
       });
     }
 
@@ -1594,10 +1535,9 @@
 
     if (!currentStallForQR) return;
     const phone = (currentStallForQR.phone || '').replace(/\D/g, '').slice(-10);
-    const pwd = currentStallForQR.password || '';
     const bName = currentStallForQR.businessName || currentStallForQR.business_name || 'Restaurant Stall';
 
-    const webUrl = window.location.origin + '/login?stall=' + phone + (pwd ? '&pwd=' + encodeURIComponent(pwd) : '');
+    const webUrl = window.location.origin + '/login?stall=' + phone;
     const downloadUrl = window.location.origin + '/downloads/frose-street-local-cloud.apk';
 
     if (mode === 'backend') {
@@ -1634,7 +1574,7 @@
       activeQRSetupUrl = webUrl;
 
       if (waBtn) {
-        const waMsg = '🎉 *Welcome to FROSE Street!*\n\nYour billing counter for *' + bName + '* is ready.\n\n📲 *Setup counter on your phone:*\n' + webUrl + '\n\n🔑 *Login Credentials:*\nMobile: ' + phone + '\nPassword: ' + pwd;
+        const waMsg = 'Welcome to FROSE Street!\n\nYour billing counter for *' + bName + '* is ready.\n\nSetup counter on your phone:\n' + webUrl + '\n\nMobile Login: ' + phone + '\n(Use the passphrase set during onboarding to sign in.)';
         waBtn.onclick = () => {
           window.open('https://api.whatsapp.com/send?phone=91' + phone + '&text=' + encodeURIComponent(waMsg), '_blank');
         };
@@ -1649,13 +1589,12 @@
     if (!modal) return;
 
     const phone = (stall.phone || '').replace(/\D/g, '').slice(-10);
-    const pwd = stall.password || '';
     const bName = stall.businessName || stall.business_name || 'Restaurant Stall';
-    const plan = (stall.subscriptionStatus || stall.subscription_status || 'trial').toUpperCase() + ' (' + formatRupees(stall.monthlyFeePaise || '89900') + '/mo)';
+    const plan = (stall.subscriptionStatus || stall.subscription_status || 'trial').toUpperCase() + ' (' + formatRupees(stall.monthlyFeePaise || '49900') + '/mo)';
 
     document.getElementById('qr-modal-stall-name').textContent = bName;
     document.getElementById('qr-modal-phone').textContent = phone;
-    document.getElementById('qr-modal-pwd').textContent = pwd;
+    document.getElementById('qr-modal-pwd').textContent = 'Protected (never shown in URL)';
     document.getElementById('qr-modal-plan').textContent = plan;
 
     window.switchSetupQRTab('webapp');

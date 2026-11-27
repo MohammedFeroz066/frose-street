@@ -242,6 +242,40 @@ export const adminRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get('/alerts', async (_request, reply) => {
+    const alerts = await withSuperadminContext((db) => AdminService.getAlerts(db));
+    return reply.status(200).send({
+      status: 'success',
+      data: serializeBigInt(alerts),
+    });
+  });
+
+  app.get('/subscriptions', async (_request, reply) => {
+    const data = await withSuperadminContext((db) => AdminService.listSubscriptions(db));
+    return reply.status(200).send({
+      status: 'success',
+      data: serializeBigInt(data),
+    });
+  });
+
+  app.get('/export/vendors.csv', async (_request, reply) => {
+    const csv = await withSuperadminContext((db) => AdminService.exportVendorsCsv(db));
+    return reply
+      .status(200)
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', 'attachment; filename="frose-vendors.csv"')
+      .send(csv);
+  });
+
+  app.get('/export/subscriptions.csv', async (_request, reply) => {
+    const csv = await withSuperadminContext((db) => AdminService.exportSubscriptionsCsv(db));
+    return reply
+      .status(200)
+      .header('Content-Type', 'text/csv; charset=utf-8')
+      .header('Content-Disposition', 'attachment; filename="frose-subscriptions.csv"')
+      .send(csv);
+  });
+
   app.get('/system-health', async (_request, reply) => {
     const dbEndpoint = parseSafeDbEndpoint();
     let dbStatus = 'healthy';

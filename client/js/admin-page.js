@@ -381,6 +381,34 @@
     const { el, clear } = window.FroseSafeDom;
     clear(list);
 
+    const urgentAlerts = platformNotifications.filter((a) => a.category !== 'new_vendor').slice(0, 5);
+    if (urgentAlerts.length > 0) {
+      urgentAlerts.forEach((a) => {
+        const pillClass = a.severity === 'danger' ? 'overdue' : 'due_soon';
+        list.appendChild(
+          el('button', {
+            type: 'button',
+            class: 'admin-action-row',
+            on: {
+              click: () => {
+                if (a.vendorId) {
+                  switchView('vendors');
+                  openVendorInspector(a.vendorId, true);
+                }
+              },
+            },
+          }, [
+            el('div', {}, [
+              el('div', { style: 'font-weight: 800; font-size: 13.5px;' }, [a.title || 'Action Needed']),
+              el('div', { class: 'brand-platform-sub' }, [a.message || '']),
+            ]),
+            el('span', { class: `badge-status ${pillClass}` }, [String(a.category || 'alert').toUpperCase()]),
+          ])
+        );
+      });
+      return;
+    }
+
     const now = Date.now();
     const in7Days = now + 7 * 86400000;
     const urgent = allVendors.filter((v) => {
@@ -401,7 +429,12 @@
         el('button', {
           type: 'button',
           class: 'admin-action-row',
-          on: { click: () => openVendorInspector(v.id) },
+          on: {
+            click: () => {
+              switchView('vendors');
+              openVendorInspector(v.id, true);
+            },
+          },
         }, [
           el('div', {}, [
             el('div', { style: 'font-weight: 800; font-size: 13.5px;' }, [v.businessName || 'Stall']),
@@ -1383,11 +1416,72 @@
   async function loadSubscriptionsView() {
     const tbody = document.getElementById('subscriptions-table-body');
     const mobileCards = document.getElementById('subscriptions-mobile-cards');
+    const totalEl = document.getElementById('subs-total-collected');
+    const countEl = document.getElementById('subs-total-count');
     if (!tbody || !window.FroseSafeDom) return;
     const { el, clear } = window.FroseSafeDom;
     clear(tbody);
     if (mobileCards) clear(mobileCards);
-    tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [el('td', { colspan: '7', class: 'admin-empty-box' }, ['Loading subscription ledger...'])]));
+    tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [el('td', { colspan: '7', style: 'padding: 16px;' }, [el('div', { class: 'saas-skeleton' })])]));
+
+    const res = await apiFetch('/api/v1/admin/subscriptions');
+    clear(tbody);
+    if (!res || !res.ok) {
+      tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [el('td', { colspan: '7', class: 'admin-empty-box' }, ['Failed to load subscription ledger.'])]));
+      return;
+    }
+
+    const json = await res.json().catch(() => ({}));
+    const data = json.data || { totalCollectedPaise: '0', totalCount: 0, items: [] };
+    if (totalEl) totalEl.textContent = formatRupees(data.totalCollectedPaise || '0');
+    if (countEl) countEl.textContent = String(data.totalCount ?? data.items?.length ?? 0);
+
+    const items = Array.isArray(data.items) ? data.items : [];
+    if (items.length === 0) {
+      tbody.appendChild(el('tr', { 'data-empty-row': 'true' }, [el('td', { colspan: '7', class: 'admin-empty-box' }, ['No subscription records logged yet.'])]));
+      if (mobileCards) mobileCards.appendChild(el('div', { class: 'admin-empty-box' }, ['No subscription records logged yet.']));
+      return;
+    }
+
+    items.forEach((s) => {
+      const amtStr = formatRupees(s.amountPaise || '0');
+      const created = formatDate(s.createdAt, 'Recent');
+      const period = `${formatDate(s.periodStart)} – ${formatDate(s.periodEnd)}`;
+      const methodRef = `${String(s.paymentMethod || 'upi').toUpperCase()}${s.paymentReference ? ' • ' + s.paymentReference : ''}`;
+      tbody.appendChild(
+        el('tr', {
+          class: 'clickable-row',
+          on: {
+            click: () => {
+              if (s.vendorId) openVendorInspector(s.vendorId, true);
+            },
+          },
+        }, [
+          el('td', {}, [created]),
+          el('td', {}, [el('strong', {}, [s.businessName || 'Stall']), el('div', { class: 'brand-platform-sub mono-code' }, [s.phone || ''])]),
+          el('td', {}, [String(s.plan || 'cloud').toUpperCase()]),
+          el('td', { class: 'mono-code' }, [methodRef]),
+          el('td', {}, [period]),
+          el('td', {}, [el('span', { class: `badge-status ${s.status === 'active' ? 'active' : 'expired'}` }, [s.status || 'active'])]),
+          el('td', { class: 'num-col' }, [el('strong', {}, [amtStr])]),
+        ])
+      );
+
+      if (mobileCards) {
+        mobileCards.appendChild(
+          el('div', { class: 'admin-mobile-card' }, [
+            el('div', { class: 'admin-mobile-card-head' }, [
+              el('div', {}, [
+                el('div', { style: 'font-weight: 800;' }, [s.businessName || 'Stall']),
+                el('div', { class: 'brand-platform-sub' }, [`${created} • ${methodRef}`]),
+              ]),
+              el('strong', {}, [amtStr]),
+            ]),
+            el('div', { class: 'brand-platform-sub' }, [`Period: ${period}`]),
+          ])
+        );
+      }
+    });
   }
 
   async function loadSystemHealth() {
@@ -1485,7 +1579,37 @@
     }
   }
 
-  function loadNotifications() {
+  const READ_ALERTS_KEY = 'frose_admin_read_alerts';
+
+  function getReadAlertsSet() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(READ_ALERTS_KEY) || '[]');
+      return new Set(Array.isArray(raw) ? raw : []);
+    } catch (_) {
+      return new Set();
+    }
+  }
+
+  function markAlertsRead(ids) {
+    try {
+      const existing = getReadAlertsSet();
+      ids.forEach((id) => existing.add(id));
+      localStorage.setItem(READ_ALERTS_KEY, JSON.stringify(Array.from(existing).slice(-100)));
+    } catch (_) {}
+  }
+
+  async function loadNotifications() {
+    const res = await apiFetch('/api/v1/admin/alerts');
+    if (res && res.ok) {
+      const json = await res.json().catch(() => ({}));
+      if (Array.isArray(json.data)) {
+        platformNotifications = json.data;
+        renderNotifications();
+        renderActionNeededToday();
+        return;
+      }
+    }
+
     const now = Date.now();
     const in7Days = now + 7 * 86400000;
     const alerts = [];
@@ -1493,15 +1617,16 @@
       const st = v.subscriptionStatus || 'active';
       const exp = v.subscriptionExpiresAt ? new Date(v.subscriptionExpiresAt).getTime() : 0;
       if (st === 'suspended') {
-        alerts.push({ id: 'susp-' + v.id, vendorId: v.id, title: `${v.businessName} Suspended`, message: 'Counter access is currently suspended.', timestamp: formatDate(v.updatedAt, 'Recent') });
+        alerts.push({ id: 'suspended-' + v.id, vendorId: v.id, category: 'suspended', severity: 'danger', title: `${v.businessName} Suspended`, message: 'Counter access is currently suspended.', timestamp: formatDate(v.updatedAt, 'Recent') });
       } else if (st === 'expired' || (exp > 0 && exp < now)) {
-        alerts.push({ id: 'exp-' + v.id, vendorId: v.id, title: `${v.businessName} License Expired`, message: `Expired on ${formatDate(v.subscriptionExpiresAt)}. Tap to inspect & renew.`, timestamp: formatDate(v.subscriptionExpiresAt) });
+        alerts.push({ id: 'expired-' + v.id, vendorId: v.id, category: 'expired', severity: 'danger', title: `${v.businessName} License Expired`, message: `Expired on ${formatDate(v.subscriptionExpiresAt)}. Tap to inspect & renew.`, timestamp: formatDate(v.subscriptionExpiresAt) });
       } else if (exp > now && exp <= in7Days) {
-        alerts.push({ id: 'soon-' + v.id, vendorId: v.id, title: `${v.businessName} Expiring Soon`, message: `Expires ${formatDate(v.subscriptionExpiresAt)}.`, timestamp: formatDate(v.subscriptionExpiresAt) });
+        alerts.push({ id: 'expiring-' + v.id, vendorId: v.id, category: 'expiring', severity: 'warning', title: `${v.businessName} Expiring Soon`, message: `Expires ${formatDate(v.subscriptionExpiresAt)}.`, timestamp: formatDate(v.subscriptionExpiresAt) });
       }
     });
     platformNotifications = alerts;
     renderNotifications();
+    renderActionNeededToday();
   }
 
   function renderNotifications() {
@@ -1512,11 +1637,14 @@
     const { el, clear } = window.FroseSafeDom;
     clear(container);
 
+    const readSet = getReadAlertsSet();
+    const unreadCount = platformNotifications.filter((n) => !readSet.has(n.id)).length;
+
     if (badge) {
-      badge.textContent = String(platformNotifications.length);
-      badge.classList.toggle('is-hidden', platformNotifications.length === 0);
+      badge.textContent = String(unreadCount);
+      badge.classList.toggle('is-hidden', unreadCount === 0);
     }
-    if (sub) sub.textContent = `${platformNotifications.length} alert${platformNotifications.length === 1 ? '' : 's'}`;
+    if (sub) sub.textContent = `${unreadCount} unread • ${platformNotifications.length} total`;
 
     if (platformNotifications.length === 0) {
       container.appendChild(el('div', { class: 'admin-empty-box' }, ['All caught up. Zero pending alerts.']));
@@ -1524,25 +1652,54 @@
     }
 
     platformNotifications.forEach((n) => {
+      const isUnread = !readSet.has(n.id);
       container.appendChild(
         el('button', {
           type: 'button',
-          class: 'admin-notif-item unread',
+          class: isUnread ? 'admin-notif-item unread' : 'admin-notif-item',
+          'data-alert-id': n.id || '',
+          'data-vendor-id': n.vendorId || '',
           on: {
             click: () => {
+              if (n.id) markAlertsRead([n.id]);
               closeModal('notifications-drawer');
+              renderNotifications();
               if (n.vendorId) {
                 switchView('vendors');
-                openVendorInspector(n.vendorId);
+                openVendorInspector(n.vendorId, true);
               }
             },
           },
         }, [
-          el('strong', { style: 'font-size: 13px;' }, [n.title]),
+          el('div', { class: 'admin-kv-row' }, [
+            el('strong', { style: 'font-size: 13px;' }, [n.title]),
+            el('span', { class: `badge-status ${n.severity === 'danger' ? 'overdue' : (n.severity === 'warning' ? 'due_soon' : 'trial')}` }, [String(n.category || 'alert').toUpperCase()]),
+          ]),
           el('span', { style: 'font-size: 12px; color: var(--text-secondary);' }, [n.message]),
-          el('span', { style: 'font-size: 11px; color: var(--text-muted);' }, [n.timestamp || '']),
+          el('span', { style: 'font-size: 11px; color: var(--text-muted);' }, [formatDate(n.timestamp, 'Recent')]),
         ])
       );
+    });
+  }
+
+  async function downloadCsv(endpoint, filename, btn) {
+    await withButtonLock(btn, 'Exporting...', async () => {
+      const res = await apiFetch(endpoint);
+      if (!res || !res.ok) {
+        notify('Failed to export CSV', 'danger');
+        return;
+      }
+      const csvText = await res.text();
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      notify(`Downloaded ${filename}`, 'success');
     });
   }
 
@@ -1795,6 +1952,22 @@
       if (target.closest('#btn-vendors-prev') && vendorPage > 1) { vendorPage--; renderStallsTable(); return; }
       if (target.closest('#btn-vendors-next')) { vendorPage++; renderStallsTable(); return; }
       if (target.closest('#btn-refresh-health')) { loadAuditAndHealthView(); return; }
+      if (target.closest('#btn-clear-all-notifs')) {
+        markAlertsRead(platformNotifications.map((n) => n.id).filter(Boolean));
+        renderNotifications();
+        notify('All alerts marked as read', 'info');
+        return;
+      }
+      const expVendorsBtn = target.closest('#btn-export-vendors-csv');
+      if (expVendorsBtn) {
+        downloadCsv('/api/v1/admin/export/vendors.csv', 'frose-vendors.csv', expVendorsBtn);
+        return;
+      }
+      const expSubsBtn = target.closest('#btn-export-subs-csv');
+      if (expSubsBtn) {
+        downloadCsv('/api/v1/admin/export/subscriptions.csv', 'frose-subscriptions.csv', expSubsBtn);
+        return;
+      }
 
       // Tap-outside backdrop close for modals, drawers & sheets
       if (target.classList.contains('modal-overlay') && target.classList.contains('active')) {

@@ -5,6 +5,7 @@ import { hashPassword, hashPin } from '../../utils/crypto.js';
 import { getIstDateString } from '../../utils/ist-date.js';
 import { LoginSecurityService } from '../auth/login-security.service.js';
 import { SubscriptionService } from '../subscriptions/subscription.service.js';
+import { formatPaiseToInr, sanitizeCsvCell } from '../galla/galla.service.js';
 import { randomUUID } from 'node:crypto';
 
 export interface AdminActorContext {
@@ -1042,5 +1043,245 @@ export class AdminService {
       leaderboard,
       categories,
     };
+  }
+
+  /**
+   * Computes DB-derived actionable alerts for the Notifications Center & Overview
+   */
+  static async getAlerts(db: Kysely<Database>) {
+    const vendors = await db.selectFrom('vendors').selectAll().execute();
+    const lockouts = await db.selectFrom('login_lockouts').selectAll().execute();
+
+    const now = Date.now();
+    const in7Days = now + 7 * 86400000;
+    const past48h = now - 48 * 3600000;
+    const clientVendors = vendors.filter((v: any) => !v.is_superadmin);
+    const vendorByPhone = new Map<string, any>();
+    clientVendors.forEach((v) => vendorByPhone.set(String(v.phone || '').replace(/\D/g, ''), v));
+
+    const alerts: Array<{
+      id: string;
+      vendorId: string;
+      businessName: string;
+      category: 'expiring' | 'expired' | 'suspended' | 'locked' | 'new_vendor';
+      severity: 'info' | 'warning' | 'danger';
+      title: string;
+      message: string;
+      timestamp: string;
+    }> = [];
+
+    for (const l of lockouts) {
+      if (l.key_type === 'account' && l.locked_until) {
+        const untilMs = new Date(l.locked_until).getTime();
+        if (untilMs > now) {
+          const matched = vendorByPhone.get(String(l.key_value || '').replace(/\D/g, ''));
+          if (matched) {
+            alerts.push({
+              id: `locked-${matched.id}`,
+              vendorId: matched.id,
+              businessName: matched.business_name,
+              category: 'locked',
+              severity: 'danger',
+              title: `${matched.business_name} Account Locked`,
+              message: `Brute-force lockout active (${Math.ceil((untilMs - now) / 1000)}s left). Tap to inspect & unlock.`,
+              timestamp: toIsoStringSafe(l.locked_until),
+            });
+          }
+        }
+      }
+    }
+
+    for (const v of clientVendors) {
+      const expMs = v.subscription_expires_at ? new Date(v.subscription_expires_at).getTime() : 0;
+      const createdMs = v.created_at ? new Date(v.created_at).getTime() : 0;
+
+      if (v.subscription_status === 'suspended') {
+        alerts.push({
+          id: `suspended-${v.id}`,
+          vendorId: v.id,
+          businessName: v.business_name,
+          category: 'suspended',
+          severity: 'danger',
+          title: `${v.business_name} Suspended`,
+          message: (v as any).suspended_reason ? `Reason: ${(v as any).suspended_reason}` : 'Stall access is suspended.',
+          timestamp: toIsoStringSafe(v.updated_at || v.created_at),
+        });
+      } else if (v.subscription_status === 'expired' || (v.subscription_status !== 'trial' && expMs > 0 && expMs < now)) {
+        alerts.push({
+          id: `expired-${v.id}`,
+          vendorId: v.id,
+          businessName: v.business_name,
+          category: 'expired',
+          severity: 'danger',
+          title: `${v.business_name} License Expired`,
+          message: 'Subscription expired. Tap to inspect and renew.',
+          timestamp: toIsoStringSafe(v.subscription_expires_at || v.updated_at),
+        });
+      } else if (expMs > now && expMs <= in7Days) {
+        const daysLeft = Math.max(1, Math.ceil((expMs - now) / 86400000));
+        alerts.push({
+          id: `expiring-${v.id}`,
+          vendorId: v.id,
+          businessName: v.business_name,
+          category: 'expiring',
+          severity: 'warning',
+          title: `${v.business_name} Expiring in ${daysLeft}d`,
+          message: 'Renewal due within 7 days.',
+          timestamp: toIsoStringSafe(v.subscription_expires_at),
+        });
+      }
+
+      if (createdMs >= past48h) {
+        alerts.push({
+          id: `new-${v.id}`,
+          vendorId: v.id,
+          businessName: v.business_name,
+          category: 'new_vendor',
+          severity: 'info',
+          title: `New Stall: ${v.business_name}`,
+          message: `Registered in ${v.city || 'Hyderabad'} (${v.edition === 'local' ? 'Mobile P2P' : 'Cloud'}).`,
+          timestamp: toIsoStringSafe(v.created_at),
+        });
+      }
+    }
+
+    const severityRank: Record<string, number> = { danger: 0, warning: 1, info: 2 };
+    alerts.sort((a, b) => (severityRank[a.severity] ?? 3) - (severityRank[b.severity] ?? 3));
+    return alerts;
+  }
+
+  /**
+   * Lists all platform subscription transactions with total collected revenue
+   */
+  static async listSubscriptions(db: Kysely<Database>) {
+    const subs = await db
+      .selectFrom('subscriptions')
+      .selectAll()
+      .orderBy('created_at', 'desc')
+      .execute();
+    const vendors = await db.selectFrom('vendors').selectAll().execute();
+    const vendorMap = new Map<string, any>();
+    vendors.forEach((v) => vendorMap.set(v.id, v));
+
+    let totalCollectedPaise = 0n;
+    const items = subs.map((s) => {
+      const amt = BigInt(s.amount_paise || 0);
+      if (s.status === 'active') totalCollectedPaise += amt;
+      const v = vendorMap.get(s.vendor_id);
+      return {
+        id: s.id,
+        vendorId: s.vendor_id,
+        businessName: v?.business_name || 'Vendor Stall',
+        phone: v?.phone || '',
+        plan: s.plan,
+        amountPaise: amt.toString(),
+        periodStart: s.period_start,
+        periodEnd: s.period_end,
+        paymentMethod: s.payment_method,
+        paymentReference: s.payment_reference,
+        status: s.status,
+        createdAt: s.created_at,
+      };
+    });
+
+    return {
+      totalCollectedPaise: totalCollectedPaise.toString(),
+      totalCount: items.length,
+      items,
+    };
+  }
+
+  /**
+   * Formula-injection safe CSV export for Vendors directory
+   */
+  static async exportVendorsCsv(db: Kysely<Database>): Promise<string> {
+    const vendors = await this.listVendors(db);
+    const headers = [
+      'Vendor ID',
+      'Business Name',
+      'Owner Name',
+      'Phone',
+      'City',
+      'Edition',
+      'Subscription Status',
+      'Expires At',
+      'Monthly Fee (INR)',
+      'Lifetime Sales (INR)',
+      'Total Orders',
+      'Tax Mode',
+      'GSTIN',
+      'FSSAI',
+    ];
+    const lines = [headers.map(sanitizeCsvCell).join(',')];
+
+    for (const v of vendors) {
+      lines.push(
+        [
+          v.id,
+          v.businessName,
+          v.ownerName,
+          v.phone,
+          v.city,
+          v.edition,
+          v.subscriptionStatus,
+          toIsoStringSafe(v.subscriptionExpiresAt),
+          formatPaiseToInr(BigInt(v.monthlyFeePaise || '0')),
+          formatPaiseToInr(BigInt(v.lifetimeSalesPaise || '0')),
+          v.totalOrders,
+          v.taxMode || 'unregistered',
+          v.gstin || '',
+          v.fssaiNumber || '',
+        ]
+          .map(sanitizeCsvCell)
+          .join(','),
+      );
+    }
+
+    return lines.join('\r\n');
+  }
+
+  /**
+   * Formula-injection safe CSV export for Subscriptions revenue ledger
+   */
+  static async exportSubscriptionsCsv(db: Kysely<Database>): Promise<string> {
+    const data = await this.listSubscriptions(db);
+    const headers = [
+      'Subscription ID',
+      'Vendor ID',
+      'Business Name',
+      'Phone',
+      'Plan',
+      'Amount (INR)',
+      'Payment Method',
+      'Payment Reference',
+      'Period Start',
+      'Period End',
+      'Status',
+      'Created At',
+    ];
+    const lines = [headers.map(sanitizeCsvCell).join(',')];
+
+    for (const s of data.items) {
+      lines.push(
+        [
+          s.id,
+          s.vendorId,
+          s.businessName,
+          s.phone,
+          s.plan,
+          formatPaiseToInr(BigInt(s.amountPaise || '0')),
+          s.paymentMethod,
+          s.paymentReference || '',
+          toIsoStringSafe(s.periodStart),
+          toIsoStringSafe(s.periodEnd),
+          s.status,
+          toIsoStringSafe(s.createdAt),
+        ]
+          .map(sanitizeCsvCell)
+          .join(','),
+      );
+    }
+
+    return lines.join('\r\n');
   }
 }

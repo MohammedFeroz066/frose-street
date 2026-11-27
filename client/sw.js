@@ -7,7 +7,7 @@
  * - Automatic obsolete cache purge on activate
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v56-phase5-i18n-ops';
+const CACHE_NAME = 'frose-street-v9-production-v57-admin-overhaul';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const PRECACHE_ASSETS = [
@@ -24,6 +24,7 @@ const PRECACHE_ASSETS = [
   '/css/ui-kit.css',
   '/css/workspace.css',
   '/css/portals-saas.css',
+  '/css/admin.css',
   '/js/theme.js',
   '/js/i18n.js',
   '/js/ui-components.js',

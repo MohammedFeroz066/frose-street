@@ -347,6 +347,7 @@ export class MenuService {
           category: item.category,
           emoji_icon: item.emojiIcon,
           color_hex: item.colorHex,
+          is_veg: item.isVeg !== false,
           display_order: startOrder++,
           is_available: true,
           is_active: true,
@@ -362,6 +363,7 @@ export class MenuService {
         category: inserted.category,
         emojiIcon: inserted.emoji_icon,
         colorHex: inserted.color_hex,
+        isVeg: inserted.is_veg !== false,
         displayOrder: inserted.display_order,
       });
     }

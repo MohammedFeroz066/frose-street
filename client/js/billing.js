@@ -848,12 +848,13 @@
 
     const customQr = localStorage.getItem('frose_custom_scanner_qr');
     const v = getActiveVendorProfile();
-    const upiId = v.upiId || localStorage.getItem('frose_custom_upi_id') || '';
-    const payeeName = v.businessName || v.payeeName || v.name || 'Stall Counter';
+    const upiId = (v.upiId || localStorage.getItem('frose_custom_upi_id') || '').trim();
+    const payeeName = (v.payeeName || v.businessName || v.name || 'Stall Counter').trim();
+    const rupeesAmount = (Number(taxInfo.totalPaise) / 100).toFixed(2);
 
     const upiVpaEl = document.getElementById('upi-qr-vpa');
     if (upiVpaEl) {
-      upiVpaEl.textContent = upiId ? `${payeeName} · ${upiId}` : 'Set up payment QR in settings';
+      upiVpaEl.textContent = upiId ? `${payeeName} · ${upiId}` : 'UPI ID not configured yet';
     }
 
     const qrCanvas = document.getElementById('upi-qr-code-canvas');
@@ -871,32 +872,56 @@
           })
         );
       } else if (!upiId) {
+        const qrIcon = svgEl('svg', {
+          viewBox: '0 0 24 24',
+          width: 36,
+          height: 36,
+          fill: 'none',
+          stroke: 'currentColor',
+          'stroke-width': 1.75,
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+        }, [
+          svgEl('rect', { x: 3, y: 3, width: 7, height: 7, rx: 1 }),
+          svgEl('rect', { x: 14, y: 3, width: 7, height: 7, rx: 1 }),
+          svgEl('rect', { x: 3, y: 14, width: 7, height: 7, rx: 1 }),
+          svgEl('path', { d: 'M14 14h3v3h-3zM17 17h4v4h-4zM14 20h3' }),
+        ]);
         qrCanvas.appendChild(
-          el('div', { style: 'padding: 18px; text-align: center; color: #64748B;' }, [
-            el('div', { style: 'font-size: 28px; margin-bottom: 6px;' }, '📷'),
-            el('div', { style: 'font-size: 13px; font-weight: 800; color: #0F172A;' }, 'Set up payment QR'),
-            el('div', { style: 'font-size: 11.5px;' }, 'Configure UPI VPA in Settings tab.'),
+          el('div', { style: 'padding: 16px; text-align: center; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; gap: 8px;' }, [
+            qrIcon,
+            el('div', { style: 'font-size: 13.5px; font-weight: 800; color: var(--text-primary);' }, 'No UPI ID configured'),
+            el('div', { style: 'font-size: 12px;' }, 'Add your stall UPI ID once to generate scannable customer QRs.'),
+            el('button', {
+              type: 'button',
+              id: 'btn-upi-goto-settings',
+              class: 'saas-btn saas-btn-primary',
+              style: 'min-height: 44px; padding: 0 16px; margin-top: 4px;',
+              on: {
+                click: () => {
+                  window.closeModal('upi-qr-modal');
+                  window.switchWorkspaceTab('settings');
+                },
+              },
+            }, 'Set UPI ID in Settings'),
           ])
         );
       } else {
-        qrCanvas.appendChild(
-          svgEl('svg', { viewBox: '0 0 160 160', width: 160, height: 160 }, [
-            svgEl('rect', { width: 160, height: 160, fill: '#fff', rx: 8 }),
-            svgEl('rect', { x: 18, y: 18, width: 38, height: 38, fill: '#0F172A' }),
-            svgEl('rect', { x: 24, y: 24, width: 26, height: 26, fill: '#fff' }),
-            svgEl('rect', { x: 30, y: 30, width: 14, height: 14, fill: '#0F172A' }),
-            svgEl('rect', { x: 104, y: 18, width: 38, height: 38, fill: '#0F172A' }),
-            svgEl('rect', { x: 110, y: 24, width: 26, height: 26, fill: '#fff' }),
-            svgEl('rect', { x: 116, y: 30, width: 14, height: 14, fill: '#0F172A' }),
-            svgEl('rect', { x: 18, y: 104, width: 38, height: 38, fill: '#0F172A' }),
-            svgEl('rect', { x: 24, y: 110, width: 26, height: 26, fill: '#fff' }),
-            svgEl('rect', { x: 30, y: 116, width: 14, height: 14, fill: '#0F172A' }),
-            svgEl('rect', { x: 70, y: 28, width: 18, height: 18, fill: '#0F172A' }),
-            svgEl('rect', { x: 74, y: 66, width: 20, height: 20, fill: '#0F172A' }),
-            svgEl('rect', { x: 108, y: 74, width: 24, height: 18, fill: '#0F172A' }),
-            svgEl('rect', { x: 68, y: 108, width: 28, height: 24, fill: '#0F172A' }),
-          ])
-        );
+        const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${rupeesAmount}&cu=INR`;
+        const qrDataUrl = window.FroseQrLocal ? window.FroseQrLocal.toDataUrl(upiUri, 220) : '';
+        if (qrDataUrl) {
+          qrCanvas.appendChild(
+            el('img', {
+              src: qrDataUrl,
+              alt: `UPI QR for ${upiId}`,
+              id: 'cart-upi-dynamic-qr-img',
+              'data-upi-uri': upiUri,
+              style: 'width: 196px; height: 196px; object-fit: contain; border-radius: 10px; display: block; image-rendering: pixelated; background: #FFFFFF; padding: 6px;',
+            })
+          );
+        } else if (window.FroseQrLocal && typeof window.FroseQrLocal.toSvgElement === 'function') {
+          qrCanvas.appendChild(window.FroseQrLocal.toSvgElement(upiUri, 196));
+        }
       }
     }
     window.openModal('upi-qr-modal');

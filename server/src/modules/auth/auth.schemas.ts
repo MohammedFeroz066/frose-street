@@ -63,6 +63,7 @@ export const BiometricVerifySchema = z
 
 export const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
 export const FSSAI_REGEX = /^\d{14}$/;
+export const UPI_VPA_REGEX = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
 export const ALLOWED_GST_RATE_BPS = [0, 500, 1200, 1800] as const;
 
 export const UpdateVendorProfileSchema = z
@@ -71,6 +72,23 @@ export const UpdateVendorProfileSchema = z
     ownerName: z.string().trim().min(1).max(100).optional(),
     city: z.string().trim().max(50).optional(),
     stallAddress: z.string().trim().max(240).nullable().optional(),
+    upiId: z
+      .string()
+      .trim()
+      .max(120)
+      .transform((val) => (val === '' ? null : val))
+      .nullable()
+      .optional()
+      .refine((val) => val === undefined || val === null || UPI_VPA_REGEX.test(val), {
+        message: 'Invalid UPI ID format. Must be in username@bank format (e.g. stall@okaxis)',
+      }),
+    payeeName: z
+      .string()
+      .trim()
+      .max(120)
+      .transform((val) => (val === '' ? null : val))
+      .nullable()
+      .optional(),
     taxMode: z.enum(['unregistered', 'composition', 'regular']).optional(),
     gstin: z
       .string()

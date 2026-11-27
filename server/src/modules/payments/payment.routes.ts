@@ -4,6 +4,7 @@ import { PaymentService } from './payment.service.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
 import { AppError } from '../../errors/app-error.js';
+import { withTenantContext } from '../../db/rls-context.js';
 
 const GenerateUpiSchema = z.object({
   vpa: z.string().max(120).optional(),
@@ -52,11 +53,27 @@ export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
       const body = validateSchema(GenerateUpiSchema, request.body);
 
       const vendorId = request.user!.sub;
-      const vpa = body.vpa || PaymentService.getVendorVpa(vendorId);
+      let vpa = body.vpa || PaymentService.getVendorVpa(vendorId);
+      let dbPayeeName: string | null = null;
+      if (!vpa || !body.payeeName) {
+        try {
+          const row = await withTenantContext(vendorId, (db) =>
+            db
+              .selectFrom('vendors')
+              .select(['upi_id', 'payee_name', 'business_name'])
+              .where('id', '=', vendorId)
+              .executeTakeFirst(),
+          );
+          if (!vpa && row?.upi_id) vpa = row.upi_id;
+          dbPayeeName = row?.payee_name || row?.business_name || null;
+        } catch {
+          // ignore fallback read error
+        }
+      }
       if (!vpa) {
         throw AppError.badRequest('UPI VPA is not configured. Please set up your payment QR first.', 'INVALID_UPI_VPA');
       }
-      const payeeName = body.payeeName || request.user!.businessName || 'FROSE Street Vendor';
+      const payeeName = body.payeeName || dbPayeeName || request.user!.businessName || 'FROSE Street Vendor';
       const amountPaise = body.amountPaise;
       const tokenNo = body.tokenNo || 1;
       const itemsSummary = body.itemsSummary;
@@ -105,7 +122,17 @@ export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
    */
   app.get('/vpa', { preHandler: [requireAuth] }, async (request, reply) => {
     const vendorId = request.user!.sub;
-    const vpa = PaymentService.getVendorVpa(vendorId);
+    let vpa = PaymentService.getVendorVpa(vendorId);
+    if (!vpa) {
+      try {
+        const row = await withTenantContext(vendorId, (db) =>
+          db.selectFrom('vendors').select(['upi_id']).where('id', '=', vendorId).executeTakeFirst(),
+        );
+        if (row?.upi_id) vpa = row.upi_id;
+      } catch {
+        // ignore fallback read error
+      }
+    }
     return reply.status(200).send({
       status: 'success',
       vpa,
@@ -124,6 +151,17 @@ export const paymentRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
 
       const vendorId = request.user!.sub;
       const savedVpa = PaymentService.setVendorVpa(vendorId, body.vpa);
+      try {
+        await withTenantContext(vendorId, (db) =>
+          db
+            .updateTable('vendors')
+            .set({ upi_id: savedVpa, updated_at: new Date() })
+            .where('id', '=', vendorId)
+            .execute(),
+        );
+      } catch {
+        // ignore in mock contexts without vendors row
+      }
 
       return reply.status(200).send({
         status: 'success',

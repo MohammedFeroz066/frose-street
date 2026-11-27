@@ -188,15 +188,26 @@
     );
 
     // 3. UPI Payment QR
+    var effectiveUpiId = (v.upiId || localStorage.getItem('frose_custom_upi_id') || '').trim();
+    var effectivePayee = (v.payeeName || localStorage.getItem('frose_custom_payee_name') || v.businessName || 'Stall Counter').trim();
+    var generatedQrUrl = '';
+    if (!safeQr && effectiveUpiId && window.FroseQrLocal && typeof window.FroseQrLocal.toDataUrl === 'function') {
+      try {
+        var previewUri = 'upi://pay?pa=' + encodeURIComponent(effectiveUpiId) + '&pn=' + encodeURIComponent(effectivePayee) + '&cu=INR';
+        generatedQrUrl = window.FroseQrLocal.toDataUrl(previewUri, 140);
+      } catch (_) {}
+    }
+
     var qrPreviewNode = safeQr
       ? el('img', { src: safeQr, alt: 'Custom UPI QR', style: 'width: 72px; height: 72px; object-fit: contain; border-radius: 10px;' })
-      : svgEl('svg', { viewBox: '0 0 64 64', width: 58, height: 58 }, [
-          svgEl('rect', { width: 64, height: 64, fill: '#FFFFFF', rx: 8 }),
-          svgEl('rect', { x: 8, y: 8, width: 16, height: 16, fill: '#0F172A', rx: 2 }),
-          svgEl('rect', { x: 40, y: 8, width: 16, height: 16, fill: '#0F172A', rx: 2 }),
-          svgEl('rect', { x: 8, y: 40, width: 16, height: 16, fill: '#0F172A', rx: 2 }),
-          svgEl('rect', { x: 28, y: 28, width: 10, height: 10, fill: '#059669', rx: 2 }),
-        ]);
+      : (generatedQrUrl
+        ? el('img', { id: 'sett-dynamic-qr-preview', src: generatedQrUrl, alt: 'UPI QR Preview', style: 'width: 72px; height: 72px; object-fit: contain; border-radius: 8px; image-rendering: pixelated;' })
+        : svgEl('svg', { viewBox: '0 0 24 24', width: 32, height: 32, fill: 'none', stroke: '#64748B', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+            svgEl('rect', { x: 3, y: 3, width: 7, height: 7, rx: 1 }),
+            svgEl('rect', { x: 14, y: 3, width: 7, height: 7, rx: 1 }),
+            svgEl('rect', { x: 3, y: 14, width: 7, height: 7, rx: 1 }),
+            svgEl('path', { d: 'M14 14h3v3h-3zM17 17h4v4h-4zM14 20h3' }),
+          ]));
 
     var fileInput = el('input', {
       type: 'file',
@@ -225,15 +236,16 @@
         el('div', { style: 'display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;' }, [
           el('div', { class: 'saas-field' }, [
             el('label', { class: 'saas-label', for: 'sett-upi-id' }, 'Counter UPI VPA *'),
-            el('input', { type: 'text', id: 'sett-upi-id', class: 'saas-input', value: v.upiId || '', placeholder: 'e.g. stall@upi' }),
+            el('input', { type: 'text', id: 'sett-upi-id', class: 'saas-input', value: effectiveUpiId, placeholder: 'e.g. stall@okaxis' }),
           ]),
           el('div', { class: 'saas-field' }, [
             el('label', { class: 'saas-label', for: 'sett-payee-name' }, 'Payee Name'),
-            el('input', { type: 'text', id: 'sett-payee-name', class: 'saas-input', value: v.payeeName || v.businessName || '' }),
+            el('input', { type: 'text', id: 'sett-payee-name', class: 'saas-input', value: effectivePayee }),
           ]),
         ]),
         el('button', {
           type: 'button',
+          id: 'btn-save-upi-settings',
           class: 'saas-btn saas-btn-primary',
           on: { click: window.savePaymentScanner },
         }, 'Save UPI QR Settings'),
@@ -664,21 +676,70 @@
     toast('Stall profile & compliance saved', 'success');
   };
 
-  window.savePaymentScanner = function () {
-    var upiId = document.getElementById('sett-upi-id')?.value.trim();
-    var payee = document.getElementById('sett-payee-name')?.value.trim();
-    if (!upiId) {
-      toast('Enter a valid UPI VPA ID', 'warning');
+  window.savePaymentScanner = async function () {
+    var upiId = (document.getElementById('sett-upi-id')?.value || '').trim();
+    var payee = (document.getElementById('sett-payee-name')?.value || '').trim();
+    var vpaRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+    if (!upiId || !vpaRegex.test(upiId)) {
+      toast('Enter a valid UPI ID (e.g. stall@okaxis)', 'warning');
       return;
     }
-    currentVendor = currentVendor || {};
-    currentVendor.upiId = upiId;
-    if (payee) currentVendor.payeeName = payee;
-    localStorage.setItem('frose_current_vendor', JSON.stringify(currentVendor));
-    localStorage.setItem('frose_custom_upi_id', upiId);
-    if (payee) localStorage.setItem('frose_custom_payee_name', payee);
-    renderSettingsHub();
-    toast('UPI QR settings saved', 'success');
+
+    var saveBtn = document.getElementById('btn-save-upi-settings');
+    if (saveBtn) {
+      if (saveBtn.disabled) return;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+    }
+
+    try {
+      if (localStorage.getItem('frose_session_active') && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+        var fn = window.froseApiFetch || fetch;
+        var res = await fn('/api/v1/auth/profile', {
+          method: 'PATCH',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+          body: JSON.stringify({
+            upiId: upiId,
+            payeeName: payee || null,
+          }),
+        });
+        var data = await res.json().catch(function () { return {}; });
+        if (!res.ok) {
+          toast(data?.error?.message || data?.message || 'Failed to save UPI settings', 'danger');
+          return;
+        }
+        if (data && data.vendor) {
+          currentVendor = Object.assign({}, currentVendor || {}, data.vendor);
+        }
+      }
+
+      currentVendor = currentVendor || {};
+      currentVendor.upiId = upiId;
+      if (payee) currentVendor.payeeName = payee;
+      localStorage.setItem('frose_current_vendor', JSON.stringify(currentVendor));
+      localStorage.setItem('frose_custom_upi_id', upiId);
+      if (payee) localStorage.setItem('frose_custom_payee_name', payee);
+      else localStorage.removeItem('frose_custom_payee_name');
+
+      if (window.FroseIdbStore && currentVendor.id && typeof window.FroseIdbStore.setMeta === 'function') {
+        try {
+          await window.FroseIdbStore.setMeta('vendor_profile', {
+            vendor_id: currentVendor.id,
+            value: currentVendor,
+          });
+        } catch (_) {}
+      }
+      renderSettingsHub();
+      toast('UPI QR settings saved', 'success');
+    } catch (_) {
+      toast('Network error saving UPI settings', 'danger');
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save UPI QR Settings';
+      }
+    }
   };
 
   window.handleScannerImageUpload = function (event) {

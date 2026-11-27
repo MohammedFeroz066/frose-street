@@ -4,8 +4,9 @@ import type { Database } from '../../db/types.js';
 import { hashPassword, verifyPassword, hashPin, verifyPin } from '../../utils/crypto.js';
 import { validateStrongPassword } from '../../utils/password-validator.js';
 import { getIstDateString } from '../../utils/ist-date.js';
-import { GSTIN_REGEX, FSSAI_REGEX, ALLOWED_GST_RATE_BPS } from './auth.schemas.js';
+import { GSTIN_REGEX, FSSAI_REGEX, UPI_VPA_REGEX, ALLOWED_GST_RATE_BPS } from './auth.schemas.js';
 import { AppError } from '../../errors/app-error.js';
+import { PaymentService } from '../payments/payment.service.js';
 import { STREET_MENU_PRESETS } from '../menu/menu.presets.js';
 import { SubscriptionService } from '../subscriptions/subscription.service.js';
 import { LoginSecurityService } from './login-security.service.js';
@@ -76,6 +77,11 @@ export class AuthService {
 
     const newVendorId = randomUUID();
 
+    const trimmedUpiId = typeof input.upiId === 'string' && UPI_VPA_REGEX.test(input.upiId.trim())
+      ? input.upiId.trim()
+      : null;
+    const initialPayeeName = trimmedUpiId ? input.businessName.trim().slice(0, 120) : null;
+
     return withTenantContext(newVendorId, async (trx) => {
       // Insert vendor within its own tenant context
       const vendor = await trx
@@ -99,6 +105,8 @@ export class AuthService {
           fssai_number: null,
           gst_rate_bps: 0,
           stall_address: null,
+          upi_id: trimmedUpiId,
+          payee_name: initialPayeeName,
         })
         .returningAll()
         .executeTakeFirstOrThrow();
@@ -133,6 +141,7 @@ export class AuthService {
               category: item.category,
               emoji_icon: item.emojiIcon,
               color_hex: item.colorHex,
+              is_veg: item.isVeg !== false,
               is_available: true,
               is_active: true,
               display_order: i + 1,
@@ -418,6 +427,8 @@ export class AuthService {
       ownerName?: string;
       city?: string;
       stallAddress?: string | null;
+      upiId?: string | null;
+      payeeName?: string | null;
       taxMode?: 'unregistered' | 'composition' | 'regular';
       gstin?: string | null;
       fssaiNumber?: string | null;
@@ -480,6 +491,26 @@ export class AuthService {
     if (input.city !== undefined) updateFields.city = input.city.trim();
     if (input.stallAddress !== undefined) {
       updateFields.stall_address = input.stallAddress ? input.stallAddress.trim() : null;
+    }
+    if (input.upiId !== undefined) {
+      const normalizedUpi = input.upiId ? input.upiId.trim() : null;
+      if (normalizedUpi !== null && !UPI_VPA_REGEX.test(normalizedUpi)) {
+        throw AppError.badRequest(
+          'Invalid UPI ID format. Must be in username@bank format (e.g. stall@okaxis)',
+          'INVALID_UPI_VPA',
+        );
+      }
+      updateFields.upi_id = normalizedUpi;
+      if (normalizedUpi) {
+        try {
+          PaymentService.setVendorVpa(vendorId, normalizedUpi);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    if (input.payeeName !== undefined) {
+      updateFields.payee_name = input.payeeName ? input.payeeName.trim().slice(0, 120) : null;
     }
 
     const updated = await db

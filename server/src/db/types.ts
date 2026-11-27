@@ -25,6 +25,8 @@ export interface VendorsTable {
   fssai_number?: string | null;
   gst_rate_bps?: number;
   stall_address?: string | null;
+  upi_id?: string | null;
+  payee_name?: string | null;
   created_at: Generated<Timestamp>;
   updated_at: Generated<Timestamp>;
 }
@@ -137,6 +139,7 @@ export interface DailySummariesTable {
   net_paise: MoneyPaise;
   cancelled_orders: Generated<number> | number;
   top_selling_item: string | null;
+  counted_cash_paise?: MoneyPaise | null;
   created_at: Generated<Timestamp>;
 }
 

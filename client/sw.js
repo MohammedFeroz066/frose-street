@@ -14,32 +14,38 @@ const BUILD_ID = '__FROSE_BUILD_ID__';
 const CACHE_NAME = 'frose-street-' + BUILD_ID;
 const NETWORK_TIMEOUT_MS = 3000;
 
-const PRECACHE_ASSETS = [
+const CORE_PRECACHE_ASSETS = [
   '/',
-  '/index.html',
   '/login.html',
-  '/register.html',
   '/billing.html',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/css/tokens.css',
+  '/css/ui-kit.css',
+  '/js/pwa-updater.js',
+  '/js/safe-dom.js',
+  '/js/dom-events.js'
+];
+
+const SECONDARY_PRECACHE_ASSETS = [
+  '/index.html',
+  '/register.html',
   '/kitchen.html',
   '/packaging.html',
   '/menu-setup.html',
   '/css/style.css',
-  '/css/tokens.css',
-  '/css/ui-kit.css',
   '/css/workspace.css',
   '/css/portals-saas.css',
   '/css/admin.css',
   '/js/theme.js',
   '/js/i18n.js',
   '/js/ui-components.js',
-  '/js/pwa-updater.js',
   '/js/orders-panel.js',
   '/js/payments-panel.js',
   '/js/menu-panel.js',
   '/js/api-client.js',
-  '/js/safe-dom.js',
   '/js/session-guard.js',
-  '/js/dom-events.js',
   '/js/idb-store.js',
   '/js/billing-page.js',
   '/js/login-page.js',
@@ -59,9 +65,6 @@ const PRECACHE_ASSETS = [
   '/js/billing.js',
   '/js/kitchen.js',
   '/js/packaging.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
   '/images/dishes/chicken-biryani-full.webp'
 ];
 
@@ -92,11 +95,27 @@ async function matchCachedShell(request) {
   return (await cache.match('/index.html')) || Response.error();
 }
 
+async function warmSecondaryAssets() {
+  try {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.allSettled(
+      SECONDARY_PRECACHE_ASSETS.map(async (url) => {
+        const existing = await cache.match(url, { ignoreSearch: true });
+        if (existing) return;
+        const response = await fetch(new Request(url, { cache: 'reload' }));
+        if (response && response.ok) {
+          await cache.put(url, response);
+        }
+      })
+    );
+  } catch (_) {}
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       Promise.all(
-        PRECACHE_ASSETS.map((url) =>
+        CORE_PRECACHE_ASSETS.map((url) =>
           fetch(new Request(url, { cache: 'reload' })).then((response) => {
             if (!response.ok) {
               throw new Error(`Precache failed for ${url}: ${response.status}`);
@@ -127,6 +146,9 @@ self.addEventListener('activate', (event) => {
         )
       )
       .then(() => self.clients.claim())
+      .then(() => {
+        warmSecondaryAssets();
+      })
   );
 });
 

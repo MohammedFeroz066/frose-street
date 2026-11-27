@@ -98,8 +98,16 @@ describe('PWA-UPD-01: Dynamic Build Fingerprint, /api/v1/version & Zero-Stale He
     app = await buildApp({ logger: false });
     await app.ready();
 
+    const htmlTargets = ['/billing.html'];
+    for (const url of htmlTargets) {
+      const res = await app.inject({ method: 'GET', url });
+      expect(res.statusCode, `Expected 200 for ${url}`).toBe(200);
+      expect(res.headers['cache-control']).toBe('no-cache, no-store, must-revalidate');
+      expect(res.headers['cdn-cache-control']).toBe('no-store');
+      expect(String(res.headers['cache-control'])).not.toContain('immutable');
+    }
+
     const targets = [
-      '/billing.html',
       '/manifest.json',
       '/js/api-client.js',
       '/css/ui-kit.css',
@@ -119,7 +127,7 @@ describe('PWA-UPD-01: Dynamic Build Fingerprint, /api/v1/version & Zero-Stale He
       headers: { accept: 'text/html' },
     });
     expect(cleanHtmlRes.statusCode).toBe(200);
-    expect(cleanHtmlRes.headers['cache-control']).toBe('no-cache, must-revalidate');
-    expect(cleanHtmlRes.headers['cdn-cache-control']).toBe('no-cache');
+    expect(cleanHtmlRes.headers['cache-control']).toBe('no-cache, no-store, must-revalidate');
+    expect(cleanHtmlRes.headers['cdn-cache-control']).toBe('no-store');
   });
 });

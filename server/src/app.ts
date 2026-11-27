@@ -181,6 +181,46 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       .send(rendered);
   });
 
+  const renderStampedHtml = (rawHtml: string, buildId: string): string => {
+    return rawHtml
+      .replace(/(<script[^>]+src=["'])(\/js\/[^"'?]+)(?:\?[^"']*)?(["'])/gi, `$1$2?v=${buildId}$3`)
+      .replace(/(<link[^>]+href=["'])(\/css\/[^"'?]+)(?:\?[^"']*)?(["'])/gi, `$1$2?v=${buildId}$3`)
+      .replace(/(<link[^>]+href=["'])(\/manifest\.json)(?:\?[^"']*)?(["'])/gi, `$1$2?v=${buildId}$3`);
+  };
+
+  const sendPortalHtml = (reply: any, fileName: string): boolean => {
+    const targetPath = path.join(clientDir, fileName);
+    if (!fs.existsSync(targetPath)) return false;
+    const info = getBuildInfo({ clientDir });
+    const stamped = renderStampedHtml(fs.readFileSync(targetPath, 'utf8'), info.buildId);
+    reply
+      .type('text/html; charset=utf-8')
+      .header('Cache-Control', 'no-cache, no-store, must-revalidate')
+      .header('CDN-Cache-Control', 'no-store')
+      .header('Cloudflare-CDN-Cache-Control', 'no-store')
+      .send(stamped);
+    return true;
+  };
+
+  // Atomic HTML -> JS/CSS/Manifest version stamping (registered BEFORE @fastify/static)
+  const htmlFileRoutes: Array<{ route: string; file: string }> = [
+    { route: '/', file: 'index.html' },
+    { route: '/index.html', file: 'index.html' },
+    { route: '/login.html', file: 'login.html' },
+    { route: '/register.html', file: 'register.html' },
+    { route: '/billing.html', file: 'billing.html' },
+    { route: '/kitchen.html', file: 'kitchen.html' },
+    { route: '/packaging.html', file: 'packaging.html' },
+    { route: '/menu-setup.html', file: 'menu-setup.html' },
+    { route: '/admin.html', file: 'admin.html' },
+  ];
+  for (const entry of htmlFileRoutes) {
+    app.get(entry.route, async (_req, reply) => {
+      if (sendPortalHtml(reply, entry.file)) return reply;
+      return reply.status(404).send({ error: 'Page not found' });
+    });
+  }
+
   try {
     await app.register(fastifyStatic, {
       root: clientDir,
@@ -188,8 +228,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
       decorateReply: false,
       setHeaders: (res, filePath) => {
         const normalized = filePath.replace(/\\/g, '/').toLowerCase();
-        if (
-          normalized.endsWith('.html') ||
+        if (normalized.endsWith('.html')) {
+          res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.header('CDN-Cache-Control', 'no-store');
+          res.header('Cloudflare-CDN-Cache-Control', 'no-store');
+        } else if (
           normalized.endsWith('/manifest.json') ||
           normalized.endsWith('.js') ||
           normalized.endsWith('.mjs') ||
@@ -254,18 +297,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
 
-  const sendPortalHtml = (reply: any, fileName: string): boolean => {
-    const targetPath = path.join(clientDir, fileName);
-    if (!fs.existsSync(targetPath)) return false;
-    reply
-      .type('text/html')
-      .header('Cache-Control', 'no-cache, must-revalidate')
-      .header('CDN-Cache-Control', 'no-cache')
-      .send(fs.readFileSync(targetPath, 'utf8'));
-    return true;
-  };
-
-  // Portal routing aliases
+  // Portal routing aliases (HTML responses use sendPortalHtml with stamped ?v=<buildId>)
   app.get('/billing', async (req, reply) => {
     const accept = req.headers.accept || '';
     if (accept.includes('text/html') && sendPortalHtml(reply, 'billing.html')) {

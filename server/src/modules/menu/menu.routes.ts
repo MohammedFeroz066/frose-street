@@ -18,13 +18,41 @@ const MenuVariantSchema = z.object({
   pricePaise: z.number().int().positive(),
 }).strict();
 
+const SAFE_RASTER_DATA_URI_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i;
+const MAX_IMAGE_DATA_URI_CHARS = 180_000;
+
+function isValidDishImageUrl(val: string): boolean {
+  const trimmed = val.trim();
+  if (trimmed === '') return true;
+  if (/[\u0000-\u001F\u007F]/.test(trimmed)) return false;
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+    return trimmed.length <= 2048;
+  }
+  if (SAFE_RASTER_DATA_URI_RE.test(trimmed)) {
+    return trimmed.length <= MAX_IMAGE_DATA_URI_CHARS;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'https:' && trimmed.length <= 2048;
+  } catch {
+    return false;
+  }
+}
+
 const CreateMenuSchema = z.object({
   name: z.string().min(1).max(120),
   pricePaise: z.number(),
   category: z.string().max(80).optional(),
   emojiIcon: z.string().max(16).optional(),
   colorHex: z.string().max(20).optional(),
-  imageUrl: z.string().max(500000).optional(),
+  imageUrl: z
+    .string()
+    .max(MAX_IMAGE_DATA_URI_CHARS)
+    .refine(isValidDishImageUrl, {
+      message: 'Invalid imageUrl: must be https://, safe /path, or base64 jpeg/png/webp <= 180KB',
+    })
+    .nullable()
+    .optional(),
   isVeg: z.boolean().optional(),
   variants: z.array(MenuVariantSchema).max(12).nullable().optional(),
   displayOrder: z.number().int().optional(),

@@ -49,6 +49,7 @@ describe('SEC-08-XSS: Safe DOM Helper, Image URL Validation & Zero Unsafe HTML S
     expect(safeImageUrl('//evil.com/x.png')).toBe('');
     expect(safeImageUrl('http://insecure.example.com/x.png')).toBe('');
     expect(safeImageUrl('not a valid url :// ???')).toBe('');
+    expect(safeImageUrl(`data:image/jpeg;base64,${'A'.repeat(180005)}`)).toBe('');
   });
 
   it('c) el() renders XSS payloads strictly as plain text with zero executable child nodes', async () => {

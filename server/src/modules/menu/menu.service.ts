@@ -15,7 +15,7 @@ export interface CreateMenuItemInput {
   category?: string;
   emojiIcon?: string;
   colorHex?: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   isVeg?: boolean;
   variants?: MenuVariantInput[] | null;
   displayOrder?: number;
@@ -28,7 +28,7 @@ export interface UpdateMenuItemInput {
   category?: string;
   emojiIcon?: string;
   colorHex?: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   isVeg?: boolean;
   variants?: MenuVariantInput[] | null;
   displayOrder?: number;

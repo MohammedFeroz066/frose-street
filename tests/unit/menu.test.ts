@@ -565,5 +565,73 @@ describe('Phase 7 Acceptance: Menu Management Backend', () => {
       const json = JSON.parse(res.body);
       expect(json.code).toBe('AUTH_REQUIRED');
     });
+
+    it('POS-UX-01: Accepts valid compressed data:image/jpeg and data:image/webp base64 URLs and empty string', async () => {
+      const jpegDataUri = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAA==';
+      const webpDataUri = 'data:image/webp;base64,UklGRh4AAABXRUJQVlA4TBEAAAAvAAAAAAfQ//73v/+BiOh/AAA=';
+
+      const res1 = await app.inject({
+        method: 'POST',
+        url: '/api/v1/menu',
+        headers: { authorization: `Bearer ${ownerToken}` },
+        payload: {
+          name: 'Photo Momo',
+          pricePaise: 6000,
+          category: 'Momos',
+          imageUrl: jpegDataUri,
+        },
+      });
+      expect(res1.statusCode).toBe(201);
+      expect(JSON.parse(res1.body).item.imageUrl).toBe(jpegDataUri);
+
+      const res2 = await app.inject({
+        method: 'PUT',
+        url: `/api/v1/menu/${JSON.parse(res1.body).item.id}`,
+        headers: { authorization: `Bearer ${ownerToken}` },
+        payload: { imageUrl: webpDataUri },
+      });
+      expect(res2.statusCode).toBe(200);
+      expect(JSON.parse(res2.body).item.imageUrl).toBe(webpDataUri);
+
+      const res3 = await app.inject({
+        method: 'POST',
+        url: '/api/v1/menu',
+        headers: { authorization: `Bearer ${ownerToken}` },
+        payload: {
+          name: 'No Photo Dosa',
+          pricePaise: 5000,
+          category: 'South Indian',
+          imageUrl: '',
+        },
+      });
+      expect(res3.statusCode).toBe(201);
+      expect(JSON.parse(res3.body).item.imageUrl).toBeNull();
+    });
+
+    it('POS-UX-01: Rejects unsafe imageUrl schemes (svg+xml, text/html, javascript:) and oversized payloads with 400', async () => {
+      const badUrls = [
+        'data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+PC9zdmc+',
+        'data:image/svg+xml,<svg onload=alert(1)>',
+        'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
+        'javascript:alert(1)',
+        'http://insecure.example.com/food.jpg',
+        '//evil.example.com/food.jpg',
+        `data:image/jpeg;base64,${'A'.repeat(180005)}`,
+      ];
+
+      for (const badUrl of badUrls) {
+        const res = await app.inject({
+          method: 'POST',
+          url: '/api/v1/menu',
+          headers: { authorization: `Bearer ${ownerToken}` },
+          payload: {
+            name: 'Bad Photo Dish',
+            pricePaise: 5000,
+            imageUrl: badUrl,
+          },
+        });
+        expect(res.statusCode).toBe(400);
+      }
+    });
   });
 });

@@ -6,6 +6,7 @@
   'use strict';
 
   var SAFE_DATA_IMAGE_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i;
+  var MAX_DATA_IMAGE_CHARS = 180000;
   var SVG_NS = 'http://www.w3.org/2000/svg';
 
   function safeImageUrl(url) {
@@ -18,7 +19,7 @@
     }
 
     if (SAFE_DATA_IMAGE_RE.test(trimmed)) {
-      return trimmed;
+      return trimmed.length <= MAX_DATA_IMAGE_CHARS ? trimmed : '';
     }
 
     try {

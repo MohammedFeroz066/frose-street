@@ -500,18 +500,50 @@
           <div id="dish-variants-rows" style="display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
         <div class="saas-field">
-          <label class="saas-label" for="input-dish-photo-select">Dish Image Preset or HTTPS URL</label>
-          <select id="input-dish-photo-select" class="saas-select" data-change-value="updateDishPhotoPreview">
-            <option value="/images/dishes/chicken-biryani-full.webp">Biryani Plate</option>
-            <option value="/images/dishes/chicken-handi-biryani.webp">Handi Pot</option>
-            <option value="/images/dishes/mini-chicken-biryani.webp">Mini Bowl</option>
-            <option value="/images/dishes/mutton-biryani-full.webp">Special Platter</option>
-          </select>
-          <input type="url" id="input-dish-photo-url" class="saas-input" placeholder="Or paste https:// image URL (optional)">
-          <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
-            <img id="dish-photo-preview-img" src="/images/dishes/chicken-biryani-full.webp" alt="Dish preview" style="width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: var(--bg-subtle);">
-            <span style="font-size: 12px; color: var(--text-muted);">Live safe-URL image preview</span>
+          <label class="saas-label" data-i18n="dish.photo_label">Dish Photo</label>
+          <input type="file" id="input-dish-photo-camera" accept="image/*" capture="environment" class="pos-sr-only" aria-label="Take Dish Photo">
+          <input type="file" id="input-dish-photo-gallery" accept="image/*" class="pos-sr-only" aria-label="Choose Dish Photo from Gallery">
+
+          <div class="pos-photo-picker-row">
+            <button type="button" class="saas-btn saas-btn-secondary pos-photo-btn" id="btn-dish-photo-camera" data-click-target="input-dish-photo-camera">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span data-i18n="dish.take_photo">Take Photo</span>
+            </button>
+            <button type="button" class="saas-btn saas-btn-secondary pos-photo-btn" id="btn-dish-photo-gallery" data-click-target="input-dish-photo-gallery">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span data-i18n="dish.choose_gallery">Choose from Gallery</span>
+            </button>
           </div>
+
+          <div class="pos-photo-preview-bar" id="dish-photo-preview-bar">
+            <div class="pos-photo-thumb-wrap">
+              <img id="dish-photo-preview-img" src="" alt="Dish preview" class="pos-photo-preview-img" style="display: none;">
+              <div id="dish-photo-placeholder" class="pos-photo-placeholder" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </div>
+            </div>
+            <div class="pos-photo-preview-meta">
+              <div id="dish-photo-preview-status" class="pos-photo-status-text" data-i18n="dish.no_photo">No photo attached (optional)</div>
+              <div class="pos-photo-status-sub">Auto-compressed for fast offline &amp; cloud sync</div>
+            </div>
+            <button type="button" id="btn-remove-dish-photo" class="saas-btn saas-btn-secondary pos-photo-remove-btn" data-click="clearDishPhoto" aria-label="Remove Photo" title="Remove Photo" style="display: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <details class="pos-photo-fallback-details" id="dish-photo-fallback-details">
+            <summary class="pos-photo-fallback-summary">Presets or Paste https:// URL (optional)</summary>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+              <select id="input-dish-photo-select" class="saas-select" data-change-value="updateDishPhotoPreview">
+                <option value="">-- No Preset --</option>
+                <option value="/images/dishes/chicken-biryani-full.webp">Biryani Plate</option>
+                <option value="/images/dishes/chicken-handi-biryani.webp">Handi Pot</option>
+                <option value="/images/dishes/mini-chicken-biryani.webp">Mini Bowl</option>
+                <option value="/images/dishes/mutton-biryani-full.webp">Special Platter</option>
+              </select>
+              <input type="url" id="input-dish-photo-url" class="saas-input" placeholder="Or paste https:// image URL (optional)">
+            </div>
+          </details>
         </div>
         <div style="display: flex; gap: 10px;">
           <button type="button" id="btn-delete-dish-in-modal" class="saas-btn saas-btn-danger" data-click="deleteActiveFormDish" style="display: none; flex: 1;">Delete</button>

@@ -306,7 +306,7 @@
                 isUserCreated: true,
                 isVeg: item.isVeg !== false,
                 variants: Array.isArray(item.variants) ? item.variants : null,
-                image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
+                image: item.imageUrl || item.image || '',
                 pricePaise: BigInt(intPaise),
               };
             });
@@ -339,7 +339,7 @@
             ...item,
             isVeg: item.isVeg !== false,
             variants: Array.isArray(item.variants) ? item.variants : null,
-            image: item.imageUrl || item.image || '/images/dishes/chicken-biryani-full.webp',
+            image: item.imageUrl || item.image || '',
             pricePaise: BigInt(toSafeIntPaise(item.pricePaise)),
           }));
           if (cats.length === 0) {
@@ -1337,15 +1337,134 @@
     container.appendChild(row);
   };
 
-  window.updateDishPhotoPreview = function (val) {
+  let activeDishPhotoDataUrl = '';
+
+  function setDishPhotoPreviewState(src, labelText) {
     const { safeImageUrl } = window.FroseSafeDom;
+    const preview = document.getElementById('dish-photo-preview-img');
+    const placeholder = document.getElementById('dish-photo-placeholder');
+    const statusEl = document.getElementById('dish-photo-preview-status');
+    const removeBtn = document.getElementById('btn-remove-dish-photo');
+    const safe = safeImageUrl(src);
+
+    if (safe) {
+      if (preview) {
+        preview.src = safe;
+        preview.style.display = 'block';
+      }
+      if (placeholder) placeholder.style.display = 'none';
+      if (removeBtn) removeBtn.style.display = 'inline-flex';
+      if (statusEl) statusEl.textContent = labelText || (safe.startsWith('data:image/') ? 'Compressed photo ready' : 'Image attached');
+    } else {
+      if (preview) {
+        preview.removeAttribute('src');
+        preview.style.display = 'none';
+      }
+      if (placeholder) placeholder.style.display = 'flex';
+      if (removeBtn) removeBtn.style.display = 'none';
+      if (statusEl) statusEl.textContent = 'No photo attached (optional)';
+    }
+  }
+
+  window.clearDishPhoto = function () {
+    activeDishPhotoDataUrl = '';
     const urlInput = document.getElementById('input-dish-photo-url');
     const selectEl = document.getElementById('input-dish-photo-select');
-    const preview = document.getElementById('dish-photo-preview-img');
-    const raw = (val !== undefined ? val : (urlInput?.value.trim() || selectEl?.value || ''));
-    const safe = safeImageUrl(raw) || '/images/dishes/chicken-biryani-full.webp';
-    if (preview) preview.src = safe;
+    const camInput = document.getElementById('input-dish-photo-camera');
+    const galInput = document.getElementById('input-dish-photo-gallery');
+    if (urlInput) urlInput.value = '';
+    if (selectEl) selectEl.value = '';
+    if (camInput) camInput.value = '';
+    if (galInput) galInput.value = '';
+    setDishPhotoPreviewState('');
   };
+
+  window.updateDishPhotoPreview = function (val) {
+    const urlInput = document.getElementById('input-dish-photo-url');
+    const selectEl = document.getElementById('input-dish-photo-select');
+    if (val !== undefined && val !== '') {
+      activeDishPhotoDataUrl = '';
+    }
+    const raw = (val !== undefined ? val : (activeDishPhotoDataUrl || urlInput?.value.trim() || selectEl?.value || ''));
+    setDishPhotoPreviewState(raw);
+  };
+
+  async function compressDishImageFile(file) {
+    if (!file) return;
+    const type = String(file.type || '').toLowerCase();
+    const isRasterImage = type.startsWith('image/') && type !== 'image/svg+xml';
+    if (!isRasterImage) {
+      notify('Unsupported file type. Please choose a JPG, PNG, or WebP image.', 'danger');
+      return;
+    }
+
+    const loadImage = (f) => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Failed to read image file'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Invalid or corrupted image file'));
+        img.src = String(reader.result || '');
+      };
+      reader.readAsDataURL(f);
+    });
+
+    try {
+      const img = await loadImage(file);
+      const maxDim = 400;
+      const srcW = img.naturalWidth || img.width || 400;
+      const srcH = img.naturalHeight || img.height || 400;
+      const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
+      let targetW = Math.max(1, Math.round(srcW * scale));
+      let targetH = Math.max(1, Math.round(srcH * scale));
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas unavailable');
+
+      const encodeAttempt = (w, h, mime, q) => {
+        canvas.width = w;
+        canvas.height = h;
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        return canvas.toDataURL(mime, q);
+      };
+
+      const TARGET_CHARS = 82000; // ~60 KB binary
+      const HARD_CAP_CHARS = 164000; // ~120 KB binary
+      let dataUrl = encodeAttempt(targetW, targetH, 'image/webp', 0.75);
+      if (!dataUrl.startsWith('data:image/webp')) {
+        dataUrl = encodeAttempt(targetW, targetH, 'image/jpeg', 0.75);
+      }
+      const mimeUsed = dataUrl.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg';
+
+      const qualities = [0.6, 0.45];
+      for (let i = 0; i < qualities.length && dataUrl.length > TARGET_CHARS; i++) {
+        dataUrl = encodeAttempt(targetW, targetH, mimeUsed, qualities[i]);
+      }
+      if (dataUrl.length > HARD_CAP_CHARS) {
+        targetW = Math.max(1, Math.round(targetW * 0.75));
+        targetH = Math.max(1, Math.round(targetH * 0.75));
+        dataUrl = encodeAttempt(targetW, targetH, 'image/jpeg', 0.55);
+      }
+
+      if (dataUrl.length > 180000) {
+        notify('Image is still too large after compression. Please pick a smaller photo.', 'danger');
+        return;
+      }
+
+      activeDishPhotoDataUrl = dataUrl;
+      const urlInput = document.getElementById('input-dish-photo-url');
+      const selectEl = document.getElementById('input-dish-photo-select');
+      if (urlInput) urlInput.value = '';
+      if (selectEl) selectEl.value = '';
+      const approxKb = Math.max(1, Math.round((dataUrl.length * 0.75) / 1024));
+      setDishPhotoPreviewState(dataUrl, `Photo ready (${approxKb} KB)`);
+    } catch (err) {
+      notify(err && err.message ? err.message : 'Could not process image', 'danger');
+    }
+  }
 
   window.openAddDishModal = async function (editDish) {
     const heading = document.getElementById('dish-modal-heading');
@@ -1354,9 +1473,11 @@
     const priceEl = document.getElementById('input-dish-price');
     const photoEl = document.getElementById('input-dish-photo-select');
     const photoUrlEl = document.getElementById('input-dish-photo-url');
+    const fallbackDetails = document.getElementById('dish-photo-fallback-details');
     const delBtn = document.getElementById('btn-delete-dish-in-modal');
     const varRows = document.getElementById('dish-variants-rows');
     if (varRows && window.FroseSafeDom) window.FroseSafeDom.clear(varRows);
+    if (fallbackDetails) fallbackDetails.open = false;
 
     const cats = getMergedCategories();
     if (cats.length === 0) cats.push('Special Items');
@@ -1375,9 +1496,10 @@
       if (priceEl) priceEl.value = String(Math.round(Number(editDish.pricePaise || 0) / 100));
       if (select && editDish.category) select.value = editDish.category;
       const imgVal = editDish.imageUrl || editDish.image || '';
-      if (photoEl && imgVal.startsWith('/images/')) photoEl.value = imgVal;
-      if (photoUrlEl) photoUrlEl.value = imgVal && !imgVal.startsWith('/images/') ? imgVal : '';
-      window.updateDishPhotoPreview(imgVal || photoEl?.value);
+      activeDishPhotoDataUrl = imgVal.startsWith('data:image/') ? imgVal : '';
+      if (photoEl) photoEl.value = imgVal.startsWith('/images/') ? imgVal : '';
+      if (photoUrlEl) photoUrlEl.value = imgVal && !imgVal.startsWith('/images/') && !imgVal.startsWith('data:image/') ? imgVal : '';
+      setDishPhotoPreviewState(imgVal);
       if (delBtn) delBtn.style.display = 'inline-flex';
       window.setDishVegFlag(editDish.isVeg === false ? 'nonveg' : 'veg');
       if (Array.isArray(editDish.variants)) {
@@ -1388,8 +1510,7 @@
       if (editIdEl) editIdEl.value = '';
       if (nameEl) nameEl.value = '';
       if (priceEl) priceEl.value = '';
-      if (photoUrlEl) photoUrlEl.value = '';
-      window.updateDishPhotoPreview(photoEl?.value);
+      window.clearDishPhoto();
       if (delBtn) delBtn.style.display = 'none';
       window.setDishVegFlag('veg');
     }
@@ -1409,7 +1530,8 @@
       notify('Rejected unsafe image URL (use https:// or preset)', 'danger');
       return;
     }
-    const photo = safeImageUrl(customUrlRaw || document.getElementById('input-dish-photo-select')?.value) || '/images/dishes/chicken-biryani-full.webp';
+    const presetVal = document.getElementById('input-dish-photo-select')?.value || '';
+    const photo = safeImageUrl(activeDishPhotoDataUrl || customUrlRaw || presetVal) || '';
 
     if (!name || !Number.isFinite(priceRupees) || priceRupees <= 0) {
       notify('Enter a valid dish name and price', 'warning');
@@ -1680,6 +1802,20 @@
     const photoUrlInput = document.getElementById('input-dish-photo-url');
     if (photoUrlInput) {
       photoUrlInput.addEventListener('input', () => window.updateDishPhotoPreview(photoUrlInput.value));
+    }
+    const camPhotoInput = document.getElementById('input-dish-photo-camera');
+    if (camPhotoInput) {
+      camPhotoInput.addEventListener('change', (e) => {
+        const f = e.target && e.target.files && e.target.files[0];
+        if (f) compressDishImageFile(f);
+      });
+    }
+    const galPhotoInput = document.getElementById('input-dish-photo-gallery');
+    if (galPhotoInput) {
+      galPhotoInput.addEventListener('change', (e) => {
+        const f = e.target && e.target.files && e.target.files[0];
+        if (f) compressDishImageFile(f);
+      });
     }
 
     await refreshPOS();

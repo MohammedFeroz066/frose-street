@@ -125,7 +125,8 @@ describe('Production Readiness Hotfixes Verification', () => {
     expect(swContent).toContain('/js/escpos-generator.js');
     expect(swContent).toContain('/js/bluetooth-printer.js');
     expect(swContent).toContain('/js/whatsapp-service.js');
-    expect(swContent).toContain('frose-street-v9-production');
+    expect(swContent).toContain("const BUILD_ID = '__FROSE_BUILD_ID__';");
+    expect(swContent).toContain("const CACHE_NAME = 'frose-street-' + BUILD_ID;");
   });
 
   it('TEST 7: WebSocket endpoints /ws and /api/v1/ws are registered without 404', async () => {

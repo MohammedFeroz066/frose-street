@@ -231,7 +231,7 @@ describe('Phase 14: Frontend — Kitchen Display Portal (KDS) Acceptance Tests',
 
       expect(sw).toContain("'/kitchen.html'");
       expect(sw).toContain("'/js/kitchen.js'");
-      expect(sw).toMatch(/frose-street-v[6-9]-/);
+      expect(sw).toContain("const CACHE_NAME = 'frose-street-' + BUILD_ID;");
     });
   });
 });

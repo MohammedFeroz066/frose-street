@@ -242,7 +242,7 @@ describe('Phase 15: Frontend — Packaging & Serving Portal Acceptance Tests', (
 
       expect(sw).toContain("'/packaging.html'");
       expect(sw).toContain("'/js/packaging.js'");
-      expect(sw).toMatch(/frose-street-v[7-9]-/);
+      expect(sw).toContain("const CACHE_NAME = 'frose-street-' + BUILD_ID;");
     });
   });
 });

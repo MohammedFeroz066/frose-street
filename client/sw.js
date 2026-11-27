@@ -1,13 +1,17 @@
 /**
- * FROSE Street Service Worker (Phase 2 Offline Safety)
- * frose-street-v9-production compatibility
- * - Complete static shell pre-cache (HTML, CSS, all Step 1D & Phase 2 JS, manifest, icons)
- * - Network-only for /api/* (NEVER cached in CacheStorage; clean 503 OFFLINE JSON fallback)
- * - Network-first with strict 3000ms AbortController timeout for navigations & scripts/styles
- * - Automatic obsolete cache purge on activate
+ * FROSE Street Service Worker (PWA-UPD-02: Safe Waiting-State Atomic Updates)
+ * - Dynamic cache namespace driven by server-injected BUILD_ID
+ * - Precache uses cache: 'reload' so browser HTTP cache never poisons new SW cache
+ * - Never calls skipWaiting() during install while an active controller exists;
+ *   waits cleanly until user clicks Update Now -> postMessage({ type: 'SKIP_WAITING' })
+ * - Network-only for /api/*, /health*, /ws, and /sw.js
+ * - Network-first (3000ms AbortController timeout) for HTML navigations
+ * - Cache-first scoped strictly to CACHE_NAME for static CSS/JS/icons/manifest
+ * - Never modifies or deletes IndexedDB offline data
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v58-pos-ux';
+const BUILD_ID = '__FROSE_BUILD_ID__';
+const CACHE_NAME = 'frose-street-' + BUILD_ID;
 const NETWORK_TIMEOUT_MS = 3000;
 
 const PRECACHE_ASSETS = [
@@ -67,30 +71,40 @@ function fetchWithTimeout(request, timeoutMs = NETWORK_TIMEOUT_MS) {
 }
 
 async function matchCachedShell(request) {
-  const direct = await caches.match(request, { ignoreSearch: true });
+  const cache = await caches.open(CACHE_NAME);
+  const direct = await cache.match(request, { ignoreSearch: true });
   if (direct) return direct;
 
   try {
     const url = new URL(request.url);
     const cleanPath = url.pathname.replace(/\/+$/, '') || '/';
     if (cleanPath === '/') {
-      const idx = await caches.match('/index.html');
+      const idx = await cache.match('/index.html');
       if (idx) return idx;
     }
     if (!cleanPath.endsWith('.html')) {
-      const htmlMatch = await caches.match(`${cleanPath}.html`);
+      const htmlMatch = await cache.match(`${cleanPath}.html`);
       if (htmlMatch) return htmlMatch;
     }
   } catch (_) {}
 
-  return (await caches.match('/index.html')) || Response.error();
+  return (await cache.match('/index.html')) || Response.error();
 }
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS);
-    })
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        PRECACHE_ASSETS.map((url) =>
+          fetch(new Request(url, { cache: 'reload' })).then((response) => {
+            if (!response.ok) {
+              throw new Error(`Precache failed for ${url}: ${response.status}`);
+            }
+            return cache.put(url, response);
+          })
+        )
+      )
+    )
   );
 });
 
@@ -102,13 +116,17 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
-    })
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith('frose-street-') && key !== CACHE_NAME)
+            .map((key) => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -134,8 +152,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Pass health, WebSocket, Admin, downloads, and non-GET requests directly to network
+  // Always bypass cache for /sw.js, health, WebSocket, Admin, downloads, and non-GET requests
   if (
+    url.pathname === '/sw.js' ||
     url.pathname.startsWith('/health') ||
     url.pathname.startsWith('/ws') ||
     url.pathname.startsWith('/admin') ||
@@ -161,52 +180,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first with 3000ms AbortController timeout for CSS and JS assets
-  if (
-    event.request.destination === 'style' ||
-    event.request.destination === 'script' ||
-    url.pathname.startsWith('/css/') ||
-    url.pathname.startsWith('/js/')
-  ) {
-    event.respondWith(
-      fetchWithTimeout(event.request, NETWORK_TIMEOUT_MS)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && url.origin === self.location.origin) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-          }
-          return networkResponse;
-        })
-        .catch(async () => {
-          const cached = await caches.match(event.request, { ignoreSearch: true });
-          if (cached) return cached;
-          if (event.request.destination === 'style' && url.origin !== self.location.origin) {
-            return new Response('', { status: 200, headers: { 'Content-Type': 'text/css' } });
-          }
-          return Response.error();
-        })
-    );
-    return;
-  }
-
-  // Cache-first for images, fonts, manifest, and immutable static assets
+  // Cache-first scoped strictly to CACHE_NAME for static CSS, JS, manifest, icons, and images
   event.respondWith(
-    caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cachedResponse = await cache.match(event.request, { ignoreSearch: true });
       if (cachedResponse) return cachedResponse;
-      return fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && url.origin === self.location.origin) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          if (url.pathname === '/favicon.ico' || url.origin !== self.location.origin) {
-            return new Response(null, { status: 204 });
-          }
-          return Response.error();
-        });
+
+      try {
+        const networkResponse = await fetchWithTimeout(event.request, NETWORK_TIMEOUT_MS);
+        if (networkResponse && networkResponse.status === 200 && url.origin === self.location.origin) {
+          cache.put(event.request, networkResponse.clone());
+        }
+        return networkResponse;
+      } catch (_) {
+        if (event.request.destination === 'style' && url.origin !== self.location.origin) {
+          return new Response('', { status: 200, headers: { 'Content-Type': 'text/css' } });
+        }
+        if (url.pathname === '/favicon.ico' || url.origin !== self.location.origin) {
+          return new Response(null, { status: 204 });
+        }
+        return Response.error();
+      }
     })
   );
 });

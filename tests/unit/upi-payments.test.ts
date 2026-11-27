@@ -248,7 +248,7 @@ describe('Phase 16 Acceptance Tests: UPI Dynamic QR & Payment Flow', () => {
       const swPath = path.resolve(process.cwd(), 'client/sw.js');
       const sw = fs.readFileSync(swPath, 'utf8');
 
-      expect(sw).toMatch(/frose-street-v[8-9]-/);
+      expect(sw).toContain("const CACHE_NAME = 'frose-street-' + BUILD_ID;");
       expect(sw).toContain("'/billing.html'");
     });
   });

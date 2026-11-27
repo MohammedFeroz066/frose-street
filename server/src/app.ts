@@ -8,6 +8,7 @@ import fastifyStatic from '@fastify/static';
 import path from 'node:path';
 import fs from 'node:fs';
 import { loadConfig, isOriginAllowed, EnvironmentConfig } from './config/env.js';
+import { getBuildInfo } from './config/build-info.js';
 import { getDatabase, verifyRuntimeDatabaseRole } from './db/database.js';
 import { sql } from 'kysely';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
@@ -137,15 +138,65 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.addHook('preHandler', createCsrfProtection(config));
 
   // Serve PWA Client Static Files
-  const clientDir = path.resolve(process.cwd(), 'client');
+  const clientDir = config.CLIENT_DIR || path.resolve(process.cwd(), 'client');
+  getBuildInfo({ clientDir });
+
+  // PWA-UPD-01: Public lightweight build version endpoint (rate-limit friendly, never cached)
+  app.get(
+    '/api/v1/version',
+    {
+      config: {
+        rateLimit: {
+          max: 300,
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    async (_request, reply) => {
+      const info = getBuildInfo({ clientDir });
+      return reply
+        .header('Cache-Control', 'no-store')
+        .header('CDN-Cache-Control', 'no-store')
+        .status(200)
+        .send(info);
+    },
+  );
+
+  // PWA-UPD-01: Dynamic Service Worker route (registered BEFORE @fastify/static)
+  app.get('/sw.js', async (_request, reply) => {
+    const swPath = path.join(clientDir, 'sw.js');
+    if (!fs.existsSync(swPath)) {
+      return reply.status(404).send({ error: 'Service worker not found' });
+    }
+    const info = getBuildInfo({ clientDir });
+    const raw = fs.readFileSync(swPath, 'utf8');
+    const rendered = raw.replace(/__FROSE_BUILD_ID__/g, info.buildId);
+    return reply
+      .header('Content-Type', 'application/javascript; charset=utf-8')
+      .header('Cache-Control', 'no-cache, no-store, must-revalidate')
+      .header('CDN-Cache-Control', 'no-store')
+      .header('Cloudflare-CDN-Cache-Control', 'no-store')
+      .header('Service-Worker-Allowed', '/')
+      .status(200)
+      .send(rendered);
+  });
+
   try {
     await app.register(fastifyStatic, {
       root: clientDir,
       prefix: '/',
       decorateReply: false,
       setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.html') || filePath.endsWith('sw.js')) {
-          res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+        const normalized = filePath.replace(/\\/g, '/').toLowerCase();
+        if (
+          normalized.endsWith('.html') ||
+          normalized.endsWith('/manifest.json') ||
+          normalized.endsWith('.js') ||
+          normalized.endsWith('.mjs') ||
+          normalized.endsWith('.css')
+        ) {
+          res.header('Cache-Control', 'no-cache, must-revalidate');
+          res.header('CDN-Cache-Control', 'no-cache');
         } else {
           res.header('Cache-Control', 'public, max-age=0, must-revalidate');
         }
@@ -203,15 +254,22 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     }
   });
 
+  const sendPortalHtml = (reply: any, fileName: string): boolean => {
+    const targetPath = path.join(clientDir, fileName);
+    if (!fs.existsSync(targetPath)) return false;
+    reply
+      .type('text/html')
+      .header('Cache-Control', 'no-cache, must-revalidate')
+      .header('CDN-Cache-Control', 'no-cache')
+      .send(fs.readFileSync(targetPath, 'utf8'));
+    return true;
+  };
+
   // Portal routing aliases
   app.get('/billing', async (req, reply) => {
     const accept = req.headers.accept || '';
-    if (accept.includes('text/html')) {
-      const billingPath = path.resolve(process.cwd(), 'client/billing.html');
-      if (fs.existsSync(billingPath)) {
-        reply.type('text/html');
-        return reply.send(fs.readFileSync(billingPath, 'utf8'));
-      }
+    if (accept.includes('text/html') && sendPortalHtml(reply, 'billing.html')) {
+      return reply;
     }
     return reply.status(200).send({
       portal: 'billing',
@@ -222,12 +280,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.get('/packaging', async (req, reply) => {
     const accept = req.headers.accept || '';
-    if (accept.includes('text/html')) {
-      const packagingPath = path.resolve(process.cwd(), 'client/packaging.html');
-      if (fs.existsSync(packagingPath)) {
-        reply.type('text/html');
-        return reply.send(fs.readFileSync(packagingPath, 'utf8'));
-      }
+    if (accept.includes('text/html') && sendPortalHtml(reply, 'packaging.html')) {
+      return reply;
     }
     return reply.status(200).send({
       portal: 'packaging',
@@ -238,12 +292,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   app.get('/kitchen', async (req, reply) => {
     const accept = req.headers.accept || '';
-    if (accept.includes('text/html')) {
-      const kitchenPath = path.resolve(process.cwd(), 'client/kitchen.html');
-      if (fs.existsSync(kitchenPath)) {
-        reply.type('text/html');
-        return reply.send(fs.readFileSync(kitchenPath, 'utf8'));
-      }
+    if (accept.includes('text/html') && sendPortalHtml(reply, 'kitchen.html')) {
+      return reply;
     }
     return reply.status(200).send({
       portal: 'kitchen',
@@ -254,46 +304,26 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // Registration & Onboarding Page Route
   app.get('/register', async (_req, reply) => {
-    const registerPath = path.resolve(process.cwd(), 'client/register.html');
-    if (fs.existsSync(registerPath)) {
-      reply.type('text/html');
-      return reply.send(fs.readFileSync(registerPath, 'utf8'));
-    }
+    if (sendPortalHtml(reply, 'register.html')) return reply;
     return reply.status(404).send({ error: 'Register page not found' });
   });
 
   // Menu & Inventory Configuration Portal Route
   app.get('/menu-setup', async (_req, reply) => {
-    const menuSetupPath = path.resolve(process.cwd(), 'client/menu-setup.html');
-    if (fs.existsSync(menuSetupPath)) {
-      reply.type('text/html');
-      return reply.send(fs.readFileSync(menuSetupPath, 'utf8'));
-    }
+    if (sendPortalHtml(reply, 'menu-setup.html')) return reply;
     return reply.status(404).send({ error: 'Menu setup page not found' });
   });
 
   // Super Admin Portal Route
   app.get('/admin', async (_req, reply) => {
-    const adminPath = path.resolve(process.cwd(), 'client/admin.html');
-    if (fs.existsSync(adminPath)) {
-      reply.type('text/html');
-      return reply.send(fs.readFileSync(adminPath, 'utf8'));
-    }
+    if (sendPortalHtml(reply, 'admin.html')) return reply;
     return reply.status(404).send({ error: 'Super Admin page not found' });
   });
 
   // Login Page Route
   app.get('/login', async (_req, reply) => {
-    const loginPath = path.resolve(process.cwd(), 'client/login.html');
-    if (fs.existsSync(loginPath)) {
-      reply.type('text/html');
-      return reply.send(fs.readFileSync(loginPath, 'utf8'));
-    }
-    const registerPath = path.resolve(process.cwd(), 'client/register.html');
-    if (fs.existsSync(registerPath)) {
-      reply.type('text/html');
-      return reply.send(fs.readFileSync(registerPath, 'utf8'));
-    }
+    if (sendPortalHtml(reply, 'login.html')) return reply;
+    if (sendPortalHtml(reply, 'register.html')) return reply;
     return reply.status(404).send({ error: 'Login page not found' });
   });
 

@@ -189,10 +189,19 @@
     if (window.__FROSE_SETTINGS_REFRESH__) window.__FROSE_SETTINGS_REFRESH__();
   };
 
-  window.switchWorkspaceTab = function (tabName) {
+  window.switchWorkspaceTab = function (tabName, opts) {
     const valid = ['bill', 'orders', 'menu', 'payments', 'settings'];
     const target = valid.includes(tabName) ? tabName : 'bill';
+    const prevTab = activeTab;
     activeTab = target;
+
+    if ((!opts || !opts.fromPopstate) && target !== prevTab && window.history && typeof window.history.pushState === 'function') {
+      try {
+        if (target !== 'bill') {
+          window.history.pushState({ view: 'billing', froseTab: target }, '', '');
+        }
+      } catch (_) {}
+    }
 
     document.querySelectorAll('.saas-view-panel').forEach((p) => {
       p.classList.toggle('active', p.getAttribute('data-tab-panel') === target);

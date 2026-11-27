@@ -54,23 +54,135 @@
     return toast;
   }
 
-  function openSheet(id) {
+  var overlayStack = [];
+  var suppressPopstateCount = 0;
+
+  function syncModalScrollLock() {
+    if (!global.document || !global.document.body) return;
+    var remaining = global.document.querySelectorAll('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active');
+    var locked = overlayStack.length > 0 || remaining.length > 0;
+    global.document.body.classList.toggle('saas-modal-open', locked);
+    global.document.documentElement.classList.toggle('saas-modal-open', locked);
+  }
+
+  function removeFromOverlayStack(id) {
+    overlayStack = overlayStack.filter(function (entry) { return entry.id !== id; });
+  }
+
+  function openSheet(id, opts) {
     if (!global.document) return;
+    var options = opts || {};
     var node = global.document.getElementById(id);
     if (!node) return;
     node.classList.add('active');
-    global.document.body.classList.add('saas-modal-open');
-    global.document.documentElement.classList.add('saas-modal-open');
+    if (!overlayStack.some(function (entry) { return entry.id === id; })) {
+      overlayStack.push({
+        id: id,
+        onClose: typeof options.onClose === 'function' ? options.onClose : null,
+        staticBackdrop: node.getAttribute('data-static-backdrop') === 'true',
+      });
+      if (!options.skipHistory && global.history && typeof global.history.pushState === 'function') {
+        try {
+          var nextState = Object.assign({}, global.history.state || {}, { froseOverlay: id });
+          global.history.pushState(nextState, '', '');
+        } catch (_) {}
+      }
+    }
+    syncModalScrollLock();
   }
 
-  function closeSheet(id) {
+  function closeSheet(id, opts) {
     if (!global.document) return;
+    var options = opts || {};
+    var entry = overlayStack.find(function (item) { return item.id === id; });
+    removeFromOverlayStack(id);
     var node = global.document.getElementById(id);
     if (node) node.classList.remove('active');
-    var remaining = global.document.querySelectorAll('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active');
-    if (remaining.length === 0) {
-      global.document.body.classList.remove('saas-modal-open');
-      global.document.documentElement.classList.remove('saas-modal-open');
+    if (entry && typeof entry.onClose === 'function' && !options.skipOnClose) {
+      try { entry.onClose(); } catch (_) {}
+    }
+    syncModalScrollLock();
+
+    if (!options.fromPopstate && global.history && global.history.state && global.history.state.froseOverlay === id) {
+      setTimeout(function () {
+        var stillClosed = !overlayStack.some(function (item) { return item.id === id; });
+        if (stillClosed && global.history && global.history.state && global.history.state.froseOverlay === id) {
+          suppressPopstateCount += 1;
+          try { global.history.back(); } catch (_) { suppressPopstateCount = Math.max(0, suppressPopstateCount - 1); }
+        }
+      }, 0);
+    }
+  }
+
+  function closeTopOverlay(opts) {
+    if (overlayStack.length > 0) {
+      var top = overlayStack[overlayStack.length - 1];
+      closeSheet(top.id, opts);
+      return true;
+    }
+    if (!global.document) return false;
+    var activeNodes = global.document.querySelectorAll('.saas-drawer-backdrop.active, .saas-sheet-backdrop.active, .modal-overlay.active');
+    if (activeNodes.length > 0) {
+      var last = activeNodes[activeNodes.length - 1];
+      last.classList.remove('active');
+      syncModalScrollLock();
+      return true;
+    }
+    return false;
+  }
+
+  function getOverlayStack() {
+    return overlayStack.map(function (entry) { return entry.id; });
+  }
+
+  function consumeSuppressedPopstate() {
+    if (suppressPopstateCount > 0) {
+      suppressPopstateCount -= 1;
+      return true;
+    }
+    return false;
+  }
+
+  if (global.document && typeof global.document.addEventListener === 'function' && !global.__FROSE_OVERLAY_LISTENERS__) {
+    global.__FROSE_OVERLAY_LISTENERS__ = true;
+
+    // Global tap-outside backdrop dismissal (unless data-static-backdrop="true")
+    global.document.addEventListener('click', function (e) {
+      var target = e.target;
+      if (!target || !target.classList) return;
+      var isBackdrop = target.classList.contains('saas-sheet-backdrop') ||
+        target.classList.contains('saas-drawer-backdrop') ||
+        target.classList.contains('modal-overlay');
+      if (!isBackdrop || !target.classList.contains('active')) return;
+      if (target.getAttribute('data-static-backdrop') === 'true') return;
+      if (target.id === 'frose-confirm-modal') return; // handled directly by confirmModal
+      if (target.id) {
+        closeSheet(target.id);
+      } else {
+        target.classList.remove('active');
+        syncModalScrollLock();
+      }
+    });
+
+    // Global Escape key dismissal for topmost overlay
+    global.document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var confirmBackdrop = global.document.getElementById('frose-confirm-modal');
+      if (confirmBackdrop && confirmBackdrop.classList.contains('active')) return; // confirmModal handles Escape
+      if (overlayStack.length > 0 || global.document.querySelector('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active')) {
+        e.preventDefault();
+        closeTopOverlay();
+      }
+    });
+
+    if (typeof global.addEventListener === 'function') {
+      global.addEventListener('popstate', function () {
+        if (global.__FROSE_CUSTOM_POPSTATE__) return;
+        if (consumeSuppressedPopstate()) return;
+        if (overlayStack.length > 0) {
+          closeTopOverlay({ fromPopstate: true });
+        }
+      });
     }
   }
 
@@ -228,6 +340,9 @@
     showToast: showToast,
     openSheet: openSheet,
     closeSheet: closeSheet,
+    closeTopOverlay: closeTopOverlay,
+    getOverlayStack: getOverlayStack,
+    consumeSuppressedPopstate: consumeSuppressedPopstate,
     confirmModal: confirmModal,
     renderSkeletonList: renderSkeletonList,
     createStatusPill: createStatusPill,

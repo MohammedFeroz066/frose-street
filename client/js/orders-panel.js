@@ -510,11 +510,19 @@
     }
 
     bodyEl.appendChild(actionsBox);
-    drawer.classList.add('active');
-    global.document.body.classList.add('saas-modal-open');
+    if (global.FroseUI && typeof global.FroseUI.openSheet === 'function') {
+      global.FroseUI.openSheet('order-detail-drawer');
+    } else {
+      drawer.classList.add('active');
+      global.document.body.classList.add('saas-modal-open');
+    }
   }
 
   global.closeOrderDetailDrawer = function () {
+    if (global.FroseUI && typeof global.FroseUI.closeSheet === 'function') {
+      global.FroseUI.closeSheet('order-detail-drawer');
+      return;
+    }
     var drawer = global.document.getElementById('order-detail-drawer');
     if (drawer) drawer.classList.remove('active');
     var remaining = global.document.querySelectorAll('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active');

@@ -232,7 +232,8 @@
   <div class="saas-sheet-backdrop modal-overlay" id="checkout-drawer-modal">
     <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Order Checkout">
       <div class="saas-sheet-handle"></div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
+        <button type="button" id="btn-checkout-back" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="checkout-drawer-modal" style="min-height: 44px; padding: 0 12px;" aria-label="Back to Bill">&larr; Back</button>
         <h3 style="margin: 0; font-size: 17px; font-weight: 800;" data-i18n="checkout.title">Checkout</h3>
         <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="checkout-drawer-modal" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close Checkout">✕</button>
       </div>
@@ -591,9 +592,10 @@
   <!-- Order Detail Drawer (UX-04) -->
   <div class="saas-drawer-backdrop" id="order-detail-drawer">
     <div class="saas-drawer" role="dialog" aria-modal="true" aria-label="Order Details">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
+        <button type="button" id="btn-order-detail-back" class="saas-btn saas-btn-secondary" data-click="closeOrderDetailDrawer" style="min-height: 44px; padding: 0 12px;" aria-label="Back to Orders">&larr; Back</button>
         <h3 style="margin: 0; font-size: 18px; font-weight: 800;" id="drawer-order-title">Order Details</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeOrderDetailDrawer" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeOrderDetailDrawer" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close Order Details">✕</button>
       </div>
       <div id="order-detail-drawer-body"></div>
     </div>
@@ -625,9 +627,10 @@
 
   <div class="saas-drawer-backdrop" id="close-day-drawer">
     <div class="saas-drawer" role="dialog" aria-modal="true" aria-label="Close Fiscal Day">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
+        <button type="button" id="btn-zreport-back" class="saas-btn saas-btn-secondary" data-click="closeCloseDayDrawer" style="min-height: 44px; padding: 0 12px;" aria-label="Back to Payments">&larr; Back</button>
         <h3 style="margin: 0; font-size: 18px; font-weight: 800;">Close Day / Z-Report</h3>
-        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeCloseDayDrawer" style="min-width: 44px; min-height: 44px; padding: 0 12px;">✕</button>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeCloseDayDrawer" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close Z-Report">✕</button>
       </div>
       <div id="close-day-drawer-body"></div>
     </div>

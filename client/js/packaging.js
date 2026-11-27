@@ -47,14 +47,12 @@
   const toastEl = document.getElementById('packaging-toast');
   const toastText = document.getElementById('toast-text');
 
-  // PIN Modal
-  const pinModal = document.getElementById('pin-modal');
-  const btnOpenPin = document.getElementById('btn-open-pin');
-  const btnClosePin = document.getElementById('btn-close-pin');
-  const btnClearPin = document.getElementById('btn-clear-pin');
-  const btnBackspace = document.getElementById('btn-backspace');
-  const numpadKeys = document.querySelectorAll('.numpad-key[data-val]');
-  let enteredPin = '';
+  // Station Switch Sheet
+  const btnOpenStation = document.getElementById('btn-open-station');
+  const btnCloseStation = document.getElementById('btn-close-station');
+  const btnStationBack = document.getElementById('btn-station-back');
+  const btnStationLogout = document.getElementById('btn-station-logout');
+  const stationStallName = document.getElementById('station-stall-name');
 
   // --- 1. WEB AUDIO SYNTHESIZER: PICKUP BELL CHIME ---
   let audioCtx = null;
@@ -564,33 +562,26 @@
     }, 2500);
   }
 
-  // --- 10. PIN AUTH ---
-  function openPinModal() {
-    enteredPin = '';
-    updatePinDots();
-    if (pinModal) pinModal.classList.add('active');
-  }
-
-  function closePinModal() {
-    enteredPin = '';
-    updatePinDots();
-    if (pinModal) pinModal.classList.remove('active');
-  }
-
-  function updatePinDots() {
-    for (let i = 0; i < 4; i++) {
-      const dot = document.getElementById(`dot-${i}`);
-      if (dot) {
-        if (i < enteredPin.length) dot.classList.add('filled');
-        else dot.classList.remove('filled');
-      }
+  // --- 10. STATION SWITCH SHEET ---
+  function openStationSheet() {
+    if (stationStallName) {
+      stationStallName.textContent = localStorage.getItem('frose_stall_name') || 'FROSE Street Stall';
+    }
+    if (window.FroseUI && typeof window.FroseUI.openSheet === 'function') {
+      window.FroseUI.openSheet('station-switch-sheet');
+    } else {
+      const el = document.getElementById('station-switch-sheet');
+      if (el) el.classList.add('active');
     }
   }
 
-  async function submitPin() {
-    showToast('❌ PIN login is disabled. Pair via QR or sign in on /login.html.');
-    enteredPin = '';
-    updatePinDots();
+  function closeStationSheet() {
+    if (window.FroseUI && typeof window.FroseUI.closeSheet === 'function') {
+      window.FroseUI.closeSheet('station-switch-sheet');
+    } else {
+      const el = document.getElementById('station-switch-sheet');
+      if (el) el.classList.remove('active');
+    }
   }
 
   // --- 11. INITIALIZATION ---
@@ -644,31 +635,20 @@
       });
     }
 
-    // PIN handlers
-    if (btnOpenPin) btnOpenPin.addEventListener('click', openPinModal);
-    if (btnClosePin) btnClosePin.addEventListener('click', closePinModal);
-    if (btnClearPin) btnClearPin.addEventListener('click', () => {
-      enteredPin = '';
-      updatePinDots();
-    });
-    if (btnBackspace) btnBackspace.addEventListener('click', () => {
-      if (enteredPin.length > 0) {
-        enteredPin = enteredPin.slice(0, -1);
-        updatePinDots();
-      }
-    });
-
-    numpadKeys.forEach((key) => {
-      key.addEventListener('click', () => {
-        if (enteredPin.length < 4) {
-          enteredPin += key.getAttribute('data-val');
-          updatePinDots();
-          if (enteredPin.length === 4) {
-            setTimeout(submitPin, 120);
-          }
+    // Station switch handlers
+    if (btnOpenStation) btnOpenStation.addEventListener('click', openStationSheet);
+    if (btnCloseStation) btnCloseStation.addEventListener('click', closeStationSheet);
+    if (btnStationBack) btnStationBack.addEventListener('click', closeStationSheet);
+    if (btnStationLogout) {
+      btnStationLogout.addEventListener('click', () => {
+        if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {
+          window.FroseIdbStore.safeLogout({ redirectTo: '/login.html' });
+        } else {
+          localStorage.removeItem('frose_session_active');
+          window.location.href = '/login.html';
         }
       });
-    });
+    }
 
     // Render lanes immediately so global empty state is visible on boot
     renderLanes();

@@ -104,12 +104,14 @@
           <span id="packaging-stall-name">FROSE Street Food Stall</span>
         </div>
 
-        <button class="btn-nav-pin" id="btn-open-pin" aria-label="Stall PIN Login">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        <button type="button" class="btn-nav-pin" id="btn-open-station" aria-label="Switch Station">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
           </svg>
-          <span>PIN</span>
+          <span>Stations</span>
         </button>
       </div>
 
@@ -185,45 +187,24 @@
     <span id="toast-text">Order #1 marked delivered!</span>
   </div>
 
-  <!-- Quick PIN Keypad Modal (Isolated Overlay) -->
-  <div class="modal-overlay" id="pin-modal" style="display: none;">
-    <div class="modal-card">
-      <div class="modal-header">
-        <div class="modal-icon-badge">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-        </div>
-        <h3 class="modal-title">Staff Authentication</h3>
-        <p class="modal-subtitle">Enter 4-digit staff PIN for packer or counter unlock</p>
+  <!-- Station Info & Switch Station Sheet -->
+  <div class="saas-sheet-backdrop modal-overlay" id="station-switch-sheet">
+    <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Station Info and Switch">
+      <div class="saas-sheet-handle"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
+        <button type="button" id="btn-station-back" class="saas-btn saas-btn-secondary" style="min-height: 44px; padding: 0 12px;">&larr; Back</button>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Station &amp; Switch</h3>
+        <button type="button" id="btn-close-station" class="saas-btn saas-btn-secondary" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">✕</button>
       </div>
-
-      <div class="pin-dots-container">
-        <div class="pin-dot" id="dot-0"></div>
-        <div class="pin-dot" id="dot-1"></div>
-        <div class="pin-dot" id="dot-2"></div>
-        <div class="pin-dot" id="dot-3"></div>
+      <div class="pos-summary-box" style="margin-bottom: 14px;">
+        <div class="pos-summary-line"><span>Current Station</span><strong style="color: var(--accent-emerald);">Packaging &amp; Serving</strong></div>
+        <div class="pos-summary-line"><span>Stall</span><strong id="station-stall-name">FROSE Street Stall</strong></div>
       </div>
-
-      <div class="numpad-grid">
-        <button class="numpad-key" data-val="1">1</button>
-        <button class="numpad-key" data-val="2">2</button>
-        <button class="numpad-key" data-val="3">3</button>
-        <button class="numpad-key" data-val="4">4</button>
-        <button class="numpad-key" data-val="5">5</button>
-        <button class="numpad-key" data-val="6">6</button>
-        <button class="numpad-key" data-val="7">7</button>
-        <button class="numpad-key" data-val="8">8</button>
-        <button class="numpad-key" data-val="9">9</button>
-        <button class="numpad-key numpad-action" id="btn-biometric" title="Biometric Unlock">&#9995;</button>
-        <button class="numpad-key" data-val="0">0</button>
-        <button class="numpad-key numpad-action" id="btn-backspace" title="Delete">&#9003;</button>
-      </div>
-
-      <div class="modal-footer-actions">
-        <button class="btn-modal-link" id="btn-close-pin">Cancel</button>
-        <button class="btn-modal-link" id="btn-clear-pin">Clear</button>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <a href="/billing.html" class="saas-btn saas-btn-secondary saas-btn-block" style="text-decoration: none;">Billing Counter POS</a>
+        <a href="/kitchen.html" class="saas-btn saas-btn-secondary saas-btn-block" style="text-decoration: none;">Kitchen Display (KDS)</a>
+        <a href="/packaging.html" class="saas-btn saas-btn-primary saas-btn-block" style="text-decoration: none;">Packaging &amp; Serving (Active)</a>
+        <button type="button" id="btn-station-logout" class="saas-btn saas-btn-danger saas-btn-block" style="margin-top: 4px;">Sign Out</button>
       </div>
     </div>
   </div>

@@ -546,11 +546,19 @@
       }, 'Seal & Generate Z-Report')
     );
 
-    drawer.classList.add('active');
-    global.document.body.classList.add('saas-modal-open');
+    if (global.FroseUI && typeof global.FroseUI.openSheet === 'function') {
+      global.FroseUI.openSheet('close-day-drawer');
+    } else {
+      drawer.classList.add('active');
+      global.document.body.classList.add('saas-modal-open');
+    }
   }
 
   global.closeCloseDayDrawer = function () {
+    if (global.FroseUI && typeof global.FroseUI.closeSheet === 'function') {
+      global.FroseUI.closeSheet('close-day-drawer');
+      return;
+    }
     var drawer = global.document.getElementById('close-day-drawer');
     if (drawer) drawer.classList.remove('active');
     var remaining = global.document.querySelectorAll('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active');

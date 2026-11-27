@@ -1515,7 +1515,8 @@
       cats.forEach((c) => select.appendChild(el('option', { value: c }, c)));
     }
 
-    if (editDish && editDish.id) {
+    const isEditMode = Boolean(editDish && typeof editDish === 'object' && !editDish.nodeType && editDish.id);
+    if (isEditMode) {
       if (heading) heading.textContent = 'Edit Dish';
       if (editIdEl) editIdEl.value = editDish.id;
       if (nameEl) nameEl.value = editDish.name || '';

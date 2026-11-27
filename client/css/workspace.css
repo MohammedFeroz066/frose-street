@@ -732,3 +732,9 @@
     padding-bottom: 24px;
   }
 }
+
+@media (min-width: 1024px) and (max-width: 1380px) {
+  .pos-dishes-pane .saas-dish-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

@@ -118,9 +118,9 @@ describe('PWA-HARDEN: Persistent Storage, Anti-Clock-Rollback & SW Update Banner
     expect(queued.ok).toBe(true);
   });
 
-  it('sw.js handles SKIP_WAITING message without unconditional install skipWaiting, and billing.js wires updatefound banner', () => {
+  it('sw.js handles SKIP_WAITING message without unconditional install skipWaiting, and pwa-updater.js wires updatefound banner', () => {
     const swSrc = fs.readFileSync(path.join(clientDir, 'sw.js'), 'utf8');
-    const billingSrc = fs.readFileSync(path.join(clientDir, 'js/billing.js'), 'utf8');
+    const updaterSrc = fs.readFileSync(path.join(clientDir, 'js/pwa-updater.js'), 'utf8');
 
     expect(swSrc).toContain('SKIP_WAITING');
     expect(swSrc).toMatch(/addEventListener\(\s*['"]message['"]/);
@@ -129,8 +129,8 @@ describe('PWA-HARDEN: Persistent Storage, Anti-Clock-Rollback & SW Update Banner
     expect(installBlock).not.toBeNull();
     expect(installBlock![0]).not.toContain('self.skipWaiting()');
 
-    expect(billingSrc).toContain('updatefound');
-    expect(billingSrc).toContain('SKIP_WAITING');
-    expect(billingSrc).toContain('New update ready — Tap to reload');
+    expect(updaterSrc).toContain('updatefound');
+    expect(updaterSrc).toContain('SKIP_WAITING');
+    expect(updaterSrc).toContain('New update available');
   });
 });

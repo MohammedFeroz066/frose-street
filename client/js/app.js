@@ -6,17 +6,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   console.log('⚡ FROSE Street PWA Shell Initialized');
 
-  // 1. Service Worker Registration
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((reg) => console.log('✅ ServiceWorker registered on scope:', reg.scope))
-        .catch((err) => console.warn('⚠️ ServiceWorker registration note:', err));
-    });
-  }
-
-  // 2. Network Status Monitoring
+  // 1. Network Status Monitoring (Service Worker registration handled centrally by pwa-updater.js)
   const statusBadge = document.getElementById('status-badge');
   const statusText = document.getElementById('status-text');
 

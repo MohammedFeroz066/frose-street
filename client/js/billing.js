@@ -119,51 +119,7 @@
     badge.appendChild(el('span', {}, label));
   }
 
-  function showSwUpdateBanner(waitingWorker) {
-    if (!waitingWorker || !window.FroseSafeDom || typeof document === 'undefined') return;
-    if (document.getElementById('pos-sw-update-banner')) return;
-    const { el } = window.FroseSafeDom;
-    const banner = el('button', {
-      type: 'button',
-      id: 'pos-sw-update-banner',
-      class: 'pos-sw-banner',
-      on: {
-        click: () => {
-          banner.disabled = true;
-          banner.textContent = 'Updating...';
-          waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-        },
-      },
-    }, ['🔄 New update ready — Tap to reload']);
-    document.body.appendChild(banner);
-  }
-
-  function wireServiceWorkerUpdates() {
-    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
-      if (reg.waiting && navigator.serviceWorker.controller) {
-        showSwUpdateBanner(reg.waiting);
-      }
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            showSwUpdateBanner(newWorker);
-          }
-        });
-      });
-    }).catch(() => {});
-  }
-
   async function initOfflineRuntime() {
-    wireServiceWorkerUpdates();
 
     if (window.FroseIdbStore) {
       if (typeof window.FroseIdbStore.requestPersistentStorage === 'function') {

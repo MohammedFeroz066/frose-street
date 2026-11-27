@@ -1048,3 +1048,129 @@ html.saas-modal-open {
   background: var(--accent-blue);
   transition: width 0.25s ease;
 }
+
+/* ==========================================================================
+   7. GLOBAL PWA AUTO-UPDATE BANNER (PWA-UPD-03)
+   ========================================================================== */
+.pwa-update-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  z-index: 350;
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--bg-surface, #FFFFFF);
+  color: var(--text-primary, #0F172A);
+  border: 1px solid var(--border-strong, rgba(15, 23, 42, 0.16));
+  border-radius: var(--radius-lg, 18px);
+  padding: 12px 14px;
+  box-shadow: var(--shadow-floating, 0 12px 32px rgba(15, 23, 42, 0.22));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: saasFadeSlide 0.18s ease-out;
+}
+
+@media (max-width: 1023px) {
+  body.has-cart-items .pwa-update-banner {
+    bottom: calc(136px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 1024px) {
+  .pwa-update-banner {
+    left: auto;
+    right: 24px;
+    bottom: 24px;
+    width: 390px;
+    max-width: calc(100vw - 48px);
+    margin: 0;
+  }
+}
+
+.pwa-update-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pwa-update-banner-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-primary-soft, rgba(5, 150, 105, 0.12));
+  color: var(--accent-primary, #059669);
+  font-size: 18px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pwa-update-banner-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.pwa-update-banner-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary, #0F172A);
+  line-height: 1.25;
+}
+
+.pwa-update-banner-sub {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #64748B);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.pwa-update-banner-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 8px;
+}
+
+.pwa-update-btn-later,
+.pwa-update-btn-primary {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-md, 14px);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+}
+
+.pwa-update-btn-later {
+  background: var(--bg-subtle, #EEF1F5);
+  color: var(--text-primary, #0F172A);
+  border-color: var(--border-subtle, rgba(15, 23, 42, 0.08));
+}
+
+.pwa-update-btn-primary {
+  background: var(--accent-primary, #059669);
+  color: #FFFFFF;
+}
+
+.pwa-update-btn-primary:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.pwa-update-btn-later:active,
+.pwa-update-btn-primary:active {
+  transform: scale(0.97);
+}
+

@@ -2222,6 +2222,52 @@
     if (initTab !== 'dashboard') switchView(initTab, false);
     if (initVendor) pendingDeepLinkVendorId = initVendor;
 
+    // App Updates wiring (PWA-UPD-03)
+    const syncAdminAppUpdateUi = (snap) => {
+      const updater = window.FrosePwaUpdater;
+      const verEl = document.getElementById('admin-app-version');
+      const badgeEl = document.getElementById('admin-update-ready-badge');
+      const updateBtn = document.getElementById('btn-admin-update-now');
+      if (verEl && updater) {
+        const info = (snap && snap.versionInfo) || updater.getVersionInfo();
+        if (info) verEl.textContent = updater.formatVersionLabel(info);
+      }
+      const hasWaiting = snap ? Boolean(snap.hasWaitingUpdate) : Boolean(updater && updater.hasWaitingUpdate());
+      if (badgeEl) badgeEl.style.display = hasWaiting ? '' : 'none';
+      if (updateBtn) updateBtn.style.display = hasWaiting ? '' : 'none';
+    };
+
+    if (window.FrosePwaUpdater) {
+      syncAdminAppUpdateUi();
+      if (typeof window.FrosePwaUpdater.subscribe === 'function') {
+        window.FrosePwaUpdater.subscribe(syncAdminAppUpdateUi);
+      }
+    }
+
+    document.getElementById('btn-admin-check-updates')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-admin-check-updates');
+      if (!window.FrosePwaUpdater) return;
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Checking...';
+      }
+      try {
+        await window.FrosePwaUpdater.checkForUpdates({ manual: true });
+        syncAdminAppUpdateUi();
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Check for Updates';
+        }
+      }
+    });
+
+    document.getElementById('btn-admin-update-now')?.addEventListener('click', () => {
+      if (window.FrosePwaUpdater) {
+        window.FrosePwaUpdater.applyUpdate();
+      }
+    });
+
     loadVendors();
     loadSystemHealth();
   }

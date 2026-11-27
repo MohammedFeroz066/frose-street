@@ -391,14 +391,100 @@
       ])
     );
 
-    // 7. System, Offline Health & Safe Logout
+    // 7. System, App Updates, Offline Health & Safe Logout
+    var updater = window.FrosePwaUpdater || null;
+    var verInfo = updater && typeof updater.getVersionInfo === 'function' ? updater.getVersionInfo() : null;
+    var verText = updater && typeof updater.formatVersionLabel === 'function'
+      ? updater.formatVersionLabel(verInfo)
+      : 'v1.0.0';
+    var hasWaitingUpdate = Boolean(updater && typeof updater.hasWaitingUpdate === 'function' && updater.hasWaitingUpdate());
+    var i18n = window.FroseI18n || null;
+    var tr = function (k, fb) {
+      if (i18n && typeof i18n.t === 'function') {
+        var val = i18n.t(k);
+        if (val && val !== k) return val;
+      }
+      return fb;
+    };
+
+    var appVersionEl = el('span', { id: 'settings-app-version', class: 'tabular-nums' }, verText);
+    var updateReadyBadge = el(
+      'span',
+      {
+        id: 'settings-update-badge',
+        class: 'saas-pill saas-pill-emerald',
+        style: hasWaitingUpdate ? '' : 'display: none;',
+      },
+      tr('pwa.update_ready', 'Update ready')
+    );
+
+    var btnCheckUpdates = el(
+      'button',
+      {
+        type: 'button',
+        id: 'btn-settings-check-updates',
+        class: 'saas-btn saas-btn-secondary',
+        style: 'min-height: 44px;',
+        on: {
+          click: async function () {
+            if (!window.FrosePwaUpdater || typeof window.FrosePwaUpdater.checkForUpdates !== 'function') {
+              toast(tr('pwa.latest_version', "You're on the latest version"), 'success');
+              return;
+            }
+            btnCheckUpdates.disabled = true;
+            btnCheckUpdates.textContent = tr('pwa.checking', 'Checking...');
+            try {
+              var result = await window.FrosePwaUpdater.checkForUpdates({ manual: true });
+              var latest = window.FrosePwaUpdater.getVersionInfo();
+              if (latest) {
+                appVersionEl.textContent = window.FrosePwaUpdater.formatVersionLabel(latest);
+              }
+              if (result && result.status === 'update-ready') {
+                updateReadyBadge.style.display = '';
+                btnUpdateNow.style.display = '';
+              }
+            } finally {
+              btnCheckUpdates.disabled = false;
+              btnCheckUpdates.textContent = tr('pwa.check_updates', 'Check for Updates');
+            }
+          },
+        },
+      },
+      tr('pwa.check_updates', 'Check for Updates')
+    );
+
+    var btnUpdateNow = el(
+      'button',
+      {
+        type: 'button',
+        id: 'btn-settings-update-now',
+        class: 'saas-btn saas-btn-primary',
+        style: hasWaitingUpdate ? 'min-height: 44px;' : 'min-height: 44px; display: none;',
+        on: {
+          click: function () {
+            if (window.FrosePwaUpdater && typeof window.FrosePwaUpdater.applyUpdate === 'function') {
+              window.FrosePwaUpdater.applyUpdate();
+            }
+          },
+        },
+      },
+      tr('pwa.update_now', 'Update Now')
+    );
+
     stack.appendChild(
       el('section', { class: 'saas-card', style: 'display: flex; flex-direction: column; gap: 12px;' }, [
-        el('h3', { style: 'margin: 0; font-size: 16px; font-weight: 800;' }, '6. System & Offline Health'),
+        el('div', { style: 'display: flex; align-items: center; justify-content: space-between; gap: 8px;' }, [
+          el('h3', { style: 'margin: 0; font-size: 16px; font-weight: 800;' }, '6. System & Offline Health'),
+          updateReadyBadge,
+        ]),
         el('div', { class: 'pos-summary-box' }, [
           el('div', { class: 'pos-summary-line' }, [el('span', {}, 'Queued Offline Orders'), el('span', {}, String(pendingCount))]),
           el('div', { class: 'pos-summary-line' }, [el('span', {}, 'Persistent Storage'), el('span', {}, persisted ? 'Granted' : 'Standard')]),
-          el('div', { class: 'pos-summary-line' }, [el('span', {}, 'App Cache Version'), el('span', {}, 'v54-phase4-ux')]),
+          el('div', { class: 'pos-summary-line' }, [el('span', {}, tr('pwa.app_version', 'App Version')), appVersionEl]),
+        ]),
+        el('div', { style: 'display: grid; grid-template-columns: 1fr; gap: 8px;' }, [
+          btnCheckUpdates,
+          btnUpdateNow,
         ]),
         el('div', { style: 'display: grid; grid-template-columns: 1fr 1fr; gap: 10px;' }, [
           el('button', {
@@ -626,6 +712,23 @@
     loadVendorFromStorage();
     await hydrateVendorProfileFromServer();
     await renderSettingsHub();
+    if (!window.__FROSE_SETTINGS_PWA_SUBSCRIBED__ && window.FrosePwaUpdater && typeof window.FrosePwaUpdater.subscribe === 'function') {
+      window.__FROSE_SETTINGS_PWA_SUBSCRIBED__ = true;
+      window.FrosePwaUpdater.subscribe(function (snap) {
+        var verNode = document.getElementById('settings-app-version');
+        var badgeNode = document.getElementById('settings-update-badge');
+        var nowBtn = document.getElementById('btn-settings-update-now');
+        if (verNode && snap && snap.versionInfo) {
+          verNode.textContent = window.FrosePwaUpdater.formatVersionLabel(snap.versionInfo);
+        }
+        if (badgeNode) {
+          badgeNode.style.display = snap && snap.hasWaitingUpdate ? '' : 'none';
+        }
+        if (nowBtn) {
+          nowBtn.style.display = snap && snap.hasWaitingUpdate ? '' : 'none';
+        }
+      });
+    }
   }
 
   window.initSettingsModal = initSettings;

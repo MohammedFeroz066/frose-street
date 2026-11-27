@@ -32,6 +32,7 @@ const PRECACHE_ASSETS = [
   '/js/theme.js',
   '/js/i18n.js',
   '/js/ui-components.js',
+  '/js/pwa-updater.js',
   '/js/orders-panel.js',
   '/js/payments-panel.js',
   '/js/menu-panel.js',

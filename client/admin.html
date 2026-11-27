@@ -22,6 +22,7 @@
   <script src="/js/safe-dom.js?v=2.0.0"></script>
   <script src="/js/idb-store.js?v=2.0.0"></script>
   <script src="/js/ui-components.js?v=2.0.0"></script>
+  <script src="/js/pwa-updater.js?v=1.0.0"></script>
   <script src="/js/session-guard.js?v=2.0.0"></script>
 </head>
 <body class="admin-console-body">
@@ -629,6 +630,27 @@
                 <div class="admin-kv-row"><span class="admin-kv-label">Offline License Signature</span><span class="admin-kv-value">Ed25519 (EdDSA)</span></div>
                 <div class="admin-kv-row"><span class="admin-kv-label">Default Trial Duration</span><span class="admin-kv-value">14 Days</span></div>
               </div>
+            </div>
+          </div>
+
+          <div class="admin-card">
+            <div class="admin-kv-row" style="margin-bottom: 12px;">
+              <h3 class="admin-subpanel-title" style="margin: 0;">App Updates</h3>
+              <span class="saas-pill saas-pill-emerald" id="admin-update-ready-badge" style="display: none;">Update ready</span>
+            </div>
+            <div class="admin-info-box" style="margin-bottom: 12px;">
+              <div class="admin-kv-row">
+                <span class="admin-kv-label">App Version</span>
+                <span class="admin-kv-value mono-code" id="admin-app-version">v1.0.0</span>
+              </div>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+              <button type="button" class="saas-btn saas-btn-secondary" id="btn-admin-check-updates" style="min-height: 44px;">
+                Check for Updates
+              </button>
+              <button type="button" class="saas-btn saas-btn-primary" id="btn-admin-update-now" style="min-height: 44px; display: none;">
+                Update Now
+              </button>
             </div>
           </div>
         </section>

@@ -43,10 +43,5 @@
       }
       localStorage.setItem(PURGE_KEY, 'true');
     }
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function (regs) {
-        for (var r of regs) { r.update(); }
-      });
-    }
   }
 })();

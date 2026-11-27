@@ -138,7 +138,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   app.addHook('preHandler', createCsrfProtection(config));
 
   // Serve PWA Client Static Files
-  const clientDir = config.CLIENT_DIR || path.resolve(process.cwd(), 'client');
+  const clientDir = path.resolve(config.CLIENT_DIR || path.resolve(process.cwd(), 'client'));
   getBuildInfo({ clientDir });
 
   // PWA-UPD-01: Public lightweight build version endpoint (rate-limit friendly, never cached)

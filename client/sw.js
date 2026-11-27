@@ -7,7 +7,7 @@
  * - Automatic obsolete cache purge on activate
  */
 
-const CACHE_NAME = 'frose-street-v9-production-v57-admin-overhaul';
+const CACHE_NAME = 'frose-street-v9-production-v58-pos-ux';
 const NETWORK_TIMEOUT_MS = 3000;
 
 const PRECACHE_ASSETS = [

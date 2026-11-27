@@ -290,5 +290,22 @@ describe('Phase 13 Acceptance: Billing Portal (Core Ordering Screen & Dynamic UP
       expect(Number(data.order.totalRupees)).toBe(60);
       expect(data.order.paymentMethod).toBe('upi');
     });
+
+    it('POS-UX-02: Billing page uses Blinkit-style vertical category rail + right-side dish grid with cart clearance', () => {
+      const html = fs.readFileSync(path.join(process.cwd(), 'client', 'billing.html'), 'utf8');
+      const css = fs.readFileSync(path.join(process.cwd(), 'client', 'css', 'workspace.css'), 'utf8');
+      const i18n = fs.readFileSync(path.join(process.cwd(), 'client', 'js', 'i18n.js'), 'utf8');
+
+      expect(html).toContain('pos-bill-split-body');
+      expect(html).toContain('pos-category-rail');
+      expect(html).toContain('pos-dishes-pane');
+      expect(html).toContain('pos-category-header');
+      expect(css).toContain('.pos-bill-split-body');
+      expect(css).toContain('.pos-category-rail');
+      expect(css).toContain('.pos-category-rail-item');
+      expect(css).toContain('has-cart-items');
+      expect(i18n).toContain("'dish.take_photo'");
+      expect(i18n).toContain("'dish.choose_gallery'");
+    });
   });
 });

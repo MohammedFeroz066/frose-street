@@ -266,8 +266,8 @@ html.saas-modal-open {
 
   .saas-billing-split {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 380px;
-    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) 350px;
+    gap: 16px;
     align-items: start;
   }
 

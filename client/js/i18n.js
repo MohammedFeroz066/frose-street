@@ -86,6 +86,10 @@
       'payments.export_expenses_csv': 'Export Expenses CSV',
       'payments.close_day': 'Close Day / Z-Report',
       'payments.view_z_report': 'View / Update Z-Report',
+      'dish.photo_label': 'Dish Photo',
+      'dish.take_photo': 'Take Photo',
+      'dish.choose_gallery': 'Choose from Gallery',
+      'dish.no_photo': 'No photo attached (optional)',
     },
     te: {
       'nav.bill': 'బిల్',
@@ -158,6 +162,10 @@
       'payments.export_expenses_csv': 'ఖర్చుల CSV డౌన్‌లోడ్',
       'payments.close_day': 'రోజు ముగించు / Z-రిపోర్ట్',
       'payments.view_z_report': 'Z-రిపోర్ట్ చూడండి',
+      'dish.photo_label': 'వంటకం ఫోటో',
+      'dish.take_photo': 'ఫోటో తీయండి',
+      'dish.choose_gallery': 'గ్యాలరీ నుండి ఎంచుకోండి',
+      'dish.no_photo': 'ఫోటో లేదు (ఐచ్ఛికం)',
     },
     hi: {
       'nav.bill': 'बिल',
@@ -228,8 +236,12 @@
       'payments.expenses': 'खर्च',
       'payments.export_sales_csv': 'बिक्री CSV डाउनलोड (CA / GST)',
       'payments.export_expenses_csv': 'खर्च CSV डाउनलोड',
-      'payments.close_day': 'दिन बंद करें / Z-रिपोर्ट',
+      'payments.close_day': 'दिन बंद करें / Z-रिపోर्ट',
       'payments.view_z_report': 'Z-रिपोर्ट देखें',
+      'dish.photo_label': 'डिश की फ़ोटो',
+      'dish.take_photo': 'फ़ोटो खींचें',
+      'dish.choose_gallery': 'गैलरी से चुनें',
+      'dish.no_photo': 'कोई फ़ोटो नहीं (वैकल्पिक)',
     },
     ta: {
       'nav.bill': 'பில்',
@@ -302,6 +314,10 @@
       'payments.export_expenses_csv': 'செலவு CSV பதிவிறக்கம்',
       'payments.close_day': 'நாள் மூடு / Z-அறிக்கை',
       'payments.view_z_report': 'Z-அறிக்கை பார்',
+      'dish.photo_label': 'உணவு புகைப்படம்',
+      'dish.take_photo': 'புகைப்படம் எடு',
+      'dish.choose_gallery': 'கேலரியில் தேர்வு செய்',
+      'dish.no_photo': 'புகைப்படம் இல்லை (விருப்பம்)',
     },
   };
 

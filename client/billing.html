@@ -103,8 +103,8 @@
       <section class="saas-view-panel active" id="tab-panel-bill" data-tab-panel="bill">
         <div class="saas-billing-split">
 
-          <!-- Left Column: Search, Category Pills & Menu Grid -->
-          <div style="min-width: 0;">
+          <!-- Left Column: Search, Vertical Category Rail & Menu Grid -->
+          <div class="pos-bill-main" style="min-width: 0;">
             <div class="pos-bill-controls">
               <div class="pos-bill-toolbar-row">
                 <div class="saas-search-wrap" style="flex: 1;">
@@ -117,16 +117,20 @@
                   <span data-i18n="bill.add_dish">+ Dish</span>
                 </button>
               </div>
-
-              <!-- Sticky Horizontal Category Chips -->
-              <div class="saas-chip-row" id="pos-category-sidebar" role="tablist" aria-label="Menu categories">
-                <!-- Populated dynamically by billing.js -->
-              </div>
             </div>
 
-            <!-- Responsive Dish Cards Grid -->
-            <div class="saas-dish-grid" id="pos-dishes-grid">
-              <!-- Populated dynamically by billing.js -->
+            <!-- 2-Column Split: Left Vertical Category Rail + Right Dish Grid -->
+            <div class="pos-bill-split-body">
+              <aside class="pos-category-rail" id="pos-category-sidebar" role="tablist" aria-label="Menu categories">
+                <!-- Populated dynamically by billing.js -->
+              </aside>
+
+              <div class="pos-dishes-pane">
+                <div class="pos-category-header" id="pos-category-header">All · 0 items</div>
+                <div class="saas-dish-grid" id="pos-dishes-grid">
+                  <!-- Populated dynamically by billing.js -->
+                </div>
+              </div>
             </div>
           </div>
 

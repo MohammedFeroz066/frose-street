@@ -371,30 +371,46 @@
     clear(bar);
 
     const cats = getMergedCategories();
+    const isAll = activeCategory === 'all';
     const allChip = el('button', {
       type: 'button',
-      class: 'saas-chip' + (activeCategory === 'all' ? ' active' : ''),
+      role: 'tab',
+      'aria-selected': isAll ? 'true' : 'false',
+      class: 'pos-category-rail-item' + (isAll ? ' active' : ''),
       'data-category': 'all',
       on: { click: () => window.selectCategory('all') },
-    }, `All (${menuCatalog.length})`);
+    }, [
+      el('span', { class: 'pos-category-rail-label' }, 'All'),
+      el('span', { class: 'pos-category-rail-count' }, `${menuCatalog.length}`),
+    ]);
     bar.appendChild(allChip);
 
     cats.forEach((cat) => {
       const slug = cat.toLowerCase().replace(/\s+/g, '-');
       const isActive = activeCategory === slug || activeCategory === cat.toLowerCase();
+      const count = menuCatalog.filter((item) => {
+        const itemSlug = (item.category || '').toLowerCase().replace(/\s+/g, '-');
+        return itemSlug === slug || (item.category || '').toLowerCase() === cat.toLowerCase();
+      }).length;
       bar.appendChild(el('button', {
         type: 'button',
-        class: 'saas-chip' + (isActive ? ' active' : ''),
+        role: 'tab',
+        'aria-selected': isActive ? 'true' : 'false',
+        class: 'pos-category-rail-item' + (isActive ? ' active' : ''),
         'data-category': slug,
         on: { click: () => window.selectCategory(slug) },
-      }, cat));
+      }, [
+        el('span', { class: 'pos-category-rail-label' }, cat),
+        el('span', { class: 'pos-category-rail-count' }, `${count}`),
+      ]));
     });
 
     bar.appendChild(el('button', {
       type: 'button',
-      class: 'saas-chip',
+      class: 'pos-category-rail-item pos-category-rail-add',
+      id: 'btn-rail-add-category',
       on: { click: () => window.openAddSectionModal() },
-    }, '+ Category'));
+    }, '+ Add'));
   }
 
   window.selectCategory = function (catSlug) {
@@ -441,6 +457,16 @@
       const searchMatch = !q || item.name.toLowerCase().includes(q) || (item.category || '').toLowerCase().includes(q);
       return catMatch && searchMatch;
     });
+
+    const catHeaderEl = document.getElementById('pos-category-header');
+    if (catHeaderEl) {
+      let label = 'All';
+      if (activeCategory !== 'all') {
+        const matchedCat = getMergedCategories().find((c) => c.toLowerCase().replace(/\s+/g, '-') === activeCategory || c.toLowerCase() === activeCategory);
+        label = matchedCat || activeCategory;
+      }
+      catHeaderEl.textContent = `${label} · ${filtered.length} ${filtered.length === 1 ? 'item' : 'items'}`;
+    }
 
     if (filtered.length === 0) {
       grid.appendChild(

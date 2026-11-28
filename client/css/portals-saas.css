@@ -508,3 +508,96 @@ body.admin-saas-body {
     padding-bottom: 32px !important;
   }
 }
+
+/* KDS-ITEM-02: Per-Item Fulfillment Checklists & Partial-Ready Badges */
+.kds-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: var(--accent-blue-soft);
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue);
+}
+
+.kds-progress-pill.is-complete {
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.packaging-page .packaging-card.card-partial {
+  border-left-color: var(--accent-blue) !important;
+}
+
+.kds-item-row.is-item-ready,
+.pack-item-row.is-item-packed {
+  opacity: 0.72;
+}
+
+.kds-item-row.is-item-ready .kds-item-name,
+.pack-item-row.is-item-packed .pack-item-name {
+  text-decoration: line-through;
+}
+
+.kds-item-state-chip {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.kds-item-state-chip.is-ready {
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
+}
+
+.kds-item-state-chip.is-cooking {
+  background: var(--accent-amber-soft);
+  color: var(--accent-amber);
+}
+
+.kds-checklist-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 52vh;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+
+.kds-checklist-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.kds-checklist-row.is-done {
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-soft);
+}
+
+.kds-item-toggle-btn {
+  min-width: 118px;
+  min-height: 44px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}

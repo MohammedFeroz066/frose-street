@@ -387,6 +387,17 @@
       if (ord.editedAt) {
         badges.push(el('span', { class: 'saas-pill saas-pill-blue' }, 'EDITED'));
       }
+      var itemTotal = Number(ord.totalItems ?? (ord.items ? ord.items.length : 0));
+      var kReady = Number(ord.kitchenReadyCount || 0);
+      var pReady = Number(ord.packagingReadyCount || 0);
+      if (itemTotal > 1 || kReady > 0 || pReady > 0) {
+        if (status !== 'served' && status !== 'cancelled') {
+          badges.push(el('span', { class: 'saas-pill saas-pill-amber tabular-nums' }, kReady + '/' + itemTotal + ' Ready'));
+          if (pReady > 0) {
+            badges.push(el('span', { class: 'saas-pill saas-pill-emerald tabular-nums' }, pReady + '/' + itemTotal + ' Packed'));
+          }
+        }
+      }
 
       listWrap.appendChild(
         el('div', {
@@ -398,9 +409,7 @@
             el('div', { style: 'display: flex; align-items: center; gap: 8px; flex-wrap: wrap;' }, [
               el('span', { class: 'tabular-nums', style: 'font-size: 15px; font-weight: 900;' }, ord.tokenDisplay || ('#' + (ord.tokenNo || ''))),
               ord.receiptNumber ? el('span', { class: 'tabular-nums', style: 'font-size: 12px; color: var(--text-muted); font-weight: 700;' }, ord.receiptNumber) : null,
-              badges[0],
-              badges[1] || null,
-            ]),
+            ].concat(badges)),
             itemPreview ? el('div', { style: 'font-size: 13px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' }, itemPreview) : null,
             el('div', { style: 'font-size: 12px; color: var(--text-muted);' }, formatPaymentBadge(ord) + (ord.createdAt ? ' · ' + formatIstTime(ord.createdAt) : '')),
           ]),
@@ -466,10 +475,19 @@
     (fullOrder.items || []).forEach(function (it) {
       var unitP = Number(it.unitPricePaise ?? it.pricePaise ?? 0);
       var lineP = Number(it.lineTotalPaise ?? (unitP * Number(it.quantity || 1)));
+      var itemStateLabel = it.packagingReady
+        ? 'Packed'
+        : (it.kitchenReady ? 'Kitchen Ready' : (status === 'served' ? 'Packed' : (status === 'ready' ? 'Kitchen Ready' : 'Cooking')));
+      var itemStateCls = it.packagingReady || status === 'served'
+        ? 'saas-pill-emerald'
+        : (it.kitchenReady || status === 'ready' ? 'saas-pill-blue' : 'saas-pill-amber');
       itemsBox.appendChild(
         el('div', { class: 'pos-cart-row' }, [
           el('div', { class: 'pos-cart-row-info' }, [
-            el('div', { class: 'pos-cart-row-title' }, it.quantity + 'x ' + (it.itemName || it.name || 'Item')),
+            el('div', { style: 'display: flex; align-items: center; gap: 6px; flex-wrap: wrap;' }, [
+              el('span', { class: 'pos-cart-row-title' }, it.quantity + 'x ' + (it.itemName || it.name || 'Item')),
+              el('span', { class: 'saas-pill ' + itemStateCls, style: 'font-size: 10.5px; padding: 2px 7px;' }, itemStateLabel),
+            ]),
             it.notes ? el('div', { class: 'pos-cart-row-sub' }, 'Note: ' + it.notes) : null,
           ]),
           el('span', { class: 'tabular-nums', style: 'font-weight: 800;' }, fmt(lineP)),
@@ -889,6 +907,20 @@
         renderOrdersList();
       }
     });
+  }
+
+  var bc = getOrdersBroadcastChannel();
+  if (bc) {
+    bc.onmessage = function (ev) {
+      var msg = ev && ev.data;
+      if (!msg || !msg.event) return;
+      if (msg.event === 'order:item_updated' || msg.event === 'order:status_changed' || msg.event === 'order:updated' || msg.event === 'order:new') {
+        var panel = global.document && global.document.getElementById('tab-panel-orders');
+        if (panel && panel.classList.contains('active')) {
+          fetchOrders();
+        }
+      }
+    };
   }
 
   global.FroseOrdersPanel = {

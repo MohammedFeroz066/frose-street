@@ -187,6 +187,19 @@
     <span id="toast-text">Order #1 marked delivered!</span>
   </div>
 
+  <!-- Order Items Packing Checklist Sheet (KDS-ITEM-02) -->
+  <div class="saas-sheet-backdrop modal-overlay" id="pack-item-sheet">
+    <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Order Items Packing">
+      <div class="saas-sheet-handle"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+        <button type="button" id="btn-pack-item-back" class="saas-btn saas-btn-secondary" style="min-height: 44px; padding: 0 12px;">&larr; Back</button>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 800;" id="pack-item-sheet-title">Order Items Packing</h3>
+        <button type="button" id="btn-pack-item-close" class="saas-btn saas-btn-secondary" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">&times;</button>
+      </div>
+      <div id="pack-item-sheet-body"></div>
+    </div>
+  </div>
+
   <!-- Station Info & Switch Station Sheet -->
   <div class="saas-sheet-backdrop modal-overlay" id="station-switch-sheet">
     <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Station Info and Switch">

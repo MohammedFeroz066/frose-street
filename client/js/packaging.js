@@ -17,12 +17,21 @@
 
   // --- STATE ---
   let readyOrders = [];
+  let partialOrders = [];
   let waitingOrders = [];
   let deliveredCount = 0;
+  let activePackSheetOrderId = null;
+  let packItemToggleInFlight = new Set();
   let soundEnabled = localStorage.getItem('frose_packaging_sound') !== 'false';
   let wsConnection = null;
   let reconnectTimer = null;
   let ageTickerTimer = null;
+
+  function getBroadcastChannel() {
+    if (typeof BroadcastChannel === 'undefined') return null;
+    try { return new BroadcastChannel('frose_orders'); } catch (_) { return null; }
+  }
+  const sharedOrderChannel = getBroadcastChannel();
 
   // DOM Elements
   const readyGrid = document.getElementById('packaging-ready-grid');
@@ -180,17 +189,25 @@
   }
 
   // --- 4. RENDER LANES ---
+  function findOrderById(orderId) {
+    return readyOrders.find((o) => o.id === orderId) ||
+      partialOrders.find((o) => o.id === orderId) ||
+      waitingOrders.find((o) => o.id === orderId) ||
+      null;
+  }
+
   function renderLanes() {
     const { el, svgEl, clear } = window.FroseSafeDom;
+    const laneOneOrders = [].concat(readyOrders, partialOrders);
     // 1. Update Header Counters
-    if (readyCountPill) readyCountPill.textContent = readyOrders.length.toString();
+    if (readyCountPill) readyCountPill.textContent = laneOneOrders.length.toString();
     if (waitingCountPill) waitingCountPill.textContent = waitingOrders.length.toString();
     if (deliveredCountPill) deliveredCountPill.textContent = deliveredCount.toString();
-    if (readyLaneCount) readyLaneCount.textContent = `${readyOrders.length} Orders`;
+    if (readyLaneCount) readyLaneCount.textContent = `${laneOneOrders.length} Orders`;
     if (waitingLaneCount) waitingLaneCount.textContent = `${waitingOrders.length} Orders`;
 
     // 2. Global Empty State
-    if (readyOrders.length === 0 && waitingOrders.length === 0) {
+    if (laneOneOrders.length === 0 && waitingOrders.length === 0) {
       if (globalEmptyState) globalEmptyState.style.display = 'flex';
       if (readyEmptyMsg) readyEmptyMsg.style.display = 'none';
       if (waitingEmptyMsg) waitingEmptyMsg.style.display = 'none';
@@ -201,33 +218,63 @@
 
     if (globalEmptyState) globalEmptyState.style.display = 'none';
 
-    // 3. Render Lane 1: Ready for Pickup
+    // 3. Render Lane 1: Ready for Pickup & Partial-Ready from Kitchen
     if (readyGrid) {
       clear(readyGrid);
-      if (readyOrders.length === 0) {
+      if (laneOneOrders.length === 0) {
         if (readyEmptyMsg) readyEmptyMsg.style.display = 'flex';
       } else {
         if (readyEmptyMsg) readyEmptyMsg.style.display = 'none';
-        readyOrders.forEach((order) => {
+        laneOneOrders.forEach((order) => {
+          const isPartial = order.orderStatus !== 'ready';
+          const items = order.items || [];
+          const totalItems = items.length;
+          const kReadyCount = items.filter((it) => it.kitchenReady === true).length;
+          const pReadyCount = items.filter((it) => it.packagingReady === true).length;
+
           const notesLower = (order.notes || '').toLowerCase();
           const orderTypeNorm = String(order.orderType || order.order_type || '').toLowerCase();
           const isTakeaway = orderTypeNorm === 'parcel' || orderTypeNorm === 'takeaway' || orderTypeNorm === 'counter' || notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
-          const itemNodes = (order.items || []).map((it) =>
-            el('div', { class: 'pack-item-row' }, [
-              el('span', { class: 'pack-item-qty' }, `${it.quantity}x`),
+
+          const itemNodes = items.map((it) => {
+            const isPacked = it.packagingReady === true;
+            const isKitchenReady = it.kitchenReady === true || !isPartial;
+            return el('div', { class: 'pack-item-row' + (isPacked ? ' is-item-packed' : '') }, [
+              el('span', { class: 'pack-item-qty' + (isKitchenReady ? '' : ' qty-waiting') }, `${it.quantity}x`),
               el('span', { class: 'pack-item-name' }, it.itemName || 'Dish'),
               it.notes ? el('span', { class: 'pack-item-note' }, `(${it.notes})`) : null,
-            ])
-          );
+              isPacked
+                ? el('span', { class: 'kds-item-state-chip is-ready' }, [
+                    svgEl('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
+                      svgEl('polyline', { points: '20 6 9 17 4 12' }),
+                    ]),
+                    el('span', {}, 'Packed'),
+                  ])
+                : (isKitchenReady
+                    ? (isPartial ? el('span', { class: 'kds-item-state-chip is-ready' }, 'Ready to Pack') : null)
+                    : el('span', { class: 'kds-item-state-chip is-cooking' }, 'Cooking in Kitchen')),
+            ]);
+          });
+
+          const actionLabel = totalItems > 1
+            ? (isPartial ? 'Pack Ready Items' : tr('pack.mark_packed', null, 'Mark Packed'))
+            : tr('pack.handed_over', null, 'Handed Over');
 
           readyGrid.appendChild(
-            el('div', { class: 'packaging-card card-ready', id: `ready-card-${order.id}`, 'data-id': order.id }, [
+            el('div', {
+              class: 'packaging-card ' + (isPartial ? 'card-partial' : 'card-ready'),
+              id: `ready-card-${order.id}`,
+              'data-id': order.id,
+            }, [
               el('div', { class: 'pack-card-header' }, [
                 el('div', { class: 'kds-token-box' }, [
                   el('span', { class: 'kds-token-prefix' }, 'TOKEN'),
                   el('span', { class: 'kds-token-num' }, `#${order.tokenNo}`),
                 ]),
                 el('div', { class: 'kds-header-tags' }, [
+                  isPartial
+                    ? el('span', { class: 'kds-progress-pill' }, `${kReadyCount}/${totalItems} Ready from Kitchen`)
+                    : (totalItems > 1 ? el('span', { class: 'kds-progress-pill is-complete' }, `${pReadyCount}/${totalItems} Packed`) : null),
                   el('span', { class: `kds-tag ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
                     isTakeaway ? 'PARCEL' : 'DINE-IN'
                   ),
@@ -247,14 +294,18 @@
                   on: {
                     click: (e) => {
                       e.stopPropagation();
-                      handleMarkDelivered(order.id, String(order.tokenNo));
+                      if (totalItems > 1) {
+                        openPackagingItemSheet(order.id);
+                      } else {
+                        handleMarkDelivered(order.id, String(order.tokenNo));
+                      }
                     },
                   },
                 }, [
                   svgEl('svg', { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
                     svgEl('polyline', { points: '20 6 9 17 4 12' }),
                   ]),
-                  el('span', {}, tr('pack.handed_over', null, 'Handed Over')),
+                  el('span', {}, actionLabel),
                 ]),
               ]),
             ])
@@ -317,8 +368,10 @@
     playDeliveredBlip();
     if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
 
-    // Optimistically remove from readyOrders
+    // Optimistically remove from readyOrders / partialOrders
     readyOrders = readyOrders.filter((o) => o.id !== orderId);
+    partialOrders = partialOrders.filter((o) => o.id !== orderId);
+    if (activePackSheetOrderId === orderId) closePackagingItemSheet();
     deliveredCount++;
     showToast(tr('pack.toast_served', { token: tokenNo }, `Order #${tokenNo} Delivered & Served`));
 
@@ -342,27 +395,176 @@
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         console.warn('Mark delivered error:', errData);
+      } else if (sharedOrderChannel) {
+        try {
+          sharedOrderChannel.postMessage({ event: 'order:status_changed', data: { id: orderId, newStatus: 'served', tokenNo } });
+        } catch (_) {}
       }
     } catch (err) {
       console.warn('Network error marking delivered:', err);
     }
   }
 
-  // --- 6. REAL-TIME PROMOTION (WAITING -> READY) ---
+  function closePackagingItemSheet() {
+    activePackSheetOrderId = null;
+    if (window.FroseUI && typeof window.FroseUI.closeSheet === 'function') {
+      window.FroseUI.closeSheet('pack-item-sheet');
+    } else {
+      const sheet = document.getElementById('pack-item-sheet');
+      if (sheet) sheet.classList.remove('active');
+    }
+  }
+
+  function renderPackagingItemSheet(order) {
+    const body = document.getElementById('pack-item-sheet-body');
+    const titleEl = document.getElementById('pack-item-sheet-title');
+    if (!body || !order) return;
+    const { el, svgEl, clear } = window.FroseSafeDom;
+    clear(body);
+
+    const items = order.items || [];
+    const packedCount = items.filter((i) => i.packagingReady === true).length;
+    const isOrderFullyReady = order.orderStatus === 'ready';
+    if (titleEl) {
+      titleEl.textContent = `Token #${order.tokenNo} — ${packedCount}/${items.length} Packed`;
+    }
+
+    const listWrap = el('div', { class: 'kds-checklist-stack' });
+    items.forEach((item) => {
+      const isPacked = item.packagingReady === true;
+      const isKitchenReady = item.kitchenReady === true || isOrderFullyReady;
+      const isBusy = packItemToggleInFlight.has(item.id);
+
+      let rightControl;
+      if (!isKitchenReady) {
+        rightControl = el('span', { class: 'kds-item-state-chip is-cooking' }, 'Cooking in Kitchen');
+      } else {
+        rightControl = el('button', {
+          type: 'button',
+          class: 'saas-btn kds-item-toggle-btn ' + (isPacked ? 'saas-btn-primary' : 'saas-btn-secondary'),
+          disabled: isBusy,
+          'data-pack-item-toggle': item.id,
+          on: {
+            click: () => togglePackagingItemPacked(order.id, item.id, !isPacked),
+          },
+        }, isPacked ? [
+          svgEl('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
+            svgEl('polyline', { points: '20 6 9 17 4 12' }),
+          ]),
+          el('span', {}, 'Packed'),
+        ] : [el('span', {}, 'Mark Packed')]);
+      }
+
+      listWrap.appendChild(
+        el('div', { class: 'kds-checklist-row' + (isPacked ? ' is-done' : ''), 'data-item-id': item.id }, [
+          el('div', { style: 'min-width: 0; flex: 1;' }, [
+            el('div', { style: 'font-size: 15px; font-weight: 800; color: var(--text-primary);' }, `${item.quantity}x ${item.itemName || 'Dish'}`),
+            item.notes ? el('div', { style: 'font-size: 12px; color: var(--accent-amber); font-weight: 700;' }, item.notes) : null,
+          ]),
+          rightControl,
+        ])
+      );
+    });
+
+    body.appendChild(listWrap);
+    body.appendChild(
+      el('button', {
+        type: 'button',
+        id: 'btn-pack-mark-all-packed',
+        class: 'saas-btn saas-btn-primary saas-btn-block',
+        style: 'min-height: 52px; font-size: 16px; font-weight: 900;',
+        on: {
+          click: async () => {
+            if (isOrderFullyReady) {
+              closePackagingItemSheet();
+              handleMarkDelivered(order.id, String(order.tokenNo));
+            } else {
+              const packable = items.filter((i) => (i.kitchenReady === true) && !i.packagingReady);
+              for (const it of packable) {
+                await togglePackagingItemPacked(order.id, it.id, true);
+              }
+              closePackagingItemSheet();
+            }
+          },
+        },
+      }, [
+        svgEl('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
+          svgEl('polyline', { points: '20 6 9 17 4 12' }),
+        ]),
+        el('span', {}, isOrderFullyReady ? 'Mark All Packed' : 'Pack All Ready Items'),
+      ])
+    );
+  }
+
+  function openPackagingItemSheet(orderId) {
+    const order = findOrderById(orderId);
+    if (!order) return;
+    activePackSheetOrderId = orderId;
+    renderPackagingItemSheet(order);
+    if (window.FroseUI && typeof window.FroseUI.openSheet === 'function') {
+      window.FroseUI.openSheet('pack-item-sheet', {
+        onClose: () => { activePackSheetOrderId = null; },
+      });
+    } else {
+      const sheet = document.getElementById('pack-item-sheet');
+      if (sheet) sheet.classList.add('active');
+    }
+  }
+
+  async function togglePackagingItemPacked(orderId, itemId, nextPacked) {
+    if (packItemToggleInFlight.has(itemId)) return;
+    packItemToggleInFlight.add(itemId);
+    const order = findOrderById(orderId);
+    if (order && activePackSheetOrderId === orderId) renderPackagingItemSheet(order);
+
+    try {
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn(`/api/v1/orders/${orderId}/items/${itemId}/fulfillment`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+        body: JSON.stringify({ stage: 'packaging', ready: nextPacked }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res && res.ok && data.order) {
+        if (sharedOrderChannel) {
+          try { sharedOrderChannel.postMessage({ event: 'order:item_updated', data: data.order }); } catch (_) {}
+        }
+        handleItemUpdated(data.order);
+      } else {
+        showToast(data?.error?.message || 'Could not update item');
+      }
+    } catch (_) {
+      showToast('Network error updating item');
+    } finally {
+      packItemToggleInFlight.delete(itemId);
+      const current = findOrderById(orderId);
+      if (current && activePackSheetOrderId === orderId) renderPackagingItemSheet(current);
+    }
+  }
+
+  // --- 6. REAL-TIME PROMOTION (WAITING / PARTIAL -> READY) ---
   function promoteOrderToReady(orderId) {
-    const foundIdx = waitingOrders.findIndex((o) => o.id === orderId);
+    let foundIdx = partialOrders.findIndex((o) => o.id === orderId);
+    let promoted = null;
     if (foundIdx !== -1) {
-      const promoted = waitingOrders.splice(foundIdx, 1)[0];
+      promoted = partialOrders.splice(foundIdx, 1)[0];
+    } else {
+      foundIdx = waitingOrders.findIndex((o) => o.id === orderId);
+      if (foundIdx !== -1) {
+        promoted = waitingOrders.splice(foundIdx, 1)[0];
+      }
+    }
+    if (promoted) {
       promoted.orderStatus = 'ready';
       readyOrders.unshift(promoted);
       renderLanes();
+      if (activePackSheetOrderId === orderId) renderPackagingItemSheet(promoted);
       playPickupBell();
       showToast(tr('pack.toast_ready', { token: promoted.tokenNo }, `Token #${promoted.tokenNo} is READY for serving`));
-      // Auto-scroll to ready lane
       const readySec = document.getElementById('packaging-ready-section');
       if (readySec) readySec.scrollIntoView({ behavior: 'smooth' });
     } else {
-      // Re-fetch to ensure sync
       fetchLiveOrders();
     }
   }
@@ -393,10 +595,21 @@
         if (data.packagingQueue && Array.isArray(data.packagingQueue)) {
           readyOrders = data.packagingQueue;
         }
+        const partialIds = new Set();
+        if (data.partialReadyQueue && Array.isArray(data.partialReadyQueue)) {
+          partialOrders = data.partialReadyQueue;
+          partialOrders.forEach((o) => partialIds.add(o.id));
+        } else {
+          partialOrders = [];
+        }
         if (data.kitchenQueue && Array.isArray(data.kitchenQueue)) {
-          waitingOrders = data.kitchenQueue;
+          waitingOrders = data.kitchenQueue.filter((o) => !partialIds.has(o.id));
         }
         renderLanes();
+        if (activePackSheetOrderId) {
+          const openOrder = findOrderById(activePackSheetOrderId);
+          if (openOrder) renderPackagingItemSheet(openOrder);
+        }
         hideReconnectBanner();
       } else {
         renderLanes();
@@ -442,20 +655,26 @@
         try {
           const msg = JSON.parse(event.data);
           if (msg.event === 'order:new' && msg.data) {
-            if (!waitingOrders.some((o) => o.id === msg.data.id) && !readyOrders.some((o) => o.id === msg.data.id)) {
+            if (!waitingOrders.some((o) => o.id === msg.data.id) && !partialOrders.some((o) => o.id === msg.data.id) && !readyOrders.some((o) => o.id === msg.data.id)) {
               waitingOrders.unshift(msg.data);
               renderLanes();
             }
           } else if (msg.event === 'order:updated' && msg.data) {
             handleOrderUpdated(msg.data);
+          } else if (msg.event === 'order:item_updated' && msg.data) {
+            handleItemUpdated(msg.data);
           } else if (msg.event === 'order:status_changed' && msg.data) {
             const { id, newStatus } = msg.data;
             if (newStatus === 'ready') {
               promoteOrderToReady(id);
             } else if (newStatus === 'served' || newStatus === 'cancelled') {
               readyOrders = readyOrders.filter((o) => o.id !== id);
+              partialOrders = partialOrders.filter((o) => o.id !== id);
               waitingOrders = waitingOrders.filter((o) => o.id !== id);
+              if (activePackSheetOrderId === id) closePackagingItemSheet();
               renderLanes();
+            } else if (newStatus === 'preparing') {
+              fetchLiveOrders();
             }
           }
         } catch (_) {}
@@ -483,28 +702,62 @@
   }
 
   // Cross-Tab Local P2P Channel for Solo Stall Counters
-  if (typeof BroadcastChannel !== 'undefined') {
-    const orderChannel = new BroadcastChannel('frose_orders');
-    orderChannel.onmessage = (event) => {
+  if (sharedOrderChannel) {
+    sharedOrderChannel.onmessage = (event) => {
       const msg = event.data;
       if (msg && msg.event === 'order:new' && msg.data) {
-        if (!waitingOrders.some((o) => o.id === msg.data.id) && !readyOrders.some((o) => o.id === msg.data.id)) {
+        if (!waitingOrders.some((o) => o.id === msg.data.id) && !partialOrders.some((o) => o.id === msg.data.id) && !readyOrders.some((o) => o.id === msg.data.id)) {
           waitingOrders.unshift(msg.data);
           renderLanes();
         }
       } else if (msg && msg.event === 'order:updated' && msg.data) {
         handleOrderUpdated(msg.data);
+      } else if (msg && msg.event === 'order:item_updated' && msg.data) {
+        handleItemUpdated(msg.data);
       } else if (msg && msg.event === 'order:status_changed' && msg.data) {
         const { id, newStatus } = msg.data;
         if (newStatus === 'ready') {
           promoteOrderToReady(id);
         } else if (newStatus === 'served' || newStatus === 'cancelled') {
           readyOrders = readyOrders.filter((o) => o.id !== id);
+          partialOrders = partialOrders.filter((o) => o.id !== id);
           waitingOrders = waitingOrders.filter((o) => o.id !== id);
+          if (activePackSheetOrderId === id) closePackagingItemSheet();
           renderLanes();
         }
       }
     };
+  }
+
+  function handleItemUpdated(updatedOrder) {
+    if (!updatedOrder || !updatedOrder.id) return;
+    readyOrders = readyOrders.filter((o) => o.id !== updatedOrder.id);
+    partialOrders = partialOrders.filter((o) => o.id !== updatedOrder.id);
+    waitingOrders = waitingOrders.filter((o) => o.id !== updatedOrder.id);
+
+    if (updatedOrder.orderStatus === 'served' || updatedOrder.orderStatus === 'cancelled') {
+      if (updatedOrder.orderStatus === 'served') {
+        deliveredCount++;
+        playDeliveredBlip();
+        showToast(tr('pack.toast_served', { token: updatedOrder.tokenNo }, `Order #${updatedOrder.tokenNo} Delivered & Served`));
+      }
+      if (activePackSheetOrderId === updatedOrder.id) closePackagingItemSheet();
+      renderLanes();
+      return;
+    }
+
+    if (updatedOrder.orderStatus === 'ready') {
+      readyOrders.unshift(updatedOrder);
+    } else if (Number(updatedOrder.kitchenReadyCount || 0) > 0) {
+      partialOrders.unshift(updatedOrder);
+    } else {
+      waitingOrders.unshift(updatedOrder);
+    }
+
+    renderLanes();
+    if (activePackSheetOrderId === updatedOrder.id) {
+      renderPackagingItemSheet(updatedOrder);
+    }
   }
 
   function handleOrderUpdated(updatedOrder) {
@@ -515,6 +768,11 @@
       readyOrders[rIdx] = { ...readyOrders[rIdx], ...updatedOrder };
       updated = true;
     }
+    const pIdx = partialOrders.findIndex((o) => o.id === updatedOrder.id);
+    if (pIdx !== -1) {
+      partialOrders[pIdx] = { ...partialOrders[pIdx], ...updatedOrder };
+      updated = true;
+    }
     const wIdx = waitingOrders.findIndex((o) => o.id === updatedOrder.id);
     if (wIdx !== -1) {
       waitingOrders[wIdx] = { ...waitingOrders[wIdx], ...updatedOrder };
@@ -522,6 +780,7 @@
     }
     if (updated) {
       renderLanes();
+      if (activePackSheetOrderId === updatedOrder.id) renderPackagingItemSheet(findOrderById(updatedOrder.id) || updatedOrder);
       showToast(`Order #${updatedOrder.tokenNo || ''} Updated`);
     }
   }
@@ -640,6 +899,10 @@
     if (btnOpenStation) btnOpenStation.addEventListener('click', openStationSheet);
     if (btnCloseStation) btnCloseStation.addEventListener('click', closeStationSheet);
     if (btnStationBack) btnStationBack.addEventListener('click', closeStationSheet);
+    const btnPackItemBack = document.getElementById('btn-pack-item-back');
+    const btnPackItemClose = document.getElementById('btn-pack-item-close');
+    if (btnPackItemBack) btnPackItemBack.addEventListener('click', closePackagingItemSheet);
+    if (btnPackItemClose) btnPackItemClose.addEventListener('click', closePackagingItemSheet);
     if (btnStationLogout) {
       btnStationLogout.addEventListener('click', () => {
         if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {

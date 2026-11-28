@@ -18,11 +18,19 @@
   // --- STATE ---
   let kitchenOrders = [];
   let completedCount = 0;
+  let activeChecklistOrderId = null;
+  let itemToggleInFlight = new Set();
   let soundEnabled = localStorage.getItem('frose_kds_sound') !== 'false';
   let wsConnection = null;
   let reconnectTimer = null;
   let wakeLockSentinel = null;
   let ageTickerTimer = null;
+
+  function getBroadcastChannel() {
+    if (typeof BroadcastChannel === 'undefined') return null;
+    try { return new BroadcastChannel('frose_orders'); } catch (_) { return null; }
+  }
+  const sharedOrderChannel = getBroadcastChannel();
 
   // DOM Elements
   const queueContainer = document.getElementById('kds-order-queue');
@@ -246,11 +254,23 @@
       const orderTypeNorm = String(order.orderType || order.order_type || '').toLowerCase();
       const isTakeaway = orderTypeNorm === 'parcel' || orderTypeNorm === 'takeaway' || orderTypeNorm === 'counter' || notesLower.includes('pack') || notesLower.includes('takeaway') || notesLower.includes('parcel');
 
-      const itemRows = (order.items || []).map((item) =>
-        el('div', { class: 'kds-item-row' }, [
+      const items = order.items || [];
+      const totalItems = items.length;
+      const readyItemsCount = items.filter((it) => it.kitchenReady === true).length;
+
+      const itemRows = items.map((item) =>
+        el('div', { class: 'kds-item-row' + (item.kitchenReady ? ' is-item-ready' : '') }, [
           el('span', { class: 'kds-item-qty' }, `${item.quantity}x`),
           el('span', { class: 'kds-item-name' }, item.itemName || 'Dish'),
           item.notes ? el('span', { class: 'kds-item-note' }, `(${item.notes})`) : null,
+          item.kitchenReady
+            ? el('span', { class: 'kds-item-state-chip is-ready' }, [
+                svgEl('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
+                  svgEl('polyline', { points: '20 6 9 17 4 12' }),
+                ]),
+                el('span', {}, 'Ready'),
+              ])
+            : null,
         ])
       );
 
@@ -290,7 +310,11 @@
           on: {
             click: (e) => {
               e.stopPropagation();
-              handleMarkReady(order.id, String(order.tokenNo));
+              if (items.length > 1) {
+                openKitchenItemSheet(order.id);
+              } else {
+                handleMarkReady(order.id, String(order.tokenNo));
+              }
             },
           },
         }, [
@@ -308,6 +332,9 @@
             el('span', { class: 'kds-token-num' }, `#${order.tokenNo}`),
           ]),
           el('div', { class: 'kds-header-tags' }, [
+            totalItems > 1
+              ? el('span', { class: 'kds-progress-pill' + (readyItemsCount === totalItems ? ' is-complete' : '') }, `${readyItemsCount}/${totalItems} Ready`)
+              : null,
             el('span', { class: `kds-tag kds-tag-type ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
               isTakeaway ? tr('kds.parcel', null, 'PARCEL') : tr('kds.dine_in', null, 'DINE-IN')
             ),
@@ -410,9 +437,133 @@
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         console.warn('Status update API error:', errData);
+      } else if (sharedOrderChannel) {
+        try {
+          sharedOrderChannel.postMessage({ event: 'order:status_changed', data: { id: orderId, newStatus: 'ready', tokenNo } });
+        } catch (_) {}
       }
     } catch (err) {
       console.warn('Network error during status update:', err);
+    }
+  }
+
+  function closeKitchenItemSheet() {
+    activeChecklistOrderId = null;
+    if (window.FroseUI && typeof window.FroseUI.closeSheet === 'function') {
+      window.FroseUI.closeSheet('kds-item-sheet');
+    } else {
+      const sheet = document.getElementById('kds-item-sheet');
+      if (sheet) sheet.classList.remove('active');
+    }
+  }
+
+  function renderKitchenItemSheet(order) {
+    const body = document.getElementById('kds-item-sheet-body');
+    const titleEl = document.getElementById('kds-item-sheet-title');
+    if (!body || !order) return;
+    const { el, svgEl, clear } = window.FroseSafeDom;
+    clear(body);
+
+    const items = order.items || [];
+    const readyCount = items.filter((i) => i.kitchenReady === true).length;
+    if (titleEl) {
+      titleEl.textContent = `Token #${order.tokenNo} — ${readyCount}/${items.length} Ready`;
+    }
+
+    const listWrap = el('div', { class: 'kds-checklist-stack' });
+    items.forEach((item) => {
+      const isReady = item.kitchenReady === true;
+      const isBusy = itemToggleInFlight.has(item.id);
+      listWrap.appendChild(
+        el('div', { class: 'kds-checklist-row' + (isReady ? ' is-done' : ''), 'data-item-id': item.id }, [
+          el('div', { style: 'min-width: 0; flex: 1;' }, [
+            el('div', { style: 'font-size: 15px; font-weight: 800; color: var(--text-primary);' }, `${item.quantity}x ${item.itemName || 'Dish'}`),
+            item.notes ? el('div', { style: 'font-size: 12px; color: var(--accent-amber); font-weight: 700;' }, item.notes) : null,
+          ]),
+          el('button', {
+            type: 'button',
+            class: 'saas-btn kds-item-toggle-btn ' + (isReady ? 'saas-btn-primary' : 'saas-btn-secondary'),
+            disabled: isBusy,
+            'data-item-toggle': item.id,
+            on: {
+              click: () => toggleKitchenItemReady(order.id, item.id, !isReady),
+            },
+          }, isReady ? [
+            svgEl('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
+              svgEl('polyline', { points: '20 6 9 17 4 12' }),
+            ]),
+            el('span', {}, 'Ready'),
+          ] : [el('span', {}, 'Mark Ready')]),
+        ])
+      );
+    });
+
+    body.appendChild(listWrap);
+    body.appendChild(
+      el('button', {
+        type: 'button',
+        id: 'btn-kds-mark-all-ready',
+        class: 'saas-btn saas-btn-primary saas-btn-block',
+        style: 'min-height: 52px; font-size: 16px; font-weight: 900;',
+        on: {
+          click: () => {
+            closeKitchenItemSheet();
+            handleMarkReady(order.id, String(order.tokenNo));
+          },
+        },
+      }, [
+        svgEl('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 3 }, [
+          svgEl('polyline', { points: '20 6 9 17 4 12' }),
+        ]),
+        el('span', {}, 'Mark All Ready'),
+      ])
+    );
+  }
+
+  function openKitchenItemSheet(orderId) {
+    const order = kitchenOrders.find((o) => o.id === orderId);
+    if (!order) return;
+    activeChecklistOrderId = orderId;
+    renderKitchenItemSheet(order);
+    if (window.FroseUI && typeof window.FroseUI.openSheet === 'function') {
+      window.FroseUI.openSheet('kds-item-sheet', {
+        onClose: () => { activeChecklistOrderId = null; },
+      });
+    } else {
+      const sheet = document.getElementById('kds-item-sheet');
+      if (sheet) sheet.classList.add('active');
+    }
+  }
+
+  async function toggleKitchenItemReady(orderId, itemId, nextReady) {
+    if (itemToggleInFlight.has(itemId)) return;
+    itemToggleInFlight.add(itemId);
+    const order = kitchenOrders.find((o) => o.id === orderId);
+    if (order && activeChecklistOrderId === orderId) renderKitchenItemSheet(order);
+
+    try {
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn(`/api/v1/orders/${orderId}/items/${itemId}/fulfillment`, {
+        method: 'PATCH',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+        body: JSON.stringify({ stage: 'kitchen', ready: nextReady }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res && res.ok && data.order) {
+        if (sharedOrderChannel) {
+          try { sharedOrderChannel.postMessage({ event: 'order:item_updated', data: data.order }); } catch (_) {}
+        }
+        handleItemUpdated(data.order);
+      } else {
+        showToast(data?.error?.message || 'Could not update item');
+      }
+    } catch (_) {
+      showToast('Network error updating item');
+    } finally {
+      itemToggleInFlight.delete(itemId);
+      const current = kitchenOrders.find((o) => o.id === orderId);
+      if (current && activeChecklistOrderId === orderId) renderKitchenItemSheet(current);
     }
   }
 
@@ -493,6 +644,8 @@
             handleNewIncomingOrder(msg.data);
           } else if (msg.event === 'order:updated' && msg.data) {
             handleOrderUpdated(msg.data);
+          } else if (msg.event === 'order:item_updated' && msg.data) {
+            handleItemUpdated(msg.data);
           } else if (msg.event === 'order:status_changed' && msg.data) {
             handleRemoteStatusChange(msg.data);
           }
@@ -521,14 +674,15 @@
   }
 
   // Cross-Tab Local P2P Channel for Solo Stall Counters
-  if (typeof BroadcastChannel !== 'undefined') {
-    const orderChannel = new BroadcastChannel('frose_orders');
-    orderChannel.onmessage = (event) => {
+  if (sharedOrderChannel) {
+    sharedOrderChannel.onmessage = (event) => {
       const msg = event.data;
       if (msg && msg.event === 'order:new' && msg.data) {
         handleNewIncomingOrder(msg.data);
       } else if (msg && msg.event === 'order:updated' && msg.data) {
         handleOrderUpdated(msg.data);
+      } else if (msg && msg.event === 'order:item_updated' && msg.data) {
+        handleItemUpdated(msg.data);
       } else if (msg && msg.event === 'order:status_changed' && msg.data) {
         handleRemoteStatusChange(msg.data);
       }
@@ -591,11 +745,43 @@
     }
   }
 
+  function handleItemUpdated(updatedOrder) {
+    if (!updatedOrder || !updatedOrder.id) return;
+    if (updatedOrder.orderStatus === 'ready' || updatedOrder.orderStatus === 'served' || updatedOrder.orderStatus === 'cancelled') {
+      const wasInQueue = kitchenOrders.some((o) => o.id === updatedOrder.id);
+      kitchenOrders = kitchenOrders.filter((o) => o.id !== updatedOrder.id);
+      if (wasInQueue && updatedOrder.orderStatus === 'ready') {
+        completedCount++;
+        playReadyBlip();
+        showToast(tr('kds.toast_ready', { token: updatedOrder.tokenNo }, `Order #${updatedOrder.tokenNo} Marked Ready`));
+      }
+      if (activeChecklistOrderId === updatedOrder.id) {
+        closeKitchenItemSheet();
+      }
+      renderQueue();
+      return;
+    }
+
+    const idx = kitchenOrders.findIndex((o) => o.id === updatedOrder.id);
+    if (idx !== -1) {
+      kitchenOrders[idx] = { ...kitchenOrders[idx], ...updatedOrder };
+    } else if (updatedOrder.orderStatus === 'pending' || updatedOrder.orderStatus === 'preparing') {
+      kitchenOrders.unshift(updatedOrder);
+    }
+    renderQueue();
+    if (activeChecklistOrderId === updatedOrder.id) {
+      renderKitchenItemSheet(kitchenOrders.find((o) => o.id === updatedOrder.id) || updatedOrder);
+    }
+  }
+
   function handleRemoteStatusChange(data) {
     if (!data || !data.id) return;
     if (data.newStatus === 'ready' || data.newStatus === 'served' || data.newStatus === 'cancelled') {
       kitchenOrders = kitchenOrders.filter((o) => o.id !== data.id);
+      if (activeChecklistOrderId === data.id) closeKitchenItemSheet();
       renderQueue();
+    } else if (data.newStatus === 'preparing') {
+      fetchLiveOrders();
     }
   }
 
@@ -697,6 +883,10 @@
     if (btnOpenStation) btnOpenStation.addEventListener('click', openStationSheet);
     if (btnCloseStation) btnCloseStation.addEventListener('click', closeStationSheet);
     if (btnStationBack) btnStationBack.addEventListener('click', closeStationSheet);
+    const btnKdsItemBack = document.getElementById('btn-kds-item-back');
+    const btnKdsItemClose = document.getElementById('btn-kds-item-close');
+    if (btnKdsItemBack) btnKdsItemBack.addEventListener('click', closeKitchenItemSheet);
+    if (btnKdsItemClose) btnKdsItemClose.addEventListener('click', closeKitchenItemSheet);
     if (btnStationLogout) {
       btnStationLogout.addEventListener('click', () => {
         if (window.FroseIdbStore && typeof window.FroseIdbStore.safeLogout === 'function') {

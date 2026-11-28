@@ -11,6 +11,7 @@
   <script src="/js/safe-dom.js?v=1.0.0"></script>
   <script src="/js/idb-store.js?v=1.0.0"></script>
   <script src="/js/ui-components.js?v=1.0.0"></script>
+  <script src="/js/nav-controller.js?v=1.0.0"></script>
   <script src="/js/pwa-updater.js?v=1.0.0"></script>
   <script src="/js/session-guard.js?v=1.0.0"></script>
   <link rel="manifest" href="/manifest.json">
@@ -44,20 +45,24 @@
   <!-- Top Global Packaging Navigation Bar -->
   <header class="kitchen-header">
     <div class="navbar-container">
-      
-      <!-- Brand Lockup & Portal Role Badge -->
-      <a href="/" class="brand-lockup">
-        <div class="brand-icon-emblem">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M4 4H20V8H8V11H18V15H8V20H4V4Z" fill="#FFFFFF"/>
-            <path d="M14 11L20 7V17L14 13V11Z" fill="#F59E0B"/>
-          </svg>
-        </div>
-        <div class="brand-text-group">
-          <span class="brand-title">FROSE</span>
-          <span class="brand-badge badge-packaging">PACKING</span>
-        </div>
-      </a>
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+        <button type="button" class="frose-nav-back" id="btn-packaging-back" data-nav-back aria-label="Back" title="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <!-- Brand Lockup & Portal Role Badge -->
+        <a href="/" class="brand-lockup">
+          <div class="brand-icon-emblem">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 4H20V8H8V11H18V15H8V20H4V4Z" fill="#FFFFFF"/>
+              <path d="M14 11L20 7V17L14 13V11Z" fill="#F59E0B"/>
+            </svg>
+          </div>
+          <div class="brand-text-group">
+            <span class="brand-title">FROSE</span>
+            <span class="brand-badge badge-packaging">PACKING</span>
+          </div>
+        </a>
+      </div>
 
       <!-- Center: Station Tally Counters (Ready, Waiting, Delivered) -->
       <div class="packaging-header-stats">

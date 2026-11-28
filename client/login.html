@@ -15,6 +15,7 @@
   <script src="/js/safe-dom.js?v=1.0.0"></script>
   <script src="/js/idb-store.js?v=1.0.0"></script>
   <script src="/js/ui-components.js?v=1.0.0"></script>
+  <script src="/js/nav-controller.js?v=1.0.0"></script>
   <script src="/js/pwa-updater.js?v=1.0.0"></script>
   <style>
     @media (max-width: 480px) {
@@ -179,7 +180,10 @@
 </head>
 <body class="auth-saas-body">
   <div class="login-container">
-    <div style="display: flex; justify-content: flex-end; margin-bottom: 6px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+      <button type="button" class="frose-nav-back" id="btn-login-back" data-nav-back aria-label="Back" title="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
       <button type="button" id="btn-login-theme" class="saas-icon-btn" style="min-width: 44px; min-height: 44px;" aria-label="Switch Theme" title="Switch Theme">
         <span id="login-theme-icon"></span>
       </button>

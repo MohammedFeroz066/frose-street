@@ -12,6 +12,7 @@
   <script src="/js/dom-events.js?v=1.0.0"></script>
   <script src="/js/idb-store.js?v=1.0.0"></script>
   <script src="/js/ui-components.js?v=1.0.0"></script>
+  <script src="/js/nav-controller.js?v=1.0.0"></script>
   <script src="/js/pwa-updater.js?v=1.0.0"></script>
   <script src="/js/session-guard.js?v=1.0.0"></script>
   <link rel="manifest" href="/manifest.json">
@@ -514,9 +515,9 @@
   <!-- Top Navigation Header -->
   <header class="setup-top-header">
     <div class="setup-header-left">
-      <a href="/billing" id="btn-header-back" class="btn-header-back" title="Back to Billing" aria-label="Back to Billing">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg>
-      </a>
+      <button type="button" id="btn-header-back" class="frose-nav-back btn-header-back" data-nav-back title="Back" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
       <div class="setup-header-titles">
         <h1>Menu &amp; Categories Setup</h1>
         <p id="setup-stall-title">Configuring Stall Menu</p>

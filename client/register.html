@@ -23,6 +23,7 @@
   <script src="/js/safe-dom.js?v=1.0.0"></script>
   <script src="/js/idb-store.js?v=1.0.0"></script>
   <script src="/js/ui-components.js?v=1.0.0"></script>
+  <script src="/js/nav-controller.js?v=1.0.0"></script>
   <script src="/js/pwa-updater.js?v=1.0.0"></script>
   <style>
     /* Critical Armor: Keeps layout bounded, prevents FOUC and modal overflow */
@@ -38,9 +39,12 @@
   <!-- Top Enterprise Navigation Header -->
   <header class="app-header">
     <div class="header-container">
-      
-      <!-- Geometric Monogram Brand Identity -->
-      <a href="/" class="brand-monogram-lockup" title="Return to Portal Hub">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+        <button type="button" class="frose-nav-back" id="btn-register-back" data-nav-back aria-label="Back" title="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
+        <!-- Geometric Monogram Brand Identity -->
+        <a href="/" class="brand-monogram-lockup" title="Return to Portal Hub">
         <div class="brand-vector-mark">
           <svg viewBox="0 0 40 40" width="38" height="38" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="40" height="40" rx="10" fill="#0F172A"/>
@@ -58,6 +62,7 @@
           <span class="brand-subtitle">60-Second Vendor Onboarding</span>
         </div>
       </a>
+      </div>
 
       <!-- Header Right Action -->
       <div class="header-right-meta">

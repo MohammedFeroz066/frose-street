@@ -13,6 +13,7 @@
   <script src="/js/idb-store.js?v=1.0.0"></script>
   <script src="/js/receipt-view.js?v=1.0.0"></script>
   <script src="/js/ui-components.js?v=1.0.0"></script>
+  <script src="/js/nav-controller.js?v=1.0.0"></script>
   <script src="/js/pwa-updater.js?v=1.0.0"></script>
   <script src="/js/session-guard.js?v=1.0.0"></script>
   <link rel="manifest" href="/manifest.json">
@@ -86,6 +87,9 @@
       <!-- Sticky Glass Header -->
       <header class="saas-topbar">
         <div class="saas-topbar-brand">
+          <button type="button" class="frose-nav-back" id="btn-billing-back" data-nav-back aria-label="Back" title="Back">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
           <div class="saas-brand-mark" id="pos-brand-mark">FS</div>
           <div style="min-width: 0;">
             <div class="saas-topbar-title" id="pos-header-stall-name">FROSE Street Stall</div>

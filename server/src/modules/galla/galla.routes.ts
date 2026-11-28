@@ -25,6 +25,36 @@ const DateQuerySchema = z.object({
 
 const ExpenseIdParamSchema = z.object({ id: z.string().min(1).max(100) }).strict();
 
+const UpdateExpenseSchema = z.object({
+  amountPaise: z.union([z.number(), z.bigint()]).optional(),
+  amount_paise: z.union([z.number(), z.bigint()]).optional(),
+  description: z.string().max(250).optional(),
+  title: z.string().max(250).optional(),
+  category: z.string().max(80).optional(),
+  paymentMethod: z.enum(['cash', 'upi']).optional(),
+  payment_method: z.enum(['cash', 'upi']).optional(),
+  expenseDate: z.string().max(32).optional(),
+  expense_date: z.string().max(32).optional(),
+  businessDate: z.string().max(32).optional(),
+  ownerPin: z.string().optional(),
+}).strict();
+
+const DeleteExpenseBodySchema = z.object({
+  ownerPin: z.string().optional(),
+}).strict();
+
+const ProfitAdjustmentSchema = z.object({
+  businessDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  amountPaise: z.union([z.number(), z.bigint()]),
+  note: z.string().trim().min(1, 'Adjustment note is required').max(300),
+  ownerPin: z.string().optional(),
+}).strict();
+
+const ReportQuerySchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+}).strict();
+
 const CloseDayBodySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   notes: z.string().max(300).optional(),
@@ -113,22 +143,104 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   );
 
   /**
+   * PATCH /api/v1/galla/expenses/:id
+   * Edits an expense record (requires valid 4-digit Owner PIN)
+   */
+  app.patch(
+    '/expenses/:id',
+    { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
+    async (request, reply) => {
+      const params = validateSchema(ExpenseIdParamSchema, request.params);
+      const body = validateSchema(UpdateExpenseSchema, request.body || {});
+
+      const expense = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.updateExpense(db, request.user!.sub, params.id, {
+          amountPaise: body.amountPaise ?? body.amount_paise,
+          description: body.description,
+          title: body.title,
+          category: body.category,
+          paymentMethod: body.paymentMethod ?? body.payment_method,
+          expenseDate: body.expenseDate ?? body.expense_date,
+          businessDate: body.businessDate,
+          ownerPin: body.ownerPin,
+        }),
+      );
+
+      return reply.status(200).send({
+        status: 'success',
+        message: 'Expense updated successfully',
+        expense,
+      });
+    },
+  );
+
+  /**
    * DELETE /api/v1/galla/expenses/:id
-   * Removes an expense record (Owner & Cashier only)
+   * Removes an expense record (requires valid 4-digit Owner PIN)
    */
   app.delete(
     '/expenses/:id',
     { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
     async (request, reply) => {
       const params = validateSchema(ExpenseIdParamSchema, request.params);
+      const body = validateSchema(DeleteExpenseBodySchema, request.body || {});
+      const headerPin = typeof request.headers['x-owner-pin'] === 'string' ? request.headers['x-owner-pin'] : undefined;
 
       const result = await withTenantContext(request.user!.sub, (db) =>
-        GallaService.deleteExpense(db, request.user!.sub, params.id),
+        GallaService.deleteExpense(db, request.user!.sub, params.id, body.ownerPin ?? headerPin),
       );
 
       return reply.status(200).send({
         status: 'success',
         ...result,
+      });
+    },
+  );
+
+  /**
+   * POST /api/v1/galla/profit-adjustments
+   * Records a manual Net Profit / Purchase-cost adjustment (requires valid 4-digit Owner PIN)
+   */
+  app.post(
+    '/profit-adjustments',
+    { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
+    async (request, reply) => {
+      const body = validateSchema(ProfitAdjustmentSchema, request.body || {});
+
+      const adjustment = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.addProfitAdjustment(db, request.user!.sub, {
+          businessDate: body.businessDate,
+          amountPaise: body.amountPaise,
+          note: body.note,
+          ownerPin: body.ownerPin,
+        }),
+      );
+
+      return reply.status(201).send({
+        status: 'success',
+        message: 'Profit adjustment recorded',
+        adjustment,
+      });
+    },
+  );
+
+  /**
+   * GET /api/v1/galla/report
+   * Multi-period Sales, Expenses, Adjustments & Net Profit report (max 366 days)
+   */
+  app.get(
+    '/report',
+    { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
+    async (request, reply) => {
+      const query = validateSchema(ReportQuerySchema, request.query || {});
+
+      const report = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.getPeriodReport(db, request.user!.sub, query.from, query.to),
+      );
+
+      return reply.status(200).send({
+        status: 'success',
+        report,
       });
     },
   );

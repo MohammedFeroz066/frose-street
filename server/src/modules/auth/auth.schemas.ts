@@ -47,6 +47,20 @@ export const VerifyPinSchema = z
   })
   .strict();
 
+export const OwnerPinSetSchema = z
+  .object({
+    pin: z.string().regex(/^\d{4}$/, 'Owner PIN must be exactly 4 digits'),
+    currentPin: z.string().regex(/^\d{4}$/, 'Current Owner PIN must be exactly 4 digits').optional(),
+    accountPassword: z.string().min(1, 'Account password cannot be empty').optional(),
+  })
+  .strict();
+
+export const OwnerPinVerifySchema = z
+  .object({
+    pin: z.string().regex(/^\d{4}$/, 'Owner PIN must be exactly 4 digits'),
+  })
+  .strict();
+
 export const BiometricRegisterSchema = z
   .object({
     credentialId: z.string().min(1, 'credentialId is required'),

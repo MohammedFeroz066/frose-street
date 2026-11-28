@@ -76,6 +76,48 @@ export async function verifyPin(pin: string, storedHash: string): Promise<boolea
 }
 
 /**
+ * Hashes a 4-digit in-session Owner Authorization PIN synchronously using crypto.scryptSync
+ * with a unique 16-byte per-vendor random salt.
+ */
+export function hashOwnerPin(pin: string): string {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const derivedKey = crypto.scryptSync(`owner_pin:${pin}`, salt, SCRYPT_KEYLEN, {
+    N: SCRYPT_COST,
+    r: SCRYPT_BLOCK_SIZE,
+    p: SCRYPT_PARALLELIZATION,
+  });
+  return `scrypt:${SCRYPT_COST}:${SCRYPT_BLOCK_SIZE}:${SCRYPT_PARALLELIZATION}:${salt}:${derivedKey.toString('hex')}`;
+}
+
+/**
+ * Verifies a 4-digit in-session Owner Authorization PIN using crypto.scryptSync and crypto.timingSafeEqual.
+ */
+export function verifyOwnerPin(pin: string, storedHash: string): boolean {
+  if (!storedHash || !storedHash.startsWith('scrypt:')) {
+    return false;
+  }
+  const parts = storedHash.split(':');
+  if (parts.length !== 6) {
+    return false;
+  }
+  const [, nStr, rStr, pStr, salt, expectedHashHex] = parts;
+  const N = parseInt(nStr, 10);
+  const r = parseInt(rStr, 10);
+  const p = parseInt(pStr, 10);
+
+  const derivedKey = crypto.scryptSync(`owner_pin:${pin}`, salt, SCRYPT_KEYLEN, {
+    N,
+    r,
+    p,
+  });
+  const expectedBuffer = Buffer.from(expectedHashHex, 'hex');
+  if (derivedKey.length !== expectedBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(derivedKey, expectedBuffer);
+}
+
+/**
  * Generates a random cryptographic token (hex).
  */
 export function generateSecureToken(bytes: number = 32): string {

@@ -115,6 +115,7 @@ vi.mock('../../server/src/db/database.js', () => {
             executeTakeFirstOrThrow: async () => {
               let sourceMap = memoryDailySummaries;
               if (table === 'expenses') sourceMap = memoryExpenses;
+              if (table === 'vendors') sourceMap = memoryVendors;
 
               for (const [id, row] of sourceMap.entries()) {
                 let match = true;
@@ -134,6 +135,7 @@ vi.mock('../../server/src/db/database.js', () => {
           execute: async () => {
             let sourceMap = memoryDailySummaries;
             if (table === 'expenses') sourceMap = memoryExpenses;
+            if (table === 'vendors') sourceMap = memoryVendors;
 
             for (const [id, row] of sourceMap.entries()) {
               let match = true;
@@ -377,7 +379,16 @@ describe('Phase 10 Acceptance: Daily Galla, Expenses, and Day-End Z-Report', () 
   });
 
   describe('TEST 3: Expense Deletion & Dynamic Recalculation', () => {
-    it('deletes an expense record and adjusts subsequent listing totals', async () => {
+    it('deletes an expense record (after 4-digit Owner PIN verification) and adjusts subsequent listing totals', async () => {
+      // 0. Configure 4-digit Owner PIN
+      const pinSetup = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/owner-pin',
+        headers: { Authorization: `Bearer ${ownerToken}` },
+        payload: { pin: '2468' },
+      });
+      expect(pinSetup.statusCode).toBe(200);
+
       // 1. Create expense
       const createRes = await app.inject({
         method: 'POST',
@@ -399,11 +410,21 @@ describe('Phase 10 Acceptance: Daily Galla, Expenses, and Day-End Z-Report', () 
       });
       expect(listBefore.json().totalExpensesPaise).toBe(12000);
 
-      // 3. Delete expense
+      // 2b. Deleting without Owner PIN must fail with 403 OWNER_PIN_REQUIRED
+      const delNoPin = await app.inject({
+        method: 'DELETE',
+        url: `/api/v1/galla/expenses/${expenseId}`,
+        headers: { Authorization: `Bearer ${ownerToken}` },
+      });
+      expect(delNoPin.statusCode).toBe(403);
+      expect(delNoPin.json().code).toBe('OWNER_PIN_REQUIRED');
+
+      // 3. Delete expense with valid Owner PIN
       const delRes = await app.inject({
         method: 'DELETE',
         url: `/api/v1/galla/expenses/${expenseId}`,
         headers: { Authorization: `Bearer ${ownerToken}` },
+        payload: { ownerPin: '2468' },
       });
       expect(delRes.statusCode).toBe(200);
       expect(delRes.json().message).toBe('Expense deleted successfully');
@@ -422,6 +443,7 @@ describe('Phase 10 Acceptance: Daily Galla, Expenses, and Day-End Z-Report', () 
         method: 'DELETE',
         url: `/api/v1/galla/expenses/${expenseId}`,
         headers: { Authorization: `Bearer ${ownerToken}` },
+        payload: { ownerPin: '2468' },
       });
       expect(delAgain.statusCode).toBe(404);
       expect(delAgain.json().code).toBe('EXPENSE_NOT_FOUND');

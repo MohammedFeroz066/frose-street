@@ -19,6 +19,7 @@ export interface VendorsTable {
   token_reset_date: string;
   password_hash: string | null;
   quick_pin_hash: string | null;
+  owner_pin_hash?: string | null;
   is_superadmin?: boolean;
   tax_mode?: 'unregistered' | 'composition' | 'regular';
   gstin?: string | null;
@@ -40,6 +41,7 @@ export interface StaffTable {
   is_active: boolean;
   password_hash: string | null;
   quick_pin_hash: string | null;
+  owner_pin_hash?: string | null;
   is_superadmin?: boolean;
   created_at: Generated<Timestamp>;
 }
@@ -112,6 +114,8 @@ export interface OrdersTable {
   cancel_reason?: string | null;
   edited_at?: Timestamp | null;
   edit_note?: string | null;
+  ready_at?: Timestamp | null;
+  delivered_at?: Timestamp | null;
   created_at: Generated<Timestamp>;
   updated_at: Generated<Timestamp>;
 }
@@ -125,6 +129,19 @@ export interface OrderItemsTable {
   unit_price_paise: MoneyPaise;
   line_total_paise: MoneyPaise;
   notes: string | null;
+  kitchen_ready?: boolean;
+  kitchen_ready_at?: Timestamp | null;
+  packaging_ready?: boolean;
+  packaging_ready_at?: Timestamp | null;
+}
+
+export interface ProfitAdjustmentsTable {
+  id: Generated<string>;
+  vendor_id: string;
+  business_date: string;
+  amount_paise: MoneyPaise;
+  note: string;
+  created_at: Generated<Timestamp>;
 }
 
 export interface DailySummariesTable {
@@ -206,6 +223,7 @@ export interface Database {
   order_items: OrderItemsTable;
   daily_summaries: DailySummariesTable;
   expenses: ExpensesTable;
+  profit_adjustments: ProfitAdjustmentsTable;
   subscriptions: SubscriptionsTable;
   login_lockouts: LoginLockoutsTable;
   refresh_tokens: RefreshTokensTable;

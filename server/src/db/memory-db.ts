@@ -8,6 +8,7 @@ export const memoryOrders = new Map<string, any>();
 export const memoryOrderItems = new Map<string, any>();
 export const memorySubscriptions = new Map<string, any>();
 export const memoryExpenses = new Map<string, any>();
+export const memoryProfitAdjustments = new Map<string, any>();
 export const memoryDailySummaries = new Map<string, any>();
 export const memoryBiometrics = new Map<string, any>();
 export const memoryDevices = new Map<string, any>();
@@ -96,6 +97,8 @@ export function createMemoryDb(): Kysely<Database> {
         return memorySubscriptions;
       case 'expenses':
         return memoryExpenses;
+      case 'profit_adjustments':
+        return memoryProfitAdjustments;
       case 'daily_summaries':
         return memoryDailySummaries;
       case 'biometric_credentials':
@@ -153,6 +156,13 @@ export function createMemoryDb(): Kysely<Database> {
                 if (Array.isArray(cond.val) && !cond.val.includes(row[prop])) match = false;
               } else if (cond.op === 'is not') {
                 if (row[prop] === null || row[prop] === undefined) match = false;
+              } else if (cond.op === '>=' || cond.op === '<=' || cond.op === '>' || cond.op === '<') {
+                const lhs = row[prop] instanceof Date ? row[prop].getTime() : (cond.val instanceof Date ? new Date(row[prop]).getTime() : row[prop]);
+                const rhs = cond.val instanceof Date ? cond.val.getTime() : cond.val;
+                if (cond.op === '>=' && !(lhs >= rhs)) match = false;
+                if (cond.op === '<=' && !(lhs <= rhs)) match = false;
+                if (cond.op === '>' && !(lhs > rhs)) match = false;
+                if (cond.op === '<' && !(lhs < rhs)) match = false;
               }
             }
             if (match) matched.push({ ...row });

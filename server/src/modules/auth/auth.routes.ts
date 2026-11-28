@@ -13,6 +13,8 @@ import {
   LoginSchema,
   SetupPinSchema,
   VerifyPinSchema,
+  OwnerPinSetSchema,
+  OwnerPinVerifySchema,
   BiometricRegisterSchema,
   BiometricVerifySchema,
   UpdateVendorProfileSchema,
@@ -168,6 +170,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
           subscriptionStatus: vendor.subscription_status,
           subscriptionExpiresAt: vendor.subscription_expires_at,
           hasQuickPin: !!vendor.quick_pin_hash,
+          hasOwnerPin: !!vendor.owner_pin_hash,
           upiId: vendor.upi_id || PaymentService.getVendorVpa(vendor.id),
           payeeName: vendor.payee_name || undefined,
           ...formatVendorCompliance(vendor),
@@ -241,6 +244,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         subscriptionStatus: vendor.subscription_status,
         subscriptionExpiresAt: vendor.subscription_expires_at,
         hasQuickPin: !!vendor.quick_pin_hash,
+        hasOwnerPin: !!vendor.owner_pin_hash,
         upiId: vendor.upi_id || PaymentService.getVendorVpa(vendor.id),
         payeeName: vendor.payee_name || undefined,
         ...formatVendorCompliance(vendor),
@@ -381,6 +385,41 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   });
 
   /**
+   * POST /api/v1/auth/owner-pin
+   * Sets or updates the 4-digit in-session Owner Authorization PIN (requires currentPin or accountPassword if already set)
+   */
+  app.post('/owner-pin', { preHandler: [requireAuth, requireRole('owner', 'superadmin')] }, async (request, reply) => {
+    const body = validateSchema(OwnerPinSetSchema, request.body);
+
+    const result = await withTenantContext(request.user!.sub, (db) =>
+      AuthService.setOwnerPin(db, request.user!.sub, body),
+    );
+
+    return reply.status(200).send({
+      status: 'success',
+      message: '4-digit Owner PIN configured successfully',
+      hasOwnerPin: result.hasOwnerPin,
+    });
+  });
+
+  /**
+   * POST /api/v1/auth/owner-pin/verify
+   * Verifies the 4-digit in-session Owner Authorization PIN (max 5 failures per 15 min -> 429 PIN_LOCKED)
+   */
+  app.post('/owner-pin/verify', { preHandler: [requireAuth, requireRole('owner', 'cashier', 'superadmin')] }, async (request, reply) => {
+    const body = validateSchema(OwnerPinVerifySchema, request.body);
+
+    const result = await withTenantContext(request.user!.sub, (db) =>
+      AuthService.verifyOwnerPinSession(db, request.user!.sub, body.pin),
+    );
+
+    return reply.status(200).send({
+      status: 'success',
+      valid: result.valid,
+    });
+  });
+
+  /**
    * POST /api/v1/auth/pin-login
    * Restricted: 4-digit quick PIN authentication is strictly for local offline terminal unlock.
    */
@@ -479,6 +518,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
       subscriptionStatus: vendor.subscription_status,
       subscriptionExpiresAt: vendor.subscription_expires_at,
       hasQuickPin: !!vendor.quick_pin_hash,
+      hasOwnerPin: !!vendor.owner_pin_hash,
       upiId: vendor.upi_id ?? PaymentService.getVendorVpa(vendor.id) ?? null,
       payeeName: vendor.payee_name ?? null,
       ...formatVendorCompliance(vendor),
@@ -511,6 +551,7 @@ export const authRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         subscriptionStatus: updated.subscription_status,
         subscriptionExpiresAt: updated.subscription_expires_at,
         hasQuickPin: !!updated.quick_pin_hash,
+        hasOwnerPin: !!updated.owner_pin_hash,
         upiId: updated.upi_id ?? PaymentService.getVendorVpa(updated.id) ?? null,
         payeeName: updated.payee_name ?? null,
         ...formatVendorCompliance(updated),

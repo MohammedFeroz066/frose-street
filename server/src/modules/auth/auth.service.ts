@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
-import { hashPassword, verifyPassword, hashPin, verifyPin } from '../../utils/crypto.js';
+import { hashPassword, verifyPassword, hashPin, verifyPin, hashOwnerPin, verifyOwnerPin } from '../../utils/crypto.js';
 import { validateStrongPassword } from '../../utils/password-validator.js';
 import { getIstDateString } from '../../utils/ist-date.js';
 import { GSTIN_REGEX, FSSAI_REGEX, UPI_VPA_REGEX, ALLOWED_GST_RATE_BPS } from './auth.schemas.js';
@@ -287,6 +287,119 @@ export class AuthService {
 
     await LoginSecurityService.recordSuccessAsync(vendor.phone, ip, db);
     return vendor;
+  }
+
+  /**
+   * Sets or updates the 4-digit in-session Owner Authorization PIN.
+   * Requires currentPin OR accountPassword if an Owner PIN is already configured.
+   */
+  static async setOwnerPin(
+    db: Kysely<Database>,
+    vendorId: string,
+    input: { pin: string; currentPin?: string; accountPassword?: string },
+  ): Promise<{ hasOwnerPin: true }> {
+    if (!/^\d{4}$/.test(input.pin)) {
+      throw AppError.badRequest('Owner PIN must be exactly 4 digits', 'INVALID_OWNER_PIN_FORMAT');
+    }
+
+    const vendor = await db
+      .selectFrom('vendors')
+      .select(['id', 'password_hash', 'owner_pin_hash'])
+      .where('id', '=', vendorId)
+      .executeTakeFirst();
+
+    if (!vendor) {
+      throw AppError.notFound('Vendor account not found', 'VENDOR_NOT_FOUND');
+    }
+
+    if (vendor.owner_pin_hash) {
+      if (!input.currentPin && !input.accountPassword) {
+        throw AppError.forbidden(
+          'Current Owner PIN or account password is required to change Owner PIN',
+          'CURRENT_AUTH_REQUIRED',
+        );
+      }
+
+      if (input.currentPin) {
+        await this.verifyOwnerPinSession(db, vendorId, input.currentPin);
+      } else if (input.accountPassword) {
+        if (!vendor.password_hash) {
+          throw AppError.forbidden('Account password not configured', 'INVALID_CREDENTIALS');
+        }
+        const pwOk = await verifyPassword(input.accountPassword, vendor.password_hash);
+        if (!pwOk) {
+          throw AppError.unauthorized('Incorrect account password', 'INVALID_CREDENTIALS');
+        }
+      }
+    }
+
+    const pinHash = hashOwnerPin(input.pin);
+    await db
+      .updateTable('vendors')
+      .set({ owner_pin_hash: pinHash, updated_at: new Date() })
+      .where('id', '=', vendorId)
+      .execute();
+
+    return { hasOwnerPin: true };
+  }
+
+  /**
+   * Verifies the 4-digit Owner Authorization PIN with rate-limiting (max 5 failures / 15 min -> 429 PIN_LOCKED).
+   */
+  static async verifyOwnerPinSession(
+    db: Kysely<Database>,
+    vendorId: string,
+    pin?: string,
+  ): Promise<{ valid: true }> {
+    const lock = await LoginSecurityService.checkOwnerPinLockAsync(vendorId, db);
+    if (lock.isLocked) {
+      throw AppError.rateLimited(
+        `Too many failed Owner PIN attempts. Try again in ${lock.remainingSeconds} seconds.`,
+        'PIN_LOCKED',
+        lock.remainingSeconds,
+      );
+    }
+
+    const vendor = await db
+      .selectFrom('vendors')
+      .select(['id', 'owner_pin_hash'])
+      .where('id', '=', vendorId)
+      .executeTakeFirst();
+
+    if (!vendor) {
+      throw AppError.notFound('Vendor account not found', 'VENDOR_NOT_FOUND');
+    }
+
+    if (!vendor.owner_pin_hash) {
+      throw AppError.forbidden(
+        '4-digit Owner PIN has not been set yet. Set your Owner PIN first.',
+        'OWNER_PIN_REQUIRED',
+      );
+    }
+
+    if (!pin || typeof pin !== 'string' || !pin.trim()) {
+      throw AppError.forbidden('4-digit Owner PIN is required for this action', 'OWNER_PIN_REQUIRED');
+    }
+
+    const cleaned = pin.trim();
+    const matched = /^\d{4}$/.test(cleaned) && verifyOwnerPin(cleaned, vendor.owner_pin_hash);
+    if (!matched) {
+      const fail = await LoginSecurityService.recordOwnerPinFailureAsync(vendorId, db);
+      if (fail.isLocked) {
+        throw AppError.rateLimited(
+          `Too many failed Owner PIN attempts. Locked for ${fail.lockDurationSeconds} seconds.`,
+          'PIN_LOCKED',
+          fail.lockDurationSeconds,
+        );
+      }
+      throw AppError.unauthorized(
+        `Invalid 4-digit Owner PIN (${fail.attemptsRemaining} attempt${fail.attemptsRemaining === 1 ? '' : 's'} remaining)`,
+        'INVALID_OWNER_PIN',
+      );
+    }
+
+    await LoginSecurityService.recordOwnerPinSuccessAsync(vendorId, db);
+    return { valid: true };
   }
 
   /**

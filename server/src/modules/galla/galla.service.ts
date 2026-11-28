@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { Kysely } from 'kysely';
 import type { Database } from '../../db/types.js';
 import type { Expense, GallaSummary, DailySummary } from '../../../../shared/types/index.js';
@@ -5,6 +6,7 @@ import { AppError } from '../../errors/app-error.js';
 import { WebSocketHub } from '../websocket/websocket.hub.js';
 import { getIstDateString, normalizeDateColumnString } from '../../utils/ist-date.js';
 import { resolveOrderPaymentAmounts } from '../orders/order.service.js';
+import { AuthService } from '../auth/auth.service.js';
 
 const IST_OFFSET_MS = 19_800_000;
 
@@ -44,6 +46,82 @@ export interface LogExpenseInput {
   category?: string;
   paymentMethod?: 'cash' | 'upi';
   expenseDate?: string;
+}
+
+export interface UpdateExpenseInput {
+  amountPaise?: number | bigint;
+  description?: string;
+  title?: string;
+  category?: string;
+  paymentMethod?: 'cash' | 'upi';
+  expenseDate?: string;
+  businessDate?: string;
+  ownerPin?: string;
+}
+
+export interface ProfitAdjustmentInput {
+  businessDate?: string;
+  amountPaise: number | bigint;
+  note: string;
+  ownerPin?: string;
+}
+
+export interface PeriodReport {
+  from: string;
+  to: string;
+  vendor: {
+    businessName: string;
+    gstin: string | null;
+    fssaiNumber: string | null;
+    taxMode: string;
+    stallAddress: string | null;
+  };
+  grossSalesPaise: number;
+  cashSalesPaise: number;
+  upiSalesPaise: number;
+  splitSalesPaise: number;
+  totalOrders: number;
+  cancelledOrders: number;
+  averageOrderPaise: number;
+  totalExpensesPaise: number;
+  profitAdjustmentsPaise: number;
+  netProfitPaise: number;
+  dailyBreakdown: Array<{
+    date: string;
+    grossSalesPaise: number;
+    cashSalesPaise: number;
+    upiSalesPaise: number;
+    splitSalesPaise: number;
+    orderCount: number;
+    cancelledCount: number;
+    expensesPaise: number;
+    profitAdjustmentsPaise: number;
+    netProfitPaise: number;
+  }>;
+  topItems: Array<{
+    menuItemId: string | null;
+    itemName: string;
+    quantity: number;
+    revenuePaise: number;
+  }>;
+  expenses: Array<{
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    paymentMethod: 'cash' | 'upi';
+    amountPaise: number;
+    businessDate: string;
+    expenseDate: string;
+    createdAt: string;
+  }>;
+  adjustments: Array<{
+    id: string;
+    businessDate: string;
+    amountPaise: number;
+    note: string;
+    createdAt: string;
+  }>;
 }
 
 export class GallaService {
@@ -201,12 +279,108 @@ export class GallaService {
   }
 
   /**
-   * Deletes an expense by ID
+   * Updates an expense record (protected by 4-digit Owner PIN)
+   */
+  static async updateExpense(
+    db: Kysely<Database>,
+    vendorId: string,
+    expenseId: string,
+    input: UpdateExpenseInput,
+  ): Promise<Expense> {
+    const existing = await db
+      .selectFrom('expenses')
+      .selectAll()
+      .where('id', '=', expenseId)
+      .where('vendor_id', '=', vendorId)
+      .executeTakeFirst();
+
+    if (!existing) {
+      throw AppError.notFound('Expense record not found', 'EXPENSE_NOT_FOUND');
+    }
+
+    await AuthService.verifyOwnerPinSession(db, vendorId, input.ownerPin);
+
+    const updateFields: Record<string, any> = {};
+
+    if (input.amountPaise !== undefined) {
+      const rawAmount = input.amountPaise;
+      if (typeof rawAmount !== 'number' && typeof rawAmount !== 'bigint') {
+        throw AppError.badRequest('Expense amount must be a valid integer in paise', 'INVALID_INTEGER_PAISE');
+      }
+      if (typeof rawAmount === 'number') {
+        if (!Number.isInteger(rawAmount)) {
+          throw AppError.badRequest('Floating point amounts are forbidden', 'FLOATS_FORBIDDEN');
+        }
+        if (rawAmount <= 0) {
+          throw AppError.badRequest('Expense amount must be strictly greater than 0 paise', 'INVALID_EXPENSE_AMOUNT');
+        }
+      } else if (rawAmount <= 0n) {
+        throw AppError.badRequest('Expense amount must be strictly greater than 0 paise', 'INVALID_EXPENSE_AMOUNT');
+      }
+      updateFields.amount_paise = typeof rawAmount === 'bigint' ? rawAmount : BigInt(rawAmount);
+    }
+
+    const rawDesc = input.description !== undefined ? input.description : input.title;
+    if (rawDesc !== undefined) {
+      const cleaned = rawDesc.trim();
+      if (!cleaned || cleaned.length > 200) {
+        throw AppError.badRequest('Expense description must be between 1 and 200 characters', 'INVALID_DESCRIPTION');
+      }
+      updateFields.description = cleaned;
+    }
+
+    if (input.category !== undefined) {
+      updateFields.category = input.category.trim().toLowerCase().slice(0, 50) || 'general';
+    }
+
+    if (input.paymentMethod !== undefined) {
+      updateFields.payment_method = input.paymentMethod === 'upi' ? 'upi' : 'cash';
+    }
+
+    const rawDate = input.expenseDate ?? input.businessDate;
+    if (rawDate !== undefined) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+        throw AppError.badRequest('Invalid expense date format. Required: YYYY-MM-DD', 'INVALID_DATE_FORMAT');
+      }
+      updateFields.expense_date = rawDate;
+    }
+
+    const updated =
+      Object.keys(updateFields).length > 0
+        ? await db
+            .updateTable('expenses')
+            .set(updateFields)
+            .where('id', '=', expenseId)
+            .where('vendor_id', '=', vendorId)
+            .returningAll()
+            .executeTakeFirstOrThrow()
+        : existing;
+
+    const expense: Expense = {
+      id: updated.id,
+      vendorId: updated.vendor_id,
+      amountPaise: Number(updated.amount_paise),
+      amountRupees: Number(updated.amount_paise) / 100,
+      description: updated.description,
+      title: updated.description,
+      category: (updated.category as string) || 'general',
+      paymentMethod: (updated.payment_method as 'cash' | 'upi') || 'cash',
+      expenseDate: normalizeDateColumnString(updated.expense_date),
+      createdAt: new Date(updated.created_at).toISOString(),
+    };
+
+    WebSocketHub.broadcast(vendorId, 'galla:expense_updated', expense, ['owner', 'cashier']);
+    return expense;
+  }
+
+  /**
+   * Deletes an expense by ID (protected by 4-digit Owner PIN)
    */
   static async deleteExpense(
     db: Kysely<Database>,
     vendorId: string,
     expenseId: string,
+    ownerPin?: string,
   ): Promise<{ success: boolean; message: string }> {
     const existing = await db
       .selectFrom('expenses')
@@ -218,6 +392,8 @@ export class GallaService {
     if (!existing) {
       throw AppError.notFound('Expense record not found', 'EXPENSE_NOT_FOUND');
     }
+
+    await AuthService.verifyOwnerPinSession(db, vendorId, ownerPin);
 
     await db
       .deleteFrom('expenses')
@@ -236,6 +412,313 @@ export class GallaService {
     return {
       success: true,
       message: 'Expense deleted successfully',
+    };
+  }
+
+  /**
+   * Records a manual Net Profit / Purchase Cost adjustment (protected by 4-digit Owner PIN)
+   */
+  static async addProfitAdjustment(
+    db: Kysely<Database>,
+    vendorId: string,
+    input: ProfitAdjustmentInput,
+  ) {
+    await AuthService.verifyOwnerPinSession(db, vendorId, input.ownerPin);
+
+    const rawAmount = input.amountPaise;
+    if (typeof rawAmount !== 'number' && typeof rawAmount !== 'bigint') {
+      throw AppError.badRequest('Adjustment amount must be a valid integer in paise', 'INVALID_INTEGER_PAISE');
+    }
+    if (typeof rawAmount === 'number') {
+      if (!Number.isInteger(rawAmount)) {
+        throw AppError.badRequest('Floating point amounts are forbidden', 'FLOATS_FORBIDDEN');
+      }
+      if (rawAmount === 0) {
+        throw AppError.badRequest('Adjustment amount cannot be 0 paise', 'INVALID_ADJUSTMENT_AMOUNT');
+      }
+    } else if (rawAmount === 0n) {
+      throw AppError.badRequest('Adjustment amount cannot be 0 paise', 'INVALID_ADJUSTMENT_AMOUNT');
+    }
+
+    const note = (input.note || '').trim();
+    if (!note || note.length > 300) {
+      throw AppError.badRequest('Adjustment note is required (1-300 chars)', 'INVALID_ADJUSTMENT_NOTE');
+    }
+
+    const businessDate = input.businessDate || getIstDateString();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(businessDate)) {
+      throw AppError.badRequest('Invalid businessDate format. Required: YYYY-MM-DD', 'INVALID_DATE_FORMAT');
+    }
+
+    const inserted = await db
+      .insertInto('profit_adjustments')
+      .values({
+        id: randomUUID(),
+        vendor_id: vendorId,
+        business_date: businessDate,
+        amount_paise: typeof rawAmount === 'bigint' ? rawAmount : BigInt(rawAmount),
+        note,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    const adjustment = {
+      id: inserted.id,
+      vendorId: inserted.vendor_id,
+      businessDate: normalizeDateColumnString(inserted.business_date),
+      amountPaise: Number(inserted.amount_paise),
+      note: inserted.note,
+      createdAt: new Date(inserted.created_at).toISOString(),
+    };
+
+    WebSocketHub.broadcast(vendorId, 'galla:profit_adjusted', adjustment, ['owner', 'cashier']);
+    return adjustment;
+  }
+
+  /**
+   * Computes comprehensive multi-period analytics (Today, Yesterday, Week, Month, Custom up to 366 days)
+   */
+  static async getPeriodReport(
+    db: Kysely<Database>,
+    vendorId: string,
+    fromInput?: string,
+    toInput?: string,
+  ): Promise<PeriodReport> {
+    const today = getIstDateString();
+    const from = fromInput || today;
+    const to = toInput || from;
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      throw AppError.badRequest('Invalid date format. Required: YYYY-MM-DD', 'INVALID_DATE_FORMAT');
+    }
+
+    const startUtc = new Date(`${from}T00:00:00.000+05:30`);
+    const endUtc = new Date(`${to}T23:59:59.999+05:30`);
+    if (Number.isNaN(startUtc.getTime()) || Number.isNaN(endUtc.getTime())) {
+      throw AppError.badRequest('Invalid IST date parameter', 'INVALID_DATE_FORMAT');
+    }
+    if (from > to) {
+      throw AppError.badRequest('from date cannot be after to date', 'INVALID_DATE_RANGE');
+    }
+
+    const daySpan = Math.floor((new Date(`${to}T00:00:00Z`).getTime() - new Date(`${from}T00:00:00Z`).getTime()) / 86_400_000) + 1;
+    if (daySpan > 366) {
+      throw AppError.badRequest('Date range cannot exceed 366 days', 'DATE_RANGE_TOO_LARGE');
+    }
+
+    const vendor = await db
+      .selectFrom('vendors')
+      .select(['business_name', 'gstin', 'fssai_number', 'tax_mode', 'stall_address'])
+      .where('id', '=', vendorId)
+      .executeTakeFirst();
+
+    const rawOrders = await db
+      .selectFrom('orders')
+      .selectAll()
+      .where('vendor_id', '=', vendorId)
+      .where('created_at', '>=', startUtc)
+      .where('created_at', '<=', endUtc)
+      .orderBy('created_at', 'asc')
+      .execute();
+
+    const dateOrders = rawOrders.filter((o) => {
+      const d = getIstDateString(o.created_at);
+      return d >= from && d <= to;
+    });
+
+    const paidOrders = dateOrders.filter(
+      (o) => o.payment_status === 'paid' && o.order_status !== 'cancelled',
+    );
+    const cancelledOrdersList = dateOrders.filter((o) => o.order_status === 'cancelled');
+
+    const dayMap = new Map<
+      string,
+      {
+        date: string;
+        grossSalesPaise: number;
+        cashSalesPaise: number;
+        upiSalesPaise: number;
+        splitSalesPaise: number;
+        orderCount: number;
+        cancelledCount: number;
+        expensesPaise: number;
+        profitAdjustmentsPaise: number;
+        netProfitPaise: number;
+      }
+    >();
+
+    const ensureDay = (d: string) => {
+      if (!dayMap.has(d)) {
+        dayMap.set(d, {
+          date: d,
+          grossSalesPaise: 0,
+          cashSalesPaise: 0,
+          upiSalesPaise: 0,
+          splitSalesPaise: 0,
+          orderCount: 0,
+          cancelledCount: 0,
+          expensesPaise: 0,
+          profitAdjustmentsPaise: 0,
+          netProfitPaise: 0,
+        });
+      }
+      return dayMap.get(d)!;
+    };
+
+    if (from === to) ensureDay(from);
+
+    let grossSalesPaise = 0;
+    let cashSalesPaise = 0;
+    let upiSalesPaise = 0;
+    let splitSalesPaise = 0;
+
+    for (const order of paidOrders) {
+      const amt = Number(order.total_paise || 0);
+      const pay = resolveOrderPaymentAmounts(order);
+      const dayKey = getIstDateString(order.created_at);
+      const bucket = ensureDay(dayKey);
+
+      grossSalesPaise += amt;
+      cashSalesPaise += pay.cashPaise;
+      upiSalesPaise += pay.upiPaise;
+      if (order.payment_method === 'split') {
+        splitSalesPaise += amt;
+        bucket.splitSalesPaise += amt;
+      }
+
+      bucket.grossSalesPaise += amt;
+      bucket.cashSalesPaise += pay.cashPaise;
+      bucket.upiSalesPaise += pay.upiPaise;
+      bucket.orderCount += 1;
+    }
+
+    for (const cOrd of cancelledOrdersList) {
+      const bucket = ensureDay(getIstDateString(cOrd.created_at));
+      bucket.cancelledCount += 1;
+    }
+
+    // Aggregate top items for paid orders
+    const topItemsMap = new Map<string, { menuItemId: string | null; itemName: string; quantity: number; revenuePaise: number }>();
+    if (paidOrders.length > 0) {
+      const paidIds = paidOrders.map((o) => o.id);
+      const orderItems = await db
+        .selectFrom('order_items')
+        .selectAll()
+        .where('order_id', 'in', paidIds)
+        .execute();
+
+      for (const it of orderItems) {
+        const key = it.item_name;
+        const curr = topItemsMap.get(key) || {
+          menuItemId: it.menu_item_id || null,
+          itemName: it.item_name,
+          quantity: 0,
+          revenuePaise: 0,
+        };
+        curr.quantity += Number(it.quantity || 0);
+        curr.revenuePaise += Number(it.line_total_paise || 0);
+        topItemsMap.set(key, curr);
+      }
+    }
+    const topItems = Array.from(topItemsMap.values())
+      .sort((a, b) => b.quantity - a.quantity || b.revenuePaise - a.revenuePaise)
+      .slice(0, 20);
+
+    // Fetch expenses in [from, to]
+    const rawExpenses = await db
+      .selectFrom('expenses')
+      .selectAll()
+      .where('vendor_id', '=', vendorId)
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    const filteredExpenses = rawExpenses.filter((e) => {
+      const d = normalizeDateColumnString(e.expense_date);
+      return d >= from && d <= to;
+    });
+
+    let totalExpensesPaise = 0;
+    const expenses = filteredExpenses.map((e) => {
+      const amt = Number(e.amount_paise || 0);
+      const bDate = normalizeDateColumnString(e.expense_date);
+      totalExpensesPaise += amt;
+      ensureDay(bDate).expensesPaise += amt;
+      return {
+        id: e.id,
+        title: e.description,
+        description: e.description,
+        category: (e.category as string) || 'general',
+        paymentMethod: ((e.payment_method as string) === 'upi' ? 'upi' : 'cash') as 'cash' | 'upi',
+        amountPaise: amt,
+        businessDate: bDate,
+        expenseDate: bDate,
+        createdAt: new Date(e.created_at).toISOString(),
+      };
+    });
+
+    // Fetch profit adjustments in [from, to]
+    const rawAdjustments = await db
+      .selectFrom('profit_adjustments')
+      .selectAll()
+      .where('vendor_id', '=', vendorId)
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    const filteredAdjustments = rawAdjustments.filter((a) => {
+      const d = normalizeDateColumnString(a.business_date);
+      return d >= from && d <= to;
+    });
+
+    let profitAdjustmentsPaise = 0;
+    const adjustments = filteredAdjustments.map((a) => {
+      const amt = Number(a.amount_paise || 0);
+      const bDate = normalizeDateColumnString(a.business_date);
+      profitAdjustmentsPaise += amt;
+      ensureDay(bDate).profitAdjustmentsPaise += amt;
+      return {
+        id: a.id,
+        businessDate: bDate,
+        amountPaise: amt,
+        note: a.note,
+        createdAt: new Date(a.created_at).toISOString(),
+      };
+    });
+
+    const dailyBreakdown = Array.from(dayMap.values())
+      .map((d) => ({
+        ...d,
+        netProfitPaise: d.grossSalesPaise - d.expensesPaise + d.profitAdjustmentsPaise,
+      }))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+    const totalOrders = paidOrders.length;
+    const averageOrderPaise = totalOrders > 0 ? Math.round(grossSalesPaise / totalOrders) : 0;
+    const netProfitPaise = grossSalesPaise - totalExpensesPaise + profitAdjustmentsPaise;
+
+    return {
+      from,
+      to,
+      vendor: {
+        businessName: vendor?.business_name || 'FROSE Street Stall',
+        gstin: vendor?.gstin ?? null,
+        fssaiNumber: vendor?.fssai_number ?? null,
+        taxMode: (vendor?.tax_mode as string) || 'unregistered',
+        stallAddress: vendor?.stall_address ?? null,
+      },
+      grossSalesPaise,
+      cashSalesPaise,
+      upiSalesPaise,
+      splitSalesPaise,
+      totalOrders,
+      cancelledOrders: cancelledOrdersList.length,
+      averageOrderPaise,
+      totalExpensesPaise,
+      profitAdjustmentsPaise,
+      netProfitPaise,
+      dailyBreakdown,
+      topItems,
+      expenses,
+      adjustments,
     };
   }
 

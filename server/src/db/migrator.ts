@@ -22,6 +22,7 @@ import * as m018 from './migrations/018_phase4_orders_menu_enhancements.js';
 import * as m019 from './migrations/019_add_order_type_to_orders.js';
 import * as m020 from './migrations/020_admin_audit_and_suspended.js';
 import * as m021 from './migrations/021_vendor_upi_and_galla_counted.js';
+import * as m022 from './migrations/022_reports_pin_and_item_fulfillment.js';
 
 export const allMigrations: Record<string, Migration> = {
   '001_create_vendors': m001,
@@ -45,6 +46,7 @@ export const allMigrations: Record<string, Migration> = {
   '019_add_order_type_to_orders': m019,
   '020_admin_audit_and_suspended': m020,
   '021_vendor_upi_and_galla_counted': m021,
+  '022_reports_pin_and_item_fulfillment': m022,
 };
 
 export class StaticMigrationProvider implements MigrationProvider {

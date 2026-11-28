@@ -111,6 +111,7 @@ describe('Phase 3 Acceptance: Database Schema & Migrations', () => {
         '019_add_order_type_to_orders',
         '020_admin_audit_and_suspended',
         '021_vendor_upi_and_galla_counted',
+        '022_reports_pin_and_item_fulfillment',
       ]);
     });
   });

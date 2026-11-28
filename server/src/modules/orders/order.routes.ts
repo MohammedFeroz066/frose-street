@@ -51,6 +51,16 @@ const OrderHistoryQuerySchema = z.object({
 
 const OrderIdParamSchema = z.object({ id: z.string().min(1).max(100) }).strict();
 
+const OrderItemFulfillmentParamsSchema = z.object({
+  orderId: z.string().min(1).max(100),
+  itemId: z.string().min(1).max(100),
+}).strict();
+
+const OrderItemFulfillmentBodySchema = z.object({
+  stage: z.enum(['kitchen', 'packaging']),
+  ready: z.boolean(),
+}).strict();
+
 const UpdateOrderStatusSchema = z.object({
   status: z.enum(['pending', 'preparing', 'ready', 'served', 'cancelled']),
   reason: z.string().trim().min(3, 'Void/cancel reason must be at least 3 characters').max(200).optional(),
@@ -89,8 +99,8 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   );
 
   /**
-   * GET /api/v1/orders/live
-   * Returns active queues for Kitchen KDS and Packaging display
+   * GET /api/v1/orders/live and /api/v1/orders/active
+   * Returns active queues for Kitchen KDS and Packaging display (including partial-ready orders)
    */
   app.get('/live', { preHandler: [requireAuth] }, async (request, reply) => {
     const queues = await withTenantContext(request.user!.sub, (db) =>
@@ -100,6 +110,42 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     return reply.status(200).send({
       status: 'success',
       ...queues,
+    });
+  });
+
+  app.get('/active', { preHandler: [requireAuth] }, async (request, reply) => {
+    const queues = await withTenantContext(request.user!.sub, (db) =>
+      OrderService.getLiveOrders(db, request.user!.sub),
+    );
+
+    return reply.status(200).send({
+      status: 'success',
+      ...queues,
+    });
+  });
+
+  /**
+   * GET /api/v1/orders
+   * Retrieves order list/history with per-item fulfillment status & counts
+   */
+  app.get('/', { preHandler: [requireAuth] }, async (request, reply) => {
+    const query = validateSchema(OrderHistoryQuerySchema, request.query || {});
+
+    const result = await withTenantContext(request.user!.sub, (db) =>
+      OrderService.getOrderHistory(db, request.user!.sub, {
+        limit: query.limit ? parseInt(query.limit, 10) : undefined,
+        offset: query.offset ? parseInt(query.offset, 10) : undefined,
+        status: query.status,
+        paymentMode: query.paymentMode ?? query.paymentMethod,
+        dateFrom: query.dateFrom,
+        dateTo: query.dateTo,
+        search: query.search,
+      }),
+    );
+
+    return reply.status(200).send({
+      status: 'success',
+      ...result,
     });
   });
 
@@ -168,6 +214,31 @@ export const orderRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
     const order = await withTenantContext(request.user!.sub, (db) =>
       OrderService.getOrderById(db, request.user!.sub, params.id),
+    );
+
+    return reply.status(200).send({
+      status: 'success',
+      order,
+    });
+  });
+
+  /**
+   * PATCH /api/v1/orders/:orderId/items/:itemId/fulfillment
+   * Toggles per-item kitchenReady / packagingReady and runs auto-transition rules
+   */
+  app.patch('/:orderId/items/:itemId/fulfillment', { preHandler: [requireAuth] }, async (request, reply) => {
+    const params = validateSchema(OrderItemFulfillmentParamsSchema, request.params);
+    const body = validateSchema(OrderItemFulfillmentBodySchema, request.body);
+
+    const order = await withTenantContext(request.user!.sub, (db) =>
+      OrderService.updateItemFulfillment(
+        db,
+        request.user!.sub,
+        params.orderId,
+        params.itemId,
+        body,
+        request.user!.role,
+      ),
     );
 
     return reply.status(200).send({

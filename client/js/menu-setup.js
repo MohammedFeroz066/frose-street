@@ -22,15 +22,17 @@
       let vendorCategories = [];
       let vendorDishes = [];
 
-      // History / Popstate controller
-      window.addEventListener('popstate', () => {
-        const modal = document.getElementById('gallery-modal');
-        if (modal && modal.classList.contains('active')) {
-          modal.classList.remove('active');
-          return;
-        }
-        window.location.replace('/billing');
-      });
+      // History / Popstate controller (delegates to FroseNav when available)
+      if (!window.FroseNav) {
+        window.addEventListener('popstate', () => {
+          const modal = document.getElementById('gallery-modal');
+          if (modal && modal.classList.contains('active')) {
+            modal.classList.remove('active');
+            return;
+          }
+          window.location.replace('/billing');
+        });
+      }
 
       function notifySetup(msg, variant) {
         if (window.FroseUI && typeof window.FroseUI.showToast === 'function') {

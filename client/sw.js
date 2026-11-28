@@ -25,7 +25,8 @@ const CORE_PRECACHE_ASSETS = [
   '/css/ui-kit.css',
   '/js/pwa-updater.js',
   '/js/safe-dom.js',
-  '/js/dom-events.js'
+  '/js/dom-events.js',
+  '/js/nav-controller.js'
 ];
 
 const SECONDARY_PRECACHE_ASSETS = [

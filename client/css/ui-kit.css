@@ -139,6 +139,32 @@ html.saas-modal-open {
   transform: scale(0.96);
 }
 
+.frose-nav-back {
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: var(--shadow-xs);
+  touch-action: manipulation;
+  transition: transform 0.12s ease, background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.frose-nav-back:active {
+  transform: scale(0.95);
+  background: var(--bg-subtle);
+}
+
 /* Mobile 5-Tab Bottom Navigation */
 .saas-bottom-nav {
   position: fixed;

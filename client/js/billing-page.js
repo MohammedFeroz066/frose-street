@@ -1,6 +1,8 @@
 (function () {
   window.__FROSE_CUSTOM_POPSTATE__ = true;
 
+  if (window.FroseNav) return;
+
   if (!history.state || (!history.state.froseRoot && !history.state.froseTab && !history.state.froseOverlay)) {
     history.replaceState({ view: 'billing', froseRoot: true, froseTab: 'bill' }, '', '');
   }

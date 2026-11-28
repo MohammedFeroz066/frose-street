@@ -240,6 +240,350 @@
     return d;
   }
 
+  function normalizeWhatsAppPhone(raw) {
+    var digits = String(raw || '').replace(/\D/g, '');
+    var local10 = '';
+    if (digits.length === 12 && digits.slice(0, 2) === '91') {
+      local10 = digits.slice(2);
+    } else if (digits.length === 10) {
+      local10 = digits;
+    } else {
+      return { valid: false, local10: '', e164Digits: '' };
+    }
+    if (!/^\d{10}$/.test(local10)) {
+      return { valid: false, local10: '', e164Digits: '' };
+    }
+    return {
+      valid: true,
+      local10: local10,
+      e164Digits: '91' + local10,
+    };
+  }
+
+  function buildWhatsAppCaption(order, vendorProfile) {
+    var d = normalizeReceiptData(order, vendorProfile);
+    return d.stallName + ' — Receipt ' + d.receiptNumber + ' (Token ' + d.tokenDisplay + ') — Total ' + formatPaiseToRupees(d.totalPaise);
+  }
+
+  function buildWhatsAppUrl(phoneInput, captionText) {
+    var norm = normalizeWhatsAppPhone(phoneInput);
+    if (!norm.valid) return '';
+    return 'https://wa.me/' + norm.e164Digits + '?text=' + encodeURIComponent(String(captionText || ''));
+  }
+
+  function getThermalCanvasMetrics(paperWidth) {
+    var is80 = String(paperWidth) === '80';
+    return {
+      paperWidth: is80 ? '80' : '58',
+      logicalWidth: is80 ? 576 : 384,
+      scale: 2,
+      paddingX: is80 ? 26 : 20,
+      paddingY: is80 ? 26 : 22,
+      headerFontSize: is80 ? 16 : 14,
+      titleFontSize: is80 ? 20 : 17,
+      baseFontSize: is80 ? 14 : 13,
+      smallFontSize: is80 ? 12.5 : 11.5,
+      totalFontSize: is80 ? 18 : 16,
+      lineHeight: is80 ? 22 : 19,
+      smallLineHeight: is80 ? 18 : 16,
+    };
+  }
+
+  function wrapCanvasText(ctx, text, maxWidth) {
+    var raw = String(text || '').trim();
+    if (!raw) return [];
+    var words = raw.split(/\s+/);
+    var lines = [];
+    var current = '';
+    for (var i = 0; i < words.length; i++) {
+      var candidate = current ? current + ' ' + words[i] : words[i];
+      if (ctx.measureText(candidate).width <= maxWidth || !current) {
+        current = candidate;
+      } else {
+        lines.push(current);
+        current = words[i];
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  function drawDashedDivider(ctx, x1, x2, y) {
+    ctx.save && ctx.save();
+    ctx.strokeStyle = '#94A3B8';
+    ctx.lineWidth = 1;
+    if (typeof ctx.setLineDash === 'function') ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    ctx.lineTo(x2, y);
+    ctx.stroke();
+    if (typeof ctx.setLineDash === 'function') ctx.setLineDash([]);
+    ctx.restore && ctx.restore();
+  }
+
+  function renderReceiptToCanvas(order, vendorProfile, options) {
+    var opts = options || {};
+    var metrics = getThermalCanvasMetrics(opts.paperWidth);
+    var d = normalizeReceiptData(order, vendorProfile);
+    var canvas = opts.canvas || (global.document && typeof global.document.createElement === 'function' ? global.document.createElement('canvas') : null);
+    if (!canvas || typeof canvas.getContext !== 'function') {
+      throw new Error('Canvas 2D context unavailable');
+    }
+
+    var ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Failed to acquire 2D context');
+    }
+
+    var fontFamily = '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace';
+    var contentWidth = metrics.logicalWidth - metrics.paddingX * 2;
+    var leftX = metrics.paddingX;
+    var rightX = metrics.logicalWidth - metrics.paddingX;
+    var centerX = metrics.logicalWidth / 2;
+
+    // Pre-measure wrapped blocks using ctx.font
+    ctx.font = '700 ' + metrics.smallFontSize + 'px ' + fontFamily;
+    var addrLines = d.stallAddress ? wrapCanvasText(ctx, d.stallAddress, contentWidth) : [];
+    var compLines = d.isComposition ? wrapCanvasText(ctx, COMPOSITION_DECLARATION, contentWidth - 12) : [];
+
+    var itemBlocks = [];
+    ctx.font = '500 ' + metrics.baseFontSize + 'px ' + fontFamily;
+    for (var i = 0; i < d.items.length; i++) {
+      var it = d.items[i];
+      var priceStr = formatPaiseToRupees(it.lineTotalPaise);
+      var priceWidth = ctx.measureText(priceStr).width + 12;
+      var label = it.quantity + 'x ' + it.name + ' (@' + formatPaiseToRupees(it.unitPricePaise) + ')';
+      var wrapped = wrapCanvasText(ctx, label, Math.max(100, contentWidth - priceWidth));
+      itemBlocks.push({ lines: wrapped, priceStr: priceStr });
+    }
+
+    // Compute exact logical height
+    var y = metrics.paddingY;
+    y += metrics.lineHeight; // statutory header
+    y += metrics.lineHeight + 4; // stall name
+    y += addrLines.length * metrics.smallLineHeight;
+    if (d.gstin) y += metrics.smallLineHeight;
+    if (d.fssaiNumber) y += metrics.smallLineHeight;
+    if (compLines.length > 0) y += compLines.length * metrics.smallLineHeight + 14;
+    y += 12; // divider gap
+
+    y += metrics.smallLineHeight; // Receipt No + Token
+    y += metrics.smallLineHeight + 4; // Timestamp IST
+    if (d.orderStatus === 'cancelled') y += metrics.smallLineHeight + 8;
+    y += 12; // divider gap
+
+    for (var j = 0; j < itemBlocks.length; j++) {
+      y += Math.max(1, itemBlocks[j].lines.length) * metrics.lineHeight + 4;
+    }
+    y += 10; // divider gap
+
+    if (d.isRegular) {
+      y += metrics.smallLineHeight * 3 + 4; // Subtotal, CGST, SGST
+    }
+    y += metrics.lineHeight + 8; // TOTAL
+    y += 12; // divider gap
+
+    y += metrics.smallLineHeight + 6; // Payment label
+    y += metrics.smallLineHeight + metrics.paddingY; // Footer + bottom padding
+
+    var logicalHeight = Math.ceil(y);
+    canvas.width = metrics.logicalWidth * metrics.scale;
+    canvas.height = logicalHeight * metrics.scale;
+
+    ctx = canvas.getContext('2d');
+    ctx.scale(metrics.scale, metrics.scale);
+
+    // Crisp thermal paper white background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, metrics.logicalWidth, logicalHeight);
+    ctx.textBaseline = 'top';
+
+    var curY = metrics.paddingY;
+
+    // Header
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#0F172A';
+    ctx.font = '800 ' + metrics.headerFontSize + 'px ' + fontFamily;
+    ctx.fillText(d.header, centerX, curY);
+    curY += metrics.lineHeight;
+
+    ctx.fillStyle = '#5B0612';
+    ctx.font = '900 ' + metrics.titleFontSize + 'px ' + fontFamily;
+    ctx.fillText(d.stallName, centerX, curY);
+    curY += metrics.lineHeight + 4;
+
+    ctx.fillStyle = '#334155';
+    ctx.font = '500 ' + metrics.smallFontSize + 'px ' + fontFamily;
+    for (var a = 0; a < addrLines.length; a++) {
+      ctx.fillText(addrLines[a], centerX, curY);
+      curY += metrics.smallLineHeight;
+    }
+    if (d.gstin) {
+      ctx.fillStyle = '#0F172A';
+      ctx.font = '700 ' + metrics.smallFontSize + 'px ' + fontFamily;
+      ctx.fillText('GSTIN: ' + d.gstin, centerX, curY);
+      curY += metrics.smallLineHeight;
+    }
+    if (d.fssaiNumber) {
+      ctx.fillStyle = '#0F172A';
+      ctx.font = '700 ' + metrics.smallFontSize + 'px ' + fontFamily;
+      ctx.fillText('FSSAI Lic./Reg. No: ' + d.fssaiNumber, centerX, curY);
+      curY += metrics.smallLineHeight;
+    }
+    if (compLines.length > 0) {
+      curY += 4;
+      var boxH = compLines.length * metrics.smallLineHeight + 8;
+      ctx.fillStyle = '#FFFBEB';
+      ctx.fillRect(leftX, curY, contentWidth, boxH);
+      ctx.fillStyle = '#7C2D12';
+      ctx.font = '700 ' + metrics.smallFontSize + 'px ' + fontFamily;
+      for (var c = 0; c < compLines.length; c++) {
+        ctx.fillText(compLines[c], centerX, curY + 4 + c * metrics.smallLineHeight);
+      }
+      curY += boxH + 2;
+    }
+
+    curY += 6;
+    drawDashedDivider(ctx, leftX, rightX, curY);
+    curY += 6;
+
+    // Meta row
+    ctx.font = '600 ' + metrics.smallFontSize + 'px ' + fontFamily;
+    ctx.fillStyle = '#334155';
+    ctx.textAlign = 'left';
+    ctx.fillText('Receipt No: ' + d.receiptNumber, leftX, curY);
+    ctx.textAlign = 'right';
+    ctx.font = '800 ' + metrics.smallFontSize + 'px ' + fontFamily;
+    ctx.fillText('Token ' + d.tokenDisplay, rightX, curY);
+    curY += metrics.smallLineHeight;
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#475569';
+    ctx.font = '500 ' + metrics.smallFontSize + 'px ' + fontFamily;
+    ctx.fillText(d.timestampIst, leftX, curY);
+    curY += metrics.smallLineHeight + 4;
+
+    if (d.orderStatus === 'cancelled') {
+      ctx.fillStyle = '#B91C1C';
+      ctx.font = '800 ' + metrics.smallFontSize + 'px ' + fontFamily;
+      ctx.fillText('VOID / CANCELLED' + (d.cancelReason ? ' — ' + d.cancelReason : ''), leftX, curY);
+      curY += metrics.smallLineHeight + 8;
+    }
+
+    curY += 6;
+    drawDashedDivider(ctx, leftX, rightX, curY);
+    curY += 6;
+
+    // Items
+    for (var k = 0; k < itemBlocks.length; k++) {
+      var blk = itemBlocks[k];
+      ctx.fillStyle = '#0F172A';
+      ctx.font = '500 ' + metrics.baseFontSize + 'px ' + fontFamily;
+      ctx.textAlign = 'left';
+      for (var l = 0; l < blk.lines.length; l++) {
+        ctx.fillText(blk.lines[l], leftX, curY + l * metrics.lineHeight);
+      }
+      ctx.textAlign = 'right';
+      ctx.font = '700 ' + metrics.baseFontSize + 'px ' + fontFamily;
+      ctx.fillText(blk.priceStr, rightX, curY);
+      curY += Math.max(1, blk.lines.length) * metrics.lineHeight + 4;
+    }
+
+    curY += 5;
+    drawDashedDivider(ctx, leftX, rightX, curY);
+    curY += 5;
+
+    // Totals
+    if (d.isRegular) {
+      var taxRows = [
+        ['Subtotal', formatPaiseToRupees(d.subtotalPaise)],
+        ['CGST', formatPaiseToRupees(d.cgstPaise)],
+        ['SGST', formatPaiseToRupees(d.sgstPaise)],
+      ];
+      ctx.fillStyle = '#334155';
+      ctx.font = '500 ' + metrics.smallFontSize + 'px ' + fontFamily;
+      for (var tIdx = 0; tIdx < taxRows.length; tIdx++) {
+        ctx.textAlign = 'left';
+        ctx.fillText(taxRows[tIdx][0], leftX, curY);
+        ctx.textAlign = 'right';
+        ctx.fillText(taxRows[tIdx][1], rightX, curY);
+        curY += metrics.smallLineHeight;
+      }
+      curY += 4;
+    }
+
+    ctx.fillStyle = '#0F172A';
+    ctx.font = '900 ' + metrics.totalFontSize + 'px ' + fontFamily;
+    ctx.textAlign = 'left';
+    ctx.fillText('TOTAL', leftX, curY);
+    ctx.textAlign = 'right';
+    ctx.fillText(formatPaiseToRupees(d.totalPaise), rightX, curY);
+    curY += metrics.lineHeight + 8;
+
+    curY += 6;
+    drawDashedDivider(ctx, leftX, rightX, curY);
+    curY += 6;
+
+    // Payment & Footer
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#0F172A';
+    ctx.font = '800 ' + metrics.smallFontSize + 'px ' + fontFamily;
+    ctx.fillText('Payment: ' + d.paymentLabel, centerX, curY);
+    curY += metrics.smallLineHeight + 6;
+
+    ctx.fillStyle = '#64748B';
+    ctx.font = '500 ' + metrics.smallFontSize + 'px ' + fontFamily;
+    ctx.fillText('*** Thank You! Visit Again ***', centerX, curY);
+
+    return {
+      canvas: canvas,
+      width: canvas.width,
+      height: canvas.height,
+      logicalWidth: metrics.logicalWidth,
+      logicalHeight: logicalHeight,
+      paperWidth: metrics.paperWidth,
+      receiptData: d,
+    };
+  }
+
+  function buildThermalReceiptImage(order, vendorProfile, options) {
+    var rendered = renderReceiptToCanvas(order, vendorProfile, options);
+    var safeReceiptNo = String(rendered.receiptData.receiptNumber || 'order').replace(/[^A-Za-z0-9_-]/g, '-');
+    var fileName = 'receipt-' + safeReceiptNo + '.png';
+
+    return new Promise(function (resolve, reject) {
+      var finish = function (blob) {
+        if (!blob) {
+          reject(new Error('Failed to export PNG receipt blob'));
+          return;
+        }
+        var file = null;
+        if (typeof global.File === 'function') {
+          try {
+            file = new global.File([blob], fileName, { type: 'image/png' });
+          } catch (_) {
+            file = null;
+          }
+        }
+        resolve({
+          blob: blob,
+          file: file,
+          fileName: fileName,
+          width: rendered.width,
+          height: rendered.height,
+          paperWidth: rendered.paperWidth,
+          receiptData: rendered.receiptData,
+        });
+      };
+
+      if (typeof rendered.canvas.toBlob === 'function') {
+        rendered.canvas.toBlob(finish, 'image/png');
+      } else {
+        reject(new Error('Canvas toBlob unavailable'));
+      }
+    });
+  }
+
   var api = {
     COMPOSITION_DECLARATION: COMPOSITION_DECLARATION,
     formatPaiseToRupees: formatPaiseToRupees,
@@ -249,6 +593,12 @@
     normalizeReceiptData: normalizeReceiptData,
     buildPlainTextReceipt: buildPlainTextReceipt,
     renderReceiptDom: renderReceiptDom,
+    normalizeWhatsAppPhone: normalizeWhatsAppPhone,
+    buildWhatsAppCaption: buildWhatsAppCaption,
+    buildWhatsAppUrl: buildWhatsAppUrl,
+    getThermalCanvasMetrics: getThermalCanvasMetrics,
+    renderReceiptToCanvas: renderReceiptToCanvas,
+    buildThermalReceiptImage: buildThermalReceiptImage,
   };
 
   global.FroseReceiptView = api;

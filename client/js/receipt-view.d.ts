@@ -31,6 +31,16 @@ export interface ReceiptVendorProfile {
   taxMode?: 'unregistered' | 'composition' | 'regular';
 }
 
+export interface ThermalReceiptImageResult {
+  blob: Blob;
+  file: File | null;
+  fileName: string;
+  width: number;
+  height: number;
+  paperWidth: '58' | '80';
+  receiptData: any;
+}
+
 declare const FroseReceiptView: {
   COMPOSITION_DECLARATION: string;
   formatPaiseToRupees(paise: number | bigint): string;
@@ -40,6 +50,25 @@ declare const FroseReceiptView: {
   normalizeReceiptData(order: ReceiptOrderInput, vendorProfile?: ReceiptVendorProfile): any;
   buildPlainTextReceipt(order: ReceiptOrderInput, vendorProfile?: ReceiptVendorProfile): string;
   renderReceiptDom(containerEl: HTMLElement, order: ReceiptOrderInput, vendorProfile?: ReceiptVendorProfile, safeDom?: any): any;
+  normalizeWhatsAppPhone(raw: string): { valid: boolean; local10: string; e164Digits: string };
+  buildWhatsAppCaption(order: ReceiptOrderInput, vendorProfile?: ReceiptVendorProfile): string;
+  buildWhatsAppUrl(phoneInput: string, captionText: string): string;
+  getThermalCanvasMetrics(paperWidth?: string | number): {
+    paperWidth: '58' | '80';
+    logicalWidth: number;
+    scale: number;
+    paddingX: number;
+    paddingY: number;
+    headerFontSize: number;
+    titleFontSize: number;
+    baseFontSize: number;
+    smallFontSize: number;
+    totalFontSize: number;
+    lineHeight: number;
+    smallLineHeight: number;
+  };
+  renderReceiptToCanvas(order: ReceiptOrderInput, vendorProfile?: ReceiptVendorProfile, options?: { paperWidth?: '58' | '80' | string; canvas?: HTMLCanvasElement }): any;
+  buildThermalReceiptImage(order: ReceiptOrderInput, vendorProfile?: ReceiptVendorProfile, options?: { paperWidth?: '58' | '80' | string; canvas?: HTMLCanvasElement }): Promise<ThermalReceiptImageResult>;
 };
 
 export default FroseReceiptView;

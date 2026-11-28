@@ -131,7 +131,10 @@
     preset.items.forEach((item) => {
       presetItemsPreview.appendChild(
         el('div', { class: 'preview-item-card' }, [
-          el('div', { class: 'preview-item-emoji' }, item.emoji),
+          el('div', {
+            class: 'preview-item-emoji',
+            style: 'font-size: 11px; font-weight: 900; color: var(--accent-primary); background: var(--accent-primary-soft); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;',
+          }, String(item.name || 'FS').slice(0, 2).toUpperCase()),
           el('div', { class: 'preview-item-info' }, [
             el('div', { class: 'preview-item-name' }, item.name),
             el('div', { class: 'preview-item-cat' }, item.category),

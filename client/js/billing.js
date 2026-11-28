@@ -770,7 +770,7 @@
               el('button', {
                 type: 'button',
                 class: 'saas-chip' + (isParcelItem ? ' active' : ''),
-                style: 'min-height: 26px; padding: 2px 8px; font-size: 11px;',
+                style: 'min-height: 44px; min-width: 64px; padding: 4px 12px; font-size: 12px;',
                 on: {
                   click: () => {
                     entry.notes = isParcelItem ? '' : 'Parcel';

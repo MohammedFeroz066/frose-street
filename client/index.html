@@ -427,6 +427,7 @@
       border: none;
       border-radius: 22px;
       padding: 9px 16px;
+      min-height: 44px;
       font-size: 12.5px;
       font-weight: 800;
       display: inline-flex;
@@ -438,6 +439,13 @@
       transition: transform 0.15s ease;
     }
     .btn-dock-add-order:active { transform: scale(0.96); }
+    .header-brand, .nav-tab-pill, .btn-hero-reports, .btn-call-support, .dock-nav-item {
+      min-height: 44px;
+    }
+    .modal-card {
+      background: var(--bg-surface, #FFFFFF) !important;
+      color: var(--text-primary, #0F172A);
+    }
 
     /* Hidden Accessibility / Compatibility Bridge (Guarantees all 272 vitest tests pass) */
     .compat-bridge-hidden {

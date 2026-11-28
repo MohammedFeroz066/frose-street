@@ -25,6 +25,12 @@ body.packaging-page {
   color: var(--text-primary) !important;
 }
 
+.kitchen-page .brand-lockup,
+.packaging-page .brand-lockup {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 .kitchen-page .btn-icon-header,
 .packaging-page .btn-icon-header {
   min-width: 44px;

@@ -12,6 +12,8 @@
     '/api/v1/auth/register-stall',
     '/api/v1/auth/refresh',
     '/api/v1/auth/logout',
+    '/api/v1/auth/owner-pin',
+    '/api/v1/auth/owner-pin/verify',
   ];
 
   function extractPathname(url) {

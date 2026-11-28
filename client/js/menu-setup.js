@@ -32,8 +32,29 @@
         window.location.replace('/billing');
       });
 
+      function notifySetup(msg, variant) {
+        if (window.FroseUI && typeof window.FroseUI.showToast === 'function') {
+          window.FroseUI.showToast(msg, variant || 'success');
+        }
+      }
+
+      function syncSetupThemeIcon(theme) {
+        const iconEl = document.getElementById('setup-theme-icon');
+        if (iconEl && window.FroseUI && typeof window.FroseUI.renderThemeIcon === 'function') {
+          window.FroseUI.renderThemeIcon(iconEl, theme);
+        }
+      }
+
       // Initialization
       async function init() {
+        if (window.FroseTheme) {
+          syncSetupThemeIcon(window.FroseTheme.getTheme());
+          window.FroseTheme.subscribe(syncSetupThemeIcon);
+          const themeBtn = document.getElementById('btn-setup-theme');
+          if (themeBtn) {
+            themeBtn.addEventListener('click', () => window.FroseTheme.cycleTheme());
+          }
+        }
         if (CURRENT_VENDOR.businessName) {
           const el = document.getElementById('setup-stall-title');
           if (el) el.textContent = CURRENT_VENDOR.businessName + ' • Stall Menu';
@@ -81,21 +102,25 @@
         if (countLabel) countLabel.textContent = `${vendorCategories.length} Categories`;
 
         if (container) {
-          const { el, clear } = window.FroseSafeDom;
+          const { el, svgEl, clear } = window.FroseSafeDom;
           clear(container);
           if (vendorCategories.length === 0) {
             container.appendChild(
               el('div', {
-                style: 'grid-column: 1 / -1; padding: 14px 12px; background: #FFF8F6; border: 1.5px dashed #700A18; border-radius: 10px; text-align: center; color: #700A18; font-size: 12px; font-weight: 700;',
+                style: 'grid-column: 1 / -1; padding: 14px 12px; background: var(--bg-subtle); border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); text-align: center; color: var(--text-secondary); font-size: 12.5px; font-weight: 700;',
               }, [
-                '💡 No categories yet. Type a category name above (e.g. ',
+                'No categories yet. Type a category name above (e.g. ',
                 el('strong', {}, 'Tea'), ', ', el('strong', {}, 'Snacks'), ', ', el('strong', {}, 'Momos'),
-                ') and tap "+ Add Section"!',
+                ') and tap "+ Add Section".',
               ])
             );
           } else {
             vendorCategories.forEach(cat => {
               const count = vendorDishes.filter(d => (d.category || '').toLowerCase() === cat.toLowerCase()).length;
+              const delSvg = svgEl('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round' }, [
+                svgEl('line', { x1: 18, y1: 6, x2: 6, y2: 18 }),
+                svgEl('line', { x1: 6, y1: 6, x2: 18, y2: 18 }),
+              ]);
               container.appendChild(
                 el('div', { class: 'category-badge-chip' }, [
                   el('span', {}, cat),
@@ -104,8 +129,9 @@
                     type: 'button',
                     class: 'btn-chip-delete',
                     title: 'Delete Section',
+                    'aria-label': 'Delete Section ' + cat,
                     on: { click: () => window.deleteCategorySection(cat) },
-                  }, '✕'),
+                  }, [delSvg]),
                 ])
               );
             });
@@ -116,7 +142,7 @@
           const { el, clear } = window.FroseSafeDom;
           clear(select);
           if (vendorCategories.length === 0) {
-            select.appendChild(el('option', { value: '', disabled: true, selected: true }, '⚠️ Please add a category section above first'));
+            select.appendChild(el('option', { value: '', disabled: true, selected: true }, 'Please add a category section above first'));
           } else {
             vendorCategories.forEach(cat => {
               select.appendChild(el('option', { value: cat }, cat));
@@ -180,13 +206,12 @@
         if (bottomCount) bottomCount.textContent = `${vendorDishes.length} Items`;
 
         if (!container) return;
-        const { el, clear, safeImageUrl } = window.FroseSafeDom;
+        const { el, svgEl, clear, safeImageUrl } = window.FroseSafeDom;
         clear(container);
 
         if (vendorDishes.length === 0) {
           container.appendChild(
-            el('div', { style: 'text-align: center; padding: 24px; color: var(--saas-text-muted); font-size: 12.5px;' }, [
-              el('div', { style: 'font-size: 28px; margin-bottom: 4px;' }, '🍽️'),
+            el('div', { style: 'text-align: center; padding: 24px; color: var(--text-muted); font-size: 12.5px;' }, [
               el('strong', {}, 'No dishes added yet!'),
               el('br'),
               'Fill out the form above to add your first menu item.',
@@ -198,6 +223,10 @@
         vendorDishes.forEach(d => {
           const price = d.priceRupees || (d.pricePaise ? d.pricePaise / 100 : 0);
           const photo = safeImageUrl(d.imageUrl) || '/images/dishes/chicken-biryani-full.webp';
+          const trashSvg = svgEl('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+            svgEl('polyline', { points: '3 6 5 6 21 6' }),
+            svgEl('path', { d: 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2' }),
+          ]);
           container.appendChild(
             el('div', { class: 'item-row-card' }, [
               el('div', { class: 'item-row-left' }, [
@@ -209,7 +238,7 @@
                 }),
                 el('div', { class: 'item-meta' }, [
                   el('div', { class: 'item-meta-name' }, d.name),
-                  el('div', { class: 'item-meta-category' }, `📁 ${d.category || 'General'}`),
+                  el('div', { class: 'item-meta-category' }, d.category || 'General'),
                 ]),
               ]),
               el('div', { class: 'item-row-right' }, [
@@ -218,8 +247,9 @@
                   type: 'button',
                   class: 'btn-item-delete',
                   title: 'Delete Item',
+                  'aria-label': 'Delete ' + d.name,
                   on: { click: () => window.deleteDish(d.id) },
-                }, '🗑️'),
+                }, [trashSvg]),
               ]),
             ])
           );
@@ -232,12 +262,19 @@
       };
 
       window.openGalleryModal = function () {
-        history.pushState({ modal: 'gallery' }, '');
+        if (window.FroseUI && typeof window.FroseUI.openSheet === 'function') {
+          window.FroseUI.openSheet('gallery-modal');
+          return;
+        }
         const modal = document.getElementById('gallery-modal');
         if (modal) modal.classList.add('active');
       };
 
       window.closeGalleryModal = function () {
+        if (window.FroseUI && typeof window.FroseUI.closeSheet === 'function') {
+          window.FroseUI.closeSheet('gallery-modal');
+          return;
+        }
         const modal = document.getElementById('gallery-modal');
         if (modal) modal.classList.remove('active');
       };
@@ -322,13 +359,13 @@
         const rawPhotoUrl = document.getElementById('input-selected-image-url')?.value;
         const safePhoto = rawPhotoUrl ? window.FroseSafeDom.safeImageUrl(rawPhotoUrl) : '/images/dishes/chicken-biryani-full.webp';
         if (rawPhotoUrl && !safePhoto) {
-          alert('Invalid or unsafe image URL rejected.');
+          notifySetup('Invalid or unsafe image URL rejected.', 'danger');
           return;
         }
         const photoUrl = safePhoto;
 
         if (!name || priceNum <= 0) {
-          alert('Please enter a valid dish name and price.');
+          notifySetup('Please enter a valid dish name and price.', 'warning');
           return;
         }
 
@@ -395,17 +432,25 @@
         const prevImg = document.getElementById('image-preview-element');
         const prevPlaceholder = document.getElementById('image-preview-placeholder');
         const prevInput = document.getElementById('input-selected-image-url');
-        if (prevImg) { prevImg.src = ''; prevImg.style.display = 'none'; }
+        if (prevImg) { prevImg.removeAttribute('src'); prevImg.style.display = 'none'; }
         if (prevPlaceholder) { prevPlaceholder.style.display = 'flex'; }
         if (prevInput) { prevInput.value = ''; }
 
         renderDishes();
         renderCategories();
-        alert(`✅ "${name}" added to menu successfully!`);
+        notifySetup(`"${name}" added to menu!`, 'success');
       };
 
       window.deleteDish = async function (id) {
-        if (!confirm('Are you sure you want to delete this dish?')) return;
+        const confirmed = window.FroseUI && typeof window.FroseUI.confirmModal === 'function'
+          ? await window.FroseUI.confirmModal({
+              title: 'Delete Dish?',
+              message: 'Are you sure you want to delete this dish from your menu?',
+              confirmLabel: 'Delete',
+              danger: true,
+            })
+          : false;
+        if (!confirmed) return;
         try {
           const fn = window.froseApiFetch || fetch;
           await fn(`/api/v1/menu/${id}`, {

@@ -181,7 +181,8 @@
 }
 
 .pos-avatar-pill {
-  min-height: 48px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 4px 10px 4px 6px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-subtle);
@@ -370,7 +371,7 @@
 /* UX-FIX-03: Mobile Scroll Padding Above Dynamic Island & Bottom Nav */
 @media (max-width: 1023px) {
   body.has-cart-items #pos-dishes-grid {
-    padding-bottom: 148px;
+    padding-bottom: 156px;
   }
 }
 
@@ -584,7 +585,7 @@
   border-right: 1px solid var(--border-subtle);
   background: var(--bg-subtle);
   border-radius: var(--radius-md);
-  padding: 6px 4px 88px 4px;
+  padding: 6px 4px 96px 4px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -660,7 +661,7 @@
   min-width: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 88px;
+  padding-bottom: 96px;
 }
 
 .pos-category-header {
@@ -679,7 +680,7 @@
   }
   body.has-cart-items .pos-category-rail,
   body.has-cart-items .pos-dishes-pane {
-    padding-bottom: 148px;
+    padding-bottom: 156px;
   }
 }
 
@@ -688,33 +689,44 @@
     gap: 8px;
   }
   .pos-dishes-pane .saas-dish-body {
-    padding: 8px;
+    padding: 8px 6px;
     gap: 6px;
   }
-  .pos-dishes-pane .saas-dish-title {
+  .pos-dishes-pane .saas-dish-name {
     font-size: 12.5px;
   }
-  .pos-dishes-pane .saas-dish-footer {
-    gap: 4px;
+  .pos-dishes-pane .saas-dish-foot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
   }
   .pos-dishes-pane .saas-dish-price {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .pos-dishes-pane .saas-dish-action-slot {
+    width: 100%;
+    display: flex;
+  }
+  .pos-dishes-pane .saas-add-btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 9px;
     font-size: 12.5px;
     white-space: nowrap;
   }
-  .pos-dishes-pane .saas-add-btn {
-    min-height: 44px;
-    padding: 0 9px;
-    font-size: 12px;
-    white-space: nowrap;
+  .pos-dishes-pane .saas-stepper {
+    width: 100%;
+    justify-content: space-between;
   }
   .pos-dishes-pane .saas-stepper-btn {
-    min-width: 28px;
+    min-width: 44px;
     min-height: 44px;
-    font-size: 14px;
+    font-size: 15px;
   }
   .pos-dishes-pane .saas-stepper-qty {
     min-width: 16px;
-    font-size: 12.5px;
+    font-size: 13px;
   }
 }
 
@@ -733,8 +745,28 @@
   }
 }
 
-@media (min-width: 1024px) and (max-width: 1380px) {
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .saas-sidebar-rail {
+    width: 196px;
+  }
+  .saas-billing-split {
+    grid-template-columns: minmax(0, 1fr) 310px;
+    gap: 12px;
+  }
+  .pos-category-rail {
+    width: 108px;
+    flex: 0 0 108px;
+  }
   .pos-dishes-pane .saas-dish-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .pos-dishes-pane .saas-dish-foot {
+    flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1380px) {
+  .pos-dishes-pane .saas-dish-grid {
+    grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
   }
 }

@@ -192,14 +192,14 @@ describe('Login Security & Lockout System Tests', () => {
   });
 
   describe('3. Login UI Security Validations', () => {
-    it('login.html contains eye icon toggle and lockout countdown, and eliminates PIN and register link', () => {
+    it('login.html contains eye icon toggle and lockout countdown, eliminates PIN login, and links cleanly to /register.html', () => {
       const loginHtml = fs.readFileSync(path.resolve('client/login.html'), 'utf8');
 
-      // PIN & Self-Registration removed
+      // PIN Login removed; VENDOR-04 restored clean New stall? -> /register.html link
       expect(loginHtml).not.toContain('4-Digit Quick PIN');
       expect(loginHtml).not.toContain('section-pin-login');
       expect(loginHtml).not.toContain('Register Stall in 60s');
-      expect(loginHtml).not.toContain('New stall?');
+      expect(loginHtml).toContain('/register.html');
 
       // Eye toggle present
       expect(loginHtml).toContain('btn-toggle-password');

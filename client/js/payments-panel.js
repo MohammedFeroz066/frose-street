@@ -271,9 +271,15 @@
     });
 
     if (rows.length === 0) {
+      var ledgerSvg = global.FroseSafeDom.svgEl('svg', { width: 28, height: 28, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', style: 'margin-bottom: 6px;' }, [
+        global.FroseSafeDom.svgEl('rect', { x: 4, y: 2, width: 16, height: 20, rx: 2 }),
+        global.FroseSafeDom.svgEl('line', { x1: 8, y1: 6, x2: 16, y2: 6 }),
+        global.FroseSafeDom.svgEl('line', { x1: 8, y1: 10, x2: 16, y2: 10 }),
+        global.FroseSafeDom.svgEl('line', { x1: 8, y1: 14, x2: 12, y2: 14 }),
+      ]);
       listEl.appendChild(
         el('div', { class: 'saas-empty-state' }, [
-          el('div', { style: 'font-size: 28px; margin-bottom: 6px;' }, '📒'),
+          ledgerSvg,
           el('div', { style: 'font-weight: 800;' }, 'No ledger entries for this date'),
         ])
       );
@@ -294,9 +300,13 @@
               el('button', {
                 type: 'button',
                 class: 'saas-btn saas-btn-danger',
-                style: 'min-height: 44px; padding: 0 10px;',
+                style: 'min-width: 44px; min-height: 44px; padding: 0 10px;',
+                'aria-label': 'Delete Expense',
                 on: { click: function () { deleteExpense(exp.id); } },
-              }, '✕'),
+              }, [global.FroseSafeDom.svgEl('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round' }, [
+                global.FroseSafeDom.svgEl('line', { x1: 18, y1: 6, x2: 6, y2: 18 }),
+                global.FroseSafeDom.svgEl('line', { x1: 6, y1: 6, x2: 18, y2: 18 }),
+              ])]),
             ]),
           ])
         );
@@ -529,7 +539,7 @@
                         }
                       },
                     },
-                  }, '📋 Copy Z-Report (WhatsApp)')
+                  }, 'Copy Z-Report (WhatsApp)')
                 );
               }
             } catch (_) {

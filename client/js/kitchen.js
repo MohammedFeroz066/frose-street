@@ -177,12 +177,12 @@
           if (data.device && data.device.businessName) {
             localStorage.setItem('frose_stall_name', data.device.businessName);
           }
-          showToast(`✅ Paired as ${data.device?.role || 'Cook'}!`);
+          showToast(`Paired as ${data.device?.role || 'Cook'}`);
           // Clean URL without reloading
           const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
           window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
         } else {
-          showToast('⚠️ Pairing token expired. Enter PIN.');
+          showToast('Pairing token expired. Re-pair from Settings or sign in on /login.html.');
         }
       } catch (err) {
         console.warn('Pairing request error:', err);
@@ -278,7 +278,7 @@
                 handleStartCooking(order.id, String(order.tokenNo));
               },
             },
-          }, [tr('kds.start_cooking', null, '🔥 Start Cooking')])
+          }, [tr('kds.start_cooking', null, 'Start Cooking')])
         );
       }
 
@@ -309,7 +309,7 @@
           ]),
           el('div', { class: 'kds-header-tags' }, [
             el('span', { class: `kds-tag kds-tag-type ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
-              isTakeaway ? tr('kds.parcel', null, '📦 PARCEL') : tr('kds.dine_in', null, '🍽️ DINE-IN')
+              isTakeaway ? tr('kds.parcel', null, 'PARCEL') : tr('kds.dine_in', null, 'DINE-IN')
             ),
             order.editedAt ? el('span', { class: 'kds-tag kds-tag-edited' }, tr('kds.edited', null, 'EDITED')) : null,
             el('span', { class: `kds-tag kds-tag-timer ${timerClass}`, id: `timer-${order.id}` }, `${timeDisplay} (${ageLabel})`),
@@ -360,7 +360,7 @@
       existing.orderStatus = 'preparing';
       renderQueue();
     }
-    showToast(tr('kds.toast_cooking', { token: tokenNo }, `🔥 Cooking Token #${tokenNo}`));
+    showToast(tr('kds.toast_cooking', { token: tokenNo }, `Cooking Token #${tokenNo}`));
     try {
       const fn = window.froseApiFetch || fetch;
       await fn(`/api/v1/orders/${orderId}/status`, {
@@ -388,7 +388,7 @@
     kitchenOrders = kitchenOrders.filter((o) => o.id !== orderId);
     completedCount++;
 
-    showToast(tr('kds.toast_ready', { token: tokenNo }, `✅ Order #${tokenNo} Marked Ready!`));
+    showToast(tr('kds.toast_ready', { token: tokenNo }, `Order #${tokenNo} Marked Ready`));
 
     setTimeout(() => {
       renderQueue();
@@ -474,7 +474,7 @@
       wsConnection = new WebSocket(wsUrl);
 
       wsConnection.onopen = () => {
-        console.log('⚡ KDS WebSocket Connected');
+        console.log('KDS WebSocket Connected');
         hideReconnectBanner();
         fetchLiveOrders();
 
@@ -583,7 +583,7 @@
     if (idx !== -1) {
       kitchenOrders[idx] = { ...kitchenOrders[idx], ...updatedOrder };
       renderQueue();
-      showToast(`✏️ Order #${updatedOrder.tokenNo || ''} Updated`);
+      showToast(`Order #${updatedOrder.tokenNo || ''} Updated`);
     } else if (updatedOrder.orderStatus === 'pending' || updatedOrder.orderStatus === 'preparing') {
       kitchenOrders.unshift(updatedOrder);
       renderQueue();
@@ -641,14 +641,15 @@
       stallNameEl.textContent = storedStall;
     }
 
-    // Sound toggle
+    // Theme toggle + live cross-tab sync
     if (btnKdsTheme && window.FroseTheme) {
       const syncKdsThemeIcon = (theme) => {
-        if (kdsThemeIcon) {
-          kdsThemeIcon.textContent = theme === 'dark' ? '🌙' : (theme === 'sunlight' ? '☀️' : '🌤️');
+        if (kdsThemeIcon && window.FroseUI && window.FroseUI.renderThemeIcon) {
+          window.FroseUI.renderThemeIcon(kdsThemeIcon, theme);
         }
       };
       syncKdsThemeIcon(window.FroseTheme.getTheme());
+      window.FroseTheme.subscribe(syncKdsThemeIcon);
       btnKdsTheme.addEventListener('click', () => {
         const next = window.FroseTheme.cycleTheme();
         syncKdsThemeIcon(next);
@@ -664,7 +665,7 @@
           iconSoundOn.style.display = soundEnabled ? 'block' : 'none';
           iconSoundOff.style.display = soundEnabled ? 'none' : 'block';
         }
-        showToast(soundEnabled ? '🔔 Kitchen Bell Enabled' : '🔕 Kitchen Bell Muted');
+        showToast(soundEnabled ? 'Kitchen Bell Enabled' : 'Kitchen Bell Muted');
         if (soundEnabled) playKitchenBell();
       });
       if (iconSoundOn && iconSoundOff) {

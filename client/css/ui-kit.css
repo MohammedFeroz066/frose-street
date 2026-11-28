@@ -585,13 +585,26 @@ html.saas-modal-open {
     font-size: 13px;
   }
   .saas-dish-card .saas-stepper-btn {
-    min-width: 32px;
+    min-width: 44px;
     min-height: 44px;
   }
   .saas-dish-card .saas-stepper-qty {
     min-width: 16px;
     font-size: 13px;
   }
+}
+
+[data-theme="sunlight"] .saas-card,
+[data-theme="sunlight"] .saas-dish-card,
+[data-theme="sunlight"] .pos-row-card,
+[data-theme="sunlight"] .saas-kpi-card {
+  border: 2px solid #020617;
+}
+
+[data-theme="sunlight"] .saas-add-btn {
+  background: #047857;
+  color: #FFFFFF;
+  border: 1.5px solid #020617;
 }
 
 .saas-stepper-qty {

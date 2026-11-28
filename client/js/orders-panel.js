@@ -270,8 +270,12 @@
       }
     }
 
+    var searchSvg = global.FroseSafeDom.svgEl('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      global.FroseSafeDom.svgEl('circle', { cx: 11, cy: 11, r: 8 }),
+      global.FroseSafeDom.svgEl('line', { x1: 21, y1: 21, x2: 16.65, y2: 16.65 }),
+    ]);
     var searchBox = el('div', { class: 'saas-search-wrap', style: 'margin-bottom: 10px;' }, [
-      el('span', { class: 'saas-search-icon' }, '🔍'),
+      el('span', { class: 'saas-search-icon' }, [searchSvg]),
       el('input', {
         type: 'search',
         id: 'orders-search-input',
@@ -345,9 +349,15 @@
     clear(listWrap);
 
     if (!state.orders || state.orders.length === 0) {
+      var emptySvg = global.FroseSafeDom.svgEl('svg', { width: 32, height: 32, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', style: 'margin-bottom: 6px;' }, [
+        global.FroseSafeDom.svgEl('path', { d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' }),
+        global.FroseSafeDom.svgEl('polyline', { points: '14 2 14 8 20 8' }),
+        global.FroseSafeDom.svgEl('line', { x1: 16, y1: 13, x2: 8, y2: 13 }),
+        global.FroseSafeDom.svgEl('line', { x1: 16, y1: 17, x2: 8, y2: 17 }),
+      ]);
       listWrap.appendChild(
         el('div', { class: 'saas-empty-state' }, [
-          el('div', { style: 'font-size: 32px; margin-bottom: 6px;' }, '🧾'),
+          emptySvg,
           el('div', { style: 'font-weight: 800; font-size: 15px;' }, state.viewMode === 'active' ? 'No active orders in queue' : 'No matching orders found'),
           el('div', { style: 'font-size: 12.5px; margin-top: 4px;' }, 'Punched orders appear here instantly.'),
         ])
@@ -476,7 +486,7 @@
           id: 'btn-drawer-edit-order',
           class: 'saas-btn saas-btn-primary saas-btn-block',
           on: { click: function () { openEditOrderSheet(fullOrder); } },
-        }, '✏️ Edit Order Items / Payment')
+        }, 'Edit Order Items / Payment')
       );
     }
 
@@ -491,7 +501,7 @@
             if (ws().openReceiptModal) ws().openReceiptModal(fullOrder);
           },
         },
-      }, '🧾 View / Print / Copy Receipt')
+      }, 'View / Print / Copy Receipt')
     );
 
     if (!isCancelled && status !== 'served' && fullOrder.id) {
@@ -505,7 +515,7 @@
               if (ws().openVoidOrderModal) ws().openVoidOrderModal(fullOrder.id, fullOrder.tokenDisplay || '#' + fullOrder.tokenNo);
             },
           },
-        }, '✕ Void / Cancel Order')
+        }, 'Void / Cancel Order')
       );
     }
 

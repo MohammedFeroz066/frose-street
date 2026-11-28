@@ -84,7 +84,7 @@
 }
 
 [data-theme="sunlight"] {
-  --bg-canvas: #FFFFFF;
+  --bg-canvas: #F1F5F9;
   --bg-surface: #FFFFFF;
   --bg-elevated: #F8FAFC;
   --bg-subtle: #E2E8F0;
@@ -96,8 +96,8 @@
   --text-muted: #334155;
   --text-inverse: #FFFFFF;
 
-  --border-subtle: rgba(2, 6, 23, 0.22);
-  --border-strong: rgba(2, 6, 23, 0.48);
+  --border-subtle: #020617;
+  --border-strong: #020617;
 
   --accent-primary: #047857;
   --accent-primary-hover: #065F46;

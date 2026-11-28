@@ -251,11 +251,100 @@ body.packaging-page {
   font-weight: 900 !important;
 }
 
+.kitchen-page .stall-pill,
+.packaging-page .stall-pill {
+  background: var(--bg-subtle) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--text-primary) !important;
+}
+
+.kitchen-page .btn-nav-pin,
+.packaging-page .btn-nav-pin {
+  min-height: 44px !important;
+  min-width: 44px !important;
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.packaging-page .lane-badge {
+  border-radius: var(--radius-md) !important;
+}
+
+.packaging-page .badge-ready {
+  background: var(--accent-primary-soft) !important;
+  color: var(--accent-primary) !important;
+  border: 1.5px solid var(--accent-primary) !important;
+}
+
+.packaging-page .badge-waiting {
+  background: var(--accent-amber-soft) !important;
+  color: var(--accent-amber) !important;
+  border: 1.5px solid var(--accent-amber) !important;
+}
+
+.saas-switch-wrap {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
 /* Auth Pages (Login / Register) */
 body.auth-saas-body {
   background: var(--bg-canvas) !important;
   color: var(--text-primary) !important;
   min-height: 100vh;
+}
+
+.auth-saas-body .app-header {
+  background: var(--bg-glass) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  color: var(--text-primary) !important;
+}
+
+.auth-saas-body .brand-monogram-lockup,
+.auth-saas-body .brand-monogram-lockup:hover,
+.auth-saas-body .brand-monogram-lockup:visited {
+  text-decoration: none !important;
+  color: var(--text-primary) !important;
+}
+
+.auth-saas-body .brand-title,
+.auth-saas-body .step-title,
+.auth-saas-body .preset-name,
+.auth-saas-body .edition-name,
+.auth-saas-body .edition-price,
+.auth-saas-body .preview-title {
+  color: var(--text-primary) !important;
+}
+
+.auth-saas-body .brand-subtitle,
+.auth-saas-body .step-desc,
+.auth-saas-body .field-hint,
+.auth-saas-body .preset-description,
+.auth-saas-body .pin-explainer,
+.auth-saas-body .preview-note,
+.auth-saas-body .login-footer-links,
+.auth-saas-body .login-footer-links a {
+  color: var(--text-muted) !important;
+}
+
+.auth-saas-body .form-label,
+.auth-saas-body .field-label,
+.auth-saas-body .edition-group-label,
+.auth-saas-body .edition-perks {
+  color: var(--text-secondary) !important;
+}
+
+.auth-saas-body .btn-toggle-eye {
+  color: var(--text-muted) !important;
+}
+
+.auth-saas-body .btn-toggle-eye:hover {
+  color: var(--text-primary) !important;
 }
 
 .auth-saas-body .login-container,
@@ -267,9 +356,46 @@ body.auth-saas-body {
   box-shadow: var(--shadow-md) !important;
 }
 
+.auth-saas-body .step-circle {
+  background: var(--bg-subtle) !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border-strong) !important;
+}
+
+.auth-saas-body .step-item.active .step-circle,
+.auth-saas-body .step-item.completed .step-circle {
+  background: var(--accent-primary) !important;
+  color: #FFFFFF !important;
+  border-color: var(--accent-primary) !important;
+}
+
+.auth-saas-body .preset-choice-card,
+.auth-saas-body .edition-radio-card .edition-card-inner,
+.auth-saas-body .preset-live-preview-box,
+.auth-saas-body .preview-item-card {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+.auth-saas-body .preset-choice-card.selected,
+.auth-saas-body .edition-radio-card.selected .edition-card-inner {
+  background: var(--accent-primary-soft) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+.auth-saas-body .btn-wizard-secondary {
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-strong) !important;
+  min-height: 48px !important;
+  text-decoration: none !important;
+}
+
 .auth-saas-body .form-input,
 .auth-saas-body .form-select,
-.auth-saas-body .field-input {
+.auth-saas-body .field-input,
+.auth-saas-body .pin-display-field {
   background: var(--bg-surface) !important;
   color: var(--text-primary) !important;
   border-color: var(--border-strong) !important;

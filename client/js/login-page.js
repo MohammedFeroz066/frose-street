@@ -8,6 +8,24 @@
   const iconEyeShow = document.getElementById('icon-eye-show');
   const iconEyeHide = document.getElementById('icon-eye-hide');
 
+  const btnLoginTheme = document.getElementById('btn-login-theme');
+  const loginThemeIcon = document.getElementById('login-theme-icon');
+
+  function syncLoginThemeIcon(theme) {
+    if (loginThemeIcon && window.FroseUI && typeof window.FroseUI.renderThemeIcon === 'function') {
+      window.FroseUI.renderThemeIcon(loginThemeIcon, theme);
+    }
+  }
+  if (window.FroseTheme) {
+    syncLoginThemeIcon(window.FroseTheme.getTheme());
+    window.FroseTheme.subscribe(syncLoginThemeIcon);
+    if (btnLoginTheme) {
+      btnLoginTheme.addEventListener('click', () => {
+        window.FroseTheme.cycleTheme();
+      });
+    }
+  }
+
   let countdownTimer = null;
 
   if (toggleEyeBtn && pwdInput && iconEyeShow && iconEyeHide) {
@@ -45,7 +63,7 @@
       const mins = Math.floor(remaining / 60);
       const secs = remaining % 60;
       const fmt = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
-      showAlert('⏳ Too many failed attempts. Account locked. Try again in ' + fmt, 'error');
+      showAlert('Too many failed attempts. Account locked. Try again in ' + fmt, 'error');
     }
 
     if (countdownTimer) clearInterval(countdownTimer);
@@ -58,7 +76,7 @@
         if (phoneInput) phoneInput.disabled = false;
         if (pwdInput) pwdInput.disabled = false;
         if (btnSubmit) btnSubmit.disabled = false;
-        showAlert('🔓 Lockout expired. You may now enter your credentials.', 'success');
+        showAlert('Lockout expired. You may now enter your credentials.', 'success');
       } else {
         renderCountdown();
       }
@@ -96,7 +114,7 @@
     }
     var isSuper = data.isSuperadmin || data.role === 'superadmin' || (data.vendor && (data.vendor.role === 'superadmin' || data.vendor.isSuperadmin));
     if (isSuper) {
-      showAlert('✅ Super Admin authenticated! Opening platform console...', 'success');
+      showAlert('Super Admin authenticated! Opening platform console...', 'success');
       setTimeout(() => {
         window.location.href = '/admin';
       }, 500);
@@ -105,12 +123,12 @@
 
     var isFirstLogin = !localStorage.getItem('frose_first_login_done');
     if (isFirstLogin) {
-      showAlert('✅ Welcome Stall Client! Opening menu setup...', 'success');
+      showAlert('Welcome Stall Client! Opening menu setup...', 'success');
       setTimeout(() => {
         window.location.href = '/billing?setup=1';
       }, 800);
     } else {
-      showAlert('✅ Login successful! Opening dashboard...', 'success');
+      showAlert('Login successful! Opening dashboard...', 'success');
       setTimeout(() => {
         window.location.href = '/';
       }, 800);
@@ -158,15 +176,15 @@
         } else if (res.status === 429 || data.code === 'ACCOUNT_LOCKED') {
           startLockoutCountdown(data.retryAfter || 60);
         } else if (res.status === 404 || data.code === 'ACCOUNT_NOT_FOUND') {
-          showAlert('❌ Account does not exist with this mobile number');
+          showAlert('Account does not exist with this mobile number');
         } else {
           const msg = data.detail || data.message || 'Password incorrect. Please check and try again';
-          showAlert('❌ ' + msg);
+          showAlert(msg);
         }
         return;
       }
 
-      showAlert('❌ Unable to reach FROSE server. Please check your connection and try again.');
+      showAlert('Unable to reach FROSE server. Please check your connection and try again.');
     });
   }
 

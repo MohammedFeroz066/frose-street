@@ -60,14 +60,16 @@
       display: block;
       font-size: 13px;
       font-weight: 600;
-      color: #475569;
+      color: var(--text-secondary);
       margin-bottom: 6px;
     }
     .form-input {
       width: 100%;
       height: 48px;
       padding: 0 14px;
-      border: 1.5px solid #CBD5E1;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1.5px solid var(--border-default);
       border-radius: 10px;
       font-size: 15px;
       box-sizing: border-box;
@@ -75,12 +77,12 @@
     }
     .form-input:focus {
       outline: none;
-      border-color: #0284C7;
+      border-color: var(--accent-primary);
       box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
     }
     .form-input:disabled {
-      background: #F1F5F9;
-      color: #94A3B8;
+      background: var(--bg-subtle);
+      color: var(--text-muted);
       cursor: not-allowed;
     }
     .password-input-wrapper {
@@ -100,7 +102,7 @@
       background: transparent;
       border: none;
       cursor: pointer;
-      color: #64748B;
+      color: var(--text-muted);
       min-width: 44px;
       min-height: 44px;
       padding: 8px;
@@ -111,12 +113,12 @@
       transition: color 0.2s ease;
     }
     .btn-toggle-eye:hover {
-      color: #0F172A;
+      color: var(--text-primary);
     }
     .btn-submit-login {
       width: 100%;
       height: 50px;
-      background: #0284C7;
+      background: var(--accent-primary);
       color: #FFFFFF;
       border: none;
       border-radius: 10px;
@@ -138,16 +140,16 @@
       text-align: center;
       margin-top: 24px;
       font-size: 14px;
-      color: #64748B;
+      color: var(--text-muted);
     }
     .login-footer-links a {
-      color: #64748B;
+      color: var(--text-muted);
       font-weight: 600;
       text-decoration: none;
       transition: color 0.2s ease;
     }
     .login-footer-links a:hover {
-      color: #0284C7;
+      color: var(--accent-primary);
     }
     .alert-banner {
       padding: 12px 14px;
@@ -171,12 +173,19 @@
     }
   </style>
 </head>
-<body class="auth-saas-body" style="background: #F6F7F9; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+<body class="auth-saas-body">
   <div class="login-container">
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 6px;">
+      <button type="button" id="btn-login-theme" class="saas-icon-btn" style="min-width: 44px; min-height: 44px;" aria-label="Switch Theme" title="Switch Theme">
+        <span id="login-theme-icon"></span>
+      </button>
+    </div>
     <div class="login-header">
-      <div class="login-logo">⚡</div>
-      <h2 style="margin: 0; font-size: 22px; color: #0F172A;">Sign In to Stall</h2>
-      <p style="margin: 4px 0 0; font-size: 14px; color: #64748B;">Enter credentials to unlock billing counter</p>
+      <div class="login-logo" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v4H8v3h10v4H8v5H4V4z" fill="currentColor" stroke="none"/></svg>
+      </div>
+      <h2 style="margin: 0; font-size: 22px;">Sign In to Stall</h2>
+      <p style="margin: 4px 0 0; font-size: 14px; color: var(--text-muted);">Enter credentials to unlock billing counter</p>
     </div>
 
     <div class="alert-banner" id="login-alert"></div>
@@ -209,7 +218,8 @@
     </form>
 
     <div class="login-footer-links">
-      <p><a href="/">← Back to Portal Hub</a></p>
+      <p style="margin-bottom: 10px;"><a href="/register.html" style="color: var(--accent-primary); font-weight: 700;">New stall? Create account</a></p>
+      <p><a href="/">&larr; Back to Portal Hub</a></p>
     </div>
   </div>
 

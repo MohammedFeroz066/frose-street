@@ -173,11 +173,13 @@
     }
   }
 
-  function updateThemeCycleIcon() {
+  function updateThemeCycleIcon(theme) {
     const iconEl = document.getElementById('theme-cycle-icon');
     if (!iconEl || !window.FroseTheme) return;
-    const t = window.FroseTheme.getTheme();
-    iconEl.textContent = t === 'dark' ? '🌙' : (t === 'sunlight' ? '🔆' : '☀️');
+    const t = theme || window.FroseTheme.getTheme();
+    if (window.FroseUI && typeof window.FroseUI.renderThemeIcon === 'function') {
+      window.FroseUI.renderThemeIcon(iconEl, t);
+    }
   }
 
   window.cycleWorkspaceTheme = function () {
@@ -504,9 +506,15 @@
     clear(grid);
 
     if (menuCatalog.length === 0) {
+      const { svgEl } = window.FroseSafeDom;
+      const emptyDishIcon = svgEl('svg', { width: 38, height: 38, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', style: 'margin-bottom: 8px;' }, [
+        svgEl('path', { d: 'M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2' }),
+        svgEl('path', { d: 'M7 2v20' }),
+        svgEl('path', { d: 'M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7' }),
+      ]);
       grid.appendChild(
         el('div', { class: 'saas-empty-state', style: 'grid-column: 1 / -1;' }, [
-          el('div', { style: 'font-size: 40px; margin-bottom: 8px;' }, '🍽️'),
+          emptyDishIcon,
           el('h3', { style: 'margin: 0 0 6px 0; font-size: 17px; font-weight: 800;' }, 'Your menu is empty'),
           el('p', { style: 'margin: 0 0 16px 0; font-size: 13.5px; color: var(--text-muted);' }, 'Add your stall dishes with prices in ₹ to start billing in seconds.'),
           el('button', {
@@ -539,9 +547,14 @@
     }
 
     if (filtered.length === 0) {
+      const { svgEl } = window.FroseSafeDom;
+      const searchEmptySvg = svgEl('svg', { width: 30, height: 30, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', style: 'margin-bottom: 6px;' }, [
+        svgEl('circle', { cx: 11, cy: 11, r: 8 }),
+        svgEl('line', { x1: 21, y1: 21, x2: 16.65, y2: 16.65 }),
+      ]);
       grid.appendChild(
         el('div', { class: 'saas-empty-state', style: 'grid-column: 1 / -1;' }, [
-          el('div', { style: 'font-size: 28px; margin-bottom: 6px;' }, '🔍'),
+          searchEmptySvg,
           el('div', { style: 'font-weight: 700;' }, 'No matching dishes found'),
         ])
       );
@@ -1438,9 +1451,13 @@
       el('button', {
         type: 'button',
         class: 'saas-btn saas-btn-danger',
-        style: 'padding: 0; min-width: 44px;',
+        style: 'padding: 0; min-width: 44px; min-height: 44px;',
+        'aria-label': 'Remove Variant',
         on: { click: () => { if (row.parentNode) row.parentNode.removeChild(row); } },
-      }, '✕'),
+      }, [window.FroseSafeDom.svgEl('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round' }, [
+        window.FroseSafeDom.svgEl('line', { x1: 18, y1: 6, x2: 6, y2: 18 }),
+        window.FroseSafeDom.svgEl('line', { x1: 6, y1: 6, x2: 18, y2: 18 }),
+      ])]),
     ]);
     container.appendChild(row);
   };
@@ -1964,6 +1981,9 @@
     }
 
     await refreshPOS();
+    if (window.FroseTheme && typeof window.FroseTheme.subscribe === 'function') {
+      window.FroseTheme.subscribe((t) => updateThemeCycleIcon(t));
+    }
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('type') === 'dinein') window.setOrderType('dinein');

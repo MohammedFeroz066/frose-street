@@ -107,9 +107,13 @@
       ])
     );
 
+    var searchSvg = global.FroseSafeDom.svgEl('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+      global.FroseSafeDom.svgEl('circle', { cx: 11, cy: 11, r: 8 }),
+      global.FroseSafeDom.svgEl('line', { x1: 21, y1: 21, x2: 16.65, y2: 16.65 }),
+    ]);
     root.appendChild(
       el('div', { class: 'saas-search-wrap', style: 'margin-bottom: 10px;' }, [
-        el('span', { class: 'saas-search-icon' }, '🔍'),
+        el('span', { class: 'saas-search-icon' }, [searchSvg]),
         el('input', {
           type: 'search',
           id: 'menu-manager-search',
@@ -162,9 +166,14 @@
       });
 
       if (filtered.length === 0) {
+        var emptyMenuSvg = global.FroseSafeDom.svgEl('svg', { width: 32, height: 32, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', style: 'margin-bottom: 8px;' }, [
+          global.FroseSafeDom.svgEl('path', { d: 'M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2' }),
+          global.FroseSafeDom.svgEl('path', { d: 'M7 2v20' }),
+          global.FroseSafeDom.svgEl('path', { d: 'M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7' }),
+        ]);
         listEl.appendChild(
           el('div', { class: 'saas-empty-state' }, [
-            el('div', { style: 'font-size: 30px; margin-bottom: 6px;' }, '🍽️'),
+            emptyMenuSvg,
             el('div', { style: 'font-weight: 800;' }, catalog.length === 0 ? 'No dishes configured yet' : 'No matching dishes'),
             catalog.length === 0 ? el('button', {
               type: 'button',
@@ -188,6 +197,15 @@
           ? item.variants.map(function (v) { return v.name + ' ' + fmt(v.pricePaise); }).join(' · ')
           : fmt(item.pricePaise);
 
+        var editSvg = global.FroseSafeDom.svgEl('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+          global.FroseSafeDom.svgEl('path', { d: 'M12 20h9' }),
+          global.FroseSafeDom.svgEl('path', { d: 'M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z' }),
+        ]);
+        var trashSvg = global.FroseSafeDom.svgEl('svg', { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+          global.FroseSafeDom.svgEl('polyline', { points: '3 6 5 6 21 6' }),
+          global.FroseSafeDom.svgEl('path', { d: 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2' }),
+        ]);
+
         listEl.appendChild(
           el('div', { class: 'pos-row-card pos-menu-row-card', 'data-menu-id': item.id }, [
             el('div', { class: 'pos-menu-row-main' }, [
@@ -201,15 +219,21 @@
               ]),
             ]),
             el('div', { class: 'pos-menu-row-actions' }, [
-              el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
+              el('label', {
+                class: 'saas-switch-wrap',
+                on: {
+                  click: function (e) {
+                    e.preventDefault();
+                    toggleOptimisticAvailability(item);
+                  },
+                },
+              }, [
                 el('span', { style: 'font-size: 12px; font-weight: 700; color: var(--text-secondary);' }, isAvailable ? 'In Stock' : 'Sold Out'),
                 el('button', {
                   type: 'button',
                   class: 'saas-switch' + (isAvailable ? ' on' : ''),
-                  style: 'min-width: 48px; min-height: 44px;',
                   'aria-label': isAvailable ? 'Mark Sold Out' : 'Mark Available',
                   title: isAvailable ? 'Available' : 'Sold Out',
-                  on: { click: function () { toggleOptimisticAvailability(item); } },
                 }),
               ]),
               el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
@@ -219,14 +243,15 @@
                   style: 'min-width: 44px; min-height: 44px; padding: 0 12px;',
                   title: 'Edit Dish',
                   on: { click: function () { if (ws().openAddDishModal) ws().openAddDishModal(item); } },
-                }, '✏️ Edit'),
+                }, [editSvg, el('span', {}, 'Edit')]),
                 el('button', {
                   type: 'button',
                   class: 'saas-btn saas-btn-danger',
                   style: 'min-width: 44px; min-height: 44px; padding: 0 12px;',
                   title: 'Delete Dish',
+                  'aria-label': 'Delete Dish',
                   on: { click: function () { if (ws().deleteDishById) ws().deleteDishById(item.id); } },
-                }, '🗑️'),
+                }, [trashSvg]),
               ]),
             ]),
           ])

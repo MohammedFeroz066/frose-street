@@ -341,13 +341,25 @@
             id: 'btn-pair-kitchen-qr',
             class: 'saas-btn saas-btn-secondary',
             on: { click: function () { openPairingModal('cook'); } },
-          }, '🍳 Pair Kitchen QR'),
+          }, [
+            svgEl('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+              svgEl('rect', { x: 2, y: 3, width: 20, height: 14, rx: 2 }),
+              svgEl('line', { x1: 8, y1: 21, x2: 16, y2: 21 }),
+              svgEl('line', { x1: 12, y1: 17, x2: 12, y2: 21 }),
+            ]),
+            el('span', {}, 'Pair Kitchen QR'),
+          ]),
           el('button', {
             type: 'button',
             id: 'btn-pair-packer-qr',
             class: 'saas-btn saas-btn-secondary',
             on: { click: function () { openPairingModal('packer'); } },
-          }, '📦 Pair Packaging QR'),
+          }, [
+            svgEl('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+              svgEl('path', { d: 'M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z' }),
+            ]),
+            el('span', {}, 'Pair Packaging QR'),
+          ]),
         ]),
         devList,
       ])
@@ -504,13 +516,27 @@
             id: 'btn-settings-sync-now',
             class: 'saas-btn saas-btn-secondary',
             on: { click: window.forceCloudSync },
-          }, '☁️ Sync Now'),
+          }, [
+            svgEl('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+              svgEl('polyline', { points: '23 4 23 10 17 10' }),
+              svgEl('polyline', { points: '1 20 1 14 7 14' }),
+              svgEl('path', { d: 'M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15' }),
+            ]),
+            el('span', {}, 'Sync Now'),
+          ]),
           el('button', {
             type: 'button',
             id: 'btn-settings-logout',
             class: 'saas-btn saas-btn-danger',
             on: { click: function () { if (window.handleLogout) window.handleLogout(); } },
-          }, '🚪 Sign Out'),
+          }, [
+            svgEl('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.75, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, [
+              svgEl('path', { d: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' }),
+              svgEl('polyline', { points: '16 17 21 12 16 7' }),
+              svgEl('line', { x1: 21, y1: 12, x2: 9, y2: 12 }),
+            ]),
+            el('span', {}, 'Sign Out'),
+          ]),
         ]),
       ])
     );
@@ -564,7 +590,7 @@
                 }
               },
             },
-          }, '📋 Copy Pairing Link'),
+          }, 'Copy Pairing Link'),
         ])
       );
     } catch (_) {

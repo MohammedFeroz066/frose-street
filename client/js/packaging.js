@@ -148,11 +148,11 @@
           if (data.device && data.device.businessName) {
             localStorage.setItem('frose_stall_name', data.device.businessName);
           }
-          showToast(`✅ Paired as ${data.device?.role || 'Packer'}!`);
+          showToast(`Paired as ${data.device?.role || 'Packer'}`);
           const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
           window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
         } else {
-          showToast('⚠️ Pairing token expired. Enter PIN.');
+          showToast('Pairing token expired. Re-pair from Settings or sign in on /login.html.');
         }
       } catch (err) {
         console.warn('Pairing error:', err);
@@ -174,9 +174,9 @@
     const method = (order.paymentMethod || 'CASH').toUpperCase();
 
     if (isPaid) {
-      return el('span', { class: 'pack-pay-badge pay-paid' }, `✅ PAID (${method})`);
+      return el('span', { class: 'pack-pay-badge pay-paid' }, `PAID (${method})`);
     }
-    return el('span', { class: 'pack-pay-badge pay-collect' }, '⚠️ COLLECT CASH');
+    return el('span', { class: 'pack-pay-badge pay-collect' }, 'COLLECT CASH');
   }
 
   // --- 4. RENDER LANES ---
@@ -229,7 +229,7 @@
                 ]),
                 el('div', { class: 'kds-header-tags' }, [
                   el('span', { class: `kds-tag ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
-                    isTakeaway ? '📦 PARCEL' : '🍽️ DINE-IN'
+                    isTakeaway ? 'PARCEL' : 'DINE-IN'
                   ),
                   order.editedAt ? el('span', { class: 'kds-tag kds-tag-edited' }, 'EDITED') : null,
                   createPaymentBadgeNode(order),
@@ -291,10 +291,10 @@
                 ]),
                 el('div', { class: 'kds-header-tags' }, [
                   el('span', { class: `kds-tag ${isTakeaway ? 'tag-takeaway' : 'tag-dinein'}` },
-                    isTakeaway ? '📦 PARCEL' : '🍽️ DINE-IN'
+                    isTakeaway ? 'PARCEL' : 'DINE-IN'
                   ),
                   order.editedAt ? el('span', { class: 'kds-tag kds-tag-edited' }, 'EDITED') : null,
-                  el('span', { class: 'kds-tag tag-cooking-status' }, `🍳 Cooking in Kitchen (${age})`),
+                  el('span', { class: 'kds-tag tag-cooking-status' }, `Cooking in Kitchen (${age})`),
                 ]),
               ]),
               el('div', { class: 'pack-card-body' }, [
@@ -320,7 +320,7 @@
     // Optimistically remove from readyOrders
     readyOrders = readyOrders.filter((o) => o.id !== orderId);
     deliveredCount++;
-    showToast(tr('pack.toast_served', { token: tokenNo }, `✅ Order #${tokenNo} Delivered & Served!`));
+    showToast(tr('pack.toast_served', { token: tokenNo }, `Order #${tokenNo} Delivered & Served`));
 
     setTimeout(() => {
       renderLanes();
@@ -357,7 +357,7 @@
       readyOrders.unshift(promoted);
       renderLanes();
       playPickupBell();
-      showToast(tr('pack.toast_ready', { token: promoted.tokenNo }, `🔔 Token #${promoted.tokenNo} is READY for serving!`));
+      showToast(tr('pack.toast_ready', { token: promoted.tokenNo }, `Token #${promoted.tokenNo} is READY for serving`));
       // Auto-scroll to ready lane
       const readySec = document.getElementById('packaging-ready-section');
       if (readySec) readySec.scrollIntoView({ behavior: 'smooth' });
@@ -426,7 +426,7 @@
       wsConnection = new WebSocket(wsUrl);
 
       wsConnection.onopen = () => {
-        console.log('⚡ Packaging WebSocket Connected');
+        console.log('Packaging WebSocket Connected');
         hideReconnectBanner();
         fetchLiveOrders();
 
@@ -522,7 +522,7 @@
     }
     if (updated) {
       renderLanes();
-      showToast(`✏️ Order #${updatedOrder.tokenNo || ''} Updated`);
+      showToast(`Order #${updatedOrder.tokenNo || ''} Updated`);
     }
   }
 
@@ -591,11 +591,12 @@
 
     if (btnPackTheme && window.FroseTheme) {
       const syncPackThemeIcon = (theme) => {
-        if (packThemeIcon) {
-          packThemeIcon.textContent = theme === 'dark' ? '🌙' : (theme === 'sunlight' ? '☀️' : '🌤️');
+        if (packThemeIcon && window.FroseUI && window.FroseUI.renderThemeIcon) {
+          window.FroseUI.renderThemeIcon(packThemeIcon, theme);
         }
       };
       syncPackThemeIcon(window.FroseTheme.getTheme());
+      window.FroseTheme.subscribe(syncPackThemeIcon);
       btnPackTheme.addEventListener('click', () => {
         const next = window.FroseTheme.cycleTheme();
         syncPackThemeIcon(next);
@@ -612,7 +613,7 @@
           iconSoundOn.style.display = soundEnabled ? 'block' : 'none';
           iconSoundOff.style.display = soundEnabled ? 'none' : 'block';
         }
-        showToast(soundEnabled ? '🔔 Pickup Bell Enabled' : '🔕 Pickup Bell Muted');
+        showToast(soundEnabled ? 'Pickup Bell Enabled' : 'Pickup Bell Muted');
         if (soundEnabled) playPickupBell();
       });
     }

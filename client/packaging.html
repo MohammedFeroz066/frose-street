@@ -36,7 +36,7 @@
   <div class="kds-reconnect-banner" id="reconnect-banner" style="display: none;">
     <div class="banner-inner">
       <span class="banner-pulse"></span>
-      <span class="banner-text">⚠️ Connection lost. Reconnecting to stall counter...</span>
+      <span class="banner-text">Connection lost. Reconnecting to stall counter...</span>
       <button class="btn-banner-retry" id="btn-banner-retry">Retry Now</button>
     </div>
   </div>
@@ -78,7 +78,7 @@
       <!-- Right: Controls (Theme, Sound, Fullscreen, Stall Name, PIN) -->
       <div class="navbar-actions">
         <button type="button" class="btn-icon-header" id="btn-pack-theme" aria-label="Toggle Theme" title="Switch Theme">
-          <span id="pack-theme-icon">🌙</span>
+          <span id="pack-theme-icon"></span>
         </button>
 
         <button class="btn-icon-header" id="btn-toggle-sound" aria-label="Toggle Sound" title="Sound Bell Active">
@@ -125,7 +125,7 @@
     <section class="packaging-lane-section ready-lane" id="packaging-ready-section">
       <div class="lane-header">
         <div class="lane-title-group">
-          <span class="lane-badge badge-ready" data-i18n="pack.ready_lane">🟢 READY FOR SERVING</span>
+          <span class="lane-badge badge-ready" data-i18n="pack.ready_lane">READY FOR SERVING</span>
           <span class="lane-subtitle">Food completed by kitchen. Match customer token and hand over.</span>
         </div>
         <span class="lane-count-tag" id="ready-lane-count">0 Orders</span>
@@ -148,7 +148,7 @@
     <section class="packaging-lane-section waiting-lane" id="packaging-waiting-section">
       <div class="lane-header">
         <div class="lane-title-group">
-          <span class="lane-badge badge-waiting" data-i18n="pack.waiting_lane">🍳 WAITING FOR KITCHEN</span>
+          <span class="lane-badge badge-waiting" data-i18n="pack.waiting_lane">WAITING FOR KITCHEN</span>
           <span class="lane-subtitle">Orders being cooked. Will move up automatically when cook marks ready.</span>
         </div>
         <span class="lane-count-tag" id="waiting-lane-count">0 Orders</span>
@@ -194,7 +194,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
         <button type="button" id="btn-station-back" class="saas-btn saas-btn-secondary" style="min-height: 44px; padding: 0 12px;">&larr; Back</button>
         <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Station &amp; Switch</h3>
-        <button type="button" id="btn-close-station" class="saas-btn saas-btn-secondary" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">✕</button>
+        <button type="button" id="btn-close-station" class="saas-btn saas-btn-secondary" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">&times;</button>
       </div>
       <div class="pos-summary-box" style="margin-bottom: 14px;">
         <div class="pos-summary-line"><span>Current Station</span><strong style="color: var(--accent-emerald);">Packaging &amp; Serving</strong></div>

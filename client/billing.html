@@ -641,6 +641,45 @@
     </div>
   </div>
 
+  <!-- 4-Digit Owner PIN Verification & Setup Sheet (RPTS-03) -->
+  <div class="saas-sheet-backdrop modal-overlay" id="owner-pin-sheet">
+    <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Owner PIN Authorization">
+      <div class="saas-sheet-handle"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+        <button type="button" id="btn-owner-pin-back" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="owner-pin-sheet" style="min-height: 44px; padding: 0 12px;" aria-label="Back">&larr; Back</button>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 800;" id="owner-pin-sheet-title">Owner PIN Required</h3>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="owner-pin-sheet" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">&times;</button>
+      </div>
+      <div id="owner-pin-sheet-body"></div>
+    </div>
+  </div>
+
+  <!-- Edit Expense Sheet (RPTS-03) -->
+  <div class="saas-sheet-backdrop modal-overlay" id="expense-edit-sheet">
+    <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Edit Expense">
+      <div class="saas-sheet-handle"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+        <button type="button" id="btn-expense-edit-back" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="expense-edit-sheet" style="min-height: 44px; padding: 0 12px;" aria-label="Back">&larr; Back</button>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Edit Expense</h3>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="expense-edit-sheet" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">&times;</button>
+      </div>
+      <div id="expense-edit-sheet-body"></div>
+    </div>
+  </div>
+
+  <!-- Net Profit Adjustment Sheet (RPTS-03) -->
+  <div class="saas-sheet-backdrop modal-overlay" id="profit-adjust-sheet">
+    <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Adjust Net Profit">
+      <div class="saas-sheet-handle"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+        <button type="button" id="btn-profit-adjust-back" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="profit-adjust-sheet" style="min-height: 44px; padding: 0 12px;" aria-label="Back">&larr; Back</button>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Adjust Net Profit</h3>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="profit-adjust-sheet" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">&times;</button>
+      </div>
+      <div id="profit-adjust-sheet-body"></div>
+    </div>
+  </div>
+
   <div class="saas-drawer-backdrop" id="close-day-drawer">
     <div class="saas-drawer" role="dialog" aria-modal="true" aria-label="Close Fiscal Day">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">

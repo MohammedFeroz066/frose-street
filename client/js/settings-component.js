@@ -379,7 +379,7 @@
       ])
     );
 
-    // 6. Security & Staff PIN
+    // 6. Security & Staff PIN + 4-Digit Owner Authorization PIN
     var pinInput = el('input', {
       type: 'password',
       id: 'sett-staff-pin',
@@ -389,42 +389,120 @@
       placeholder: '4-digit terminal lock PIN',
     });
 
+    var ownerPinInput = el('input', {
+      type: 'password',
+      id: 'sett-owner-pin',
+      class: 'saas-input tabular-nums',
+      maxlength: 4,
+      inputmode: 'numeric',
+      placeholder: v.hasOwnerPin ? 'New 4-digit Owner PIN' : 'Set 4-digit Owner PIN',
+    });
+    var ownerPinAuthInput = el('input', {
+      type: 'password',
+      id: 'sett-owner-pin-auth',
+      class: 'saas-input',
+      placeholder: 'Current 4-digit PIN or Account Password',
+    });
+
     stack.appendChild(
       el('section', { class: 'saas-card', style: 'display: flex; flex-direction: column; gap: 12px;' }, [
-        el('h3', { style: 'margin: 0; font-size: 16px; font-weight: 800;' }, '5. Security & Terminal PIN'),
+        el('div', { style: 'display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;' }, [
+          el('h3', { style: 'margin: 0; font-size: 16px; font-weight: 800;' }, '5. Security & Owner PIN'),
+          el('span', {
+            id: 'settings-owner-pin-pill',
+            class: 'saas-pill ' + (v.hasOwnerPin ? 'saas-pill-emerald' : 'saas-pill-amber'),
+          }, v.hasOwnerPin ? 'Owner PIN Configured' : 'Owner PIN Not Set'),
+        ]),
+        el('div', { style: 'font-size: 12.5px; color: var(--text-muted);' }, 'Owner Authorization PIN protects editing/deleting expenses and adjusting Net Profit.'),
+        v.hasOwnerPin ? el('div', { class: 'saas-field' }, [
+          el('label', { class: 'saas-label', for: 'sett-owner-pin-auth' }, 'Current Owner PIN or Account Password *'),
+          ownerPinAuthInput,
+        ]) : null,
         el('div', { style: 'display: grid; grid-template-columns: 1fr auto; gap: 10px;' }, [
-          pinInput,
+          ownerPinInput,
           el('button', {
             type: 'button',
-            id: 'btn-save-staff-pin',
-            class: 'saas-btn saas-btn-slate',
+            id: 'btn-save-owner-pin',
+            class: 'saas-btn saas-btn-primary',
             on: {
               click: async function () {
-                var pin = (pinInput.value || '').trim();
+                var pin = (ownerPinInput.value || '').trim();
                 if (!/^\d{4}$/.test(pin)) {
-                  toast('Enter a 4-digit numeric PIN', 'warning');
+                  toast('Enter a 4-digit numeric Owner PIN', 'warning');
                   return;
+                }
+                var payload = { pin: pin };
+                if (v.hasOwnerPin) {
+                  var authVal = (ownerPinAuthInput.value || '').trim();
+                  if (!authVal) {
+                    toast('Enter current Owner PIN or account password', 'warning');
+                    return;
+                  }
+                  if (/^\d{4}$/.test(authVal)) payload.currentPin = authVal;
+                  else payload.accountPassword = authVal;
                 }
                 try {
                   var fn = window.froseApiFetch || fetch;
-                  var res = await fn('/api/v1/auth/setup-pin', {
+                  var res = await fn('/api/v1/auth/owner-pin', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
-                    body: JSON.stringify({ pin: pin }),
+                    body: JSON.stringify(payload),
                   });
+                  var data = await res.json().catch(function () { return {}; });
                   if (res && res.ok) {
-                    pinInput.value = '';
-                    toast('Terminal PIN updated', 'success');
+                    currentVendor = Object.assign({}, currentVendor || {}, { hasOwnerPin: true });
+                    localStorage.setItem('frose_current_vendor', JSON.stringify(currentVendor));
+                    ownerPinInput.value = '';
+                    ownerPinAuthInput.value = '';
+                    toast('4-digit Owner PIN saved', 'success');
+                    renderSettingsHub();
                   } else {
-                    toast('Could not update PIN', 'danger');
+                    toast(data?.error?.message || data?.detail || 'Could not update Owner PIN', 'danger');
                   }
                 } catch (_) {
-                  toast('Network error updating PIN', 'danger');
+                  toast('Network error updating Owner PIN', 'danger');
                 }
               },
             },
-          }, 'Update PIN'),
+          }, v.hasOwnerPin ? 'Change Owner PIN' : 'Set Owner PIN'),
+        ]),
+        el('div', { style: 'padding-top: 8px; border-top: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 8px;' }, [
+          el('label', { class: 'saas-label', for: 'sett-staff-pin' }, 'Offline Terminal Quick PIN'),
+          el('div', { style: 'display: grid; grid-template-columns: 1fr auto; gap: 10px;' }, [
+            pinInput,
+            el('button', {
+              type: 'button',
+              id: 'btn-save-staff-pin',
+              class: 'saas-btn saas-btn-slate',
+              on: {
+                click: async function () {
+                  var pin = (pinInput.value || '').trim();
+                  if (!/^\d{4}$/.test(pin)) {
+                    toast('Enter a 4-digit numeric PIN', 'warning');
+                    return;
+                  }
+                  try {
+                    var fn = window.froseApiFetch || fetch;
+                    var res = await fn('/api/v1/auth/setup-pin', {
+                      method: 'POST',
+                      credentials: 'same-origin',
+                      headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+                      body: JSON.stringify({ pin: pin }),
+                    });
+                    if (res && res.ok) {
+                      pinInput.value = '';
+                      toast('Terminal PIN updated', 'success');
+                    } else {
+                      toast('Could not update PIN', 'danger');
+                    }
+                  } catch (_) {
+                    toast('Network error updating PIN', 'danger');
+                  }
+                },
+              },
+            }, 'Update PIN'),
+          ]),
         ]),
       ])
     );

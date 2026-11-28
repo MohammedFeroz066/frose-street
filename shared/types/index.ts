@@ -128,6 +128,8 @@ export interface DailySummary {
   upiSalesPaise: number;
   totalExpensesPaise: number;
   netPaise: number;
+  countedCashPaise?: number | null;
+  variancePaise?: number | null;
   cancelledOrders: number;
   topSellingItem?: string | null;
   createdAt?: string;

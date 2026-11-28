@@ -377,13 +377,17 @@ export class GallaService {
   static async closeFiscalDay(
     db: Kysely<Database>,
     vendorId: string,
-    input?: { date?: string; notes?: string },
+    input?: { date?: string; notes?: string; countedCashPaise?: number },
   ): Promise<{
     success: boolean;
     summary: DailySummary;
     zReportText: string;
   }> {
     const targetDate = input?.date || getIstDateString();
+    const countedCashPaise =
+      typeof input?.countedCashPaise === 'number' && Number.isSafeInteger(input.countedCashPaise) && input.countedCashPaise >= 0
+        ? input.countedCashPaise
+        : undefined;
 
     // Compute live balances
     const live = await this.getGallaSummary(db, vendorId, targetDate);
@@ -418,6 +422,7 @@ export class GallaService {
           upi_sales_paise: BigInt(live.upiSalesPaise),
           total_expenses_paise: BigInt(live.totalExpensesPaise),
           net_paise: BigInt(live.netProfitPaise),
+          counted_cash_paise: countedCashPaise !== undefined ? BigInt(countedCashPaise) : existing.counted_cash_paise ?? null,
           cancelled_orders: live.cancelledOrders,
           top_selling_item: live.topSellingItem,
         })
@@ -437,12 +442,19 @@ export class GallaService {
           upi_sales_paise: BigInt(live.upiSalesPaise),
           total_expenses_paise: BigInt(live.totalExpensesPaise),
           net_paise: BigInt(live.netProfitPaise),
+          counted_cash_paise: countedCashPaise !== undefined ? BigInt(countedCashPaise) : null,
           cancelled_orders: live.cancelledOrders,
           top_selling_item: live.topSellingItem,
         })
         .returningAll()
         .executeTakeFirstOrThrow();
     }
+
+    const persistedCountedPaise =
+      savedSummary.counted_cash_paise !== null && savedSummary.counted_cash_paise !== undefined
+        ? Number(savedSummary.counted_cash_paise)
+        : null;
+    const variancePaise = persistedCountedPaise !== null ? persistedCountedPaise - live.cashInDrawerPaise : null;
 
     const dailySummaryResult: DailySummary = {
       id: savedSummary.id,
@@ -454,10 +466,20 @@ export class GallaService {
       upiSalesPaise: Number(savedSummary.upi_sales_paise),
       totalExpensesPaise: Number(savedSummary.total_expenses_paise),
       netPaise: Number(savedSummary.net_paise),
+      countedCashPaise: persistedCountedPaise,
+      variancePaise,
       cancelledOrders: savedSummary.cancelled_orders,
       topSellingItem: savedSummary.top_selling_item,
       createdAt: new Date(savedSummary.created_at).toISOString(),
     };
+
+    const countedLines =
+      persistedCountedPaise !== null
+        ? [
+            `   Counted Cash: ₹${(persistedCountedPaise / 100).toFixed(2)}`,
+            `   Variance:     ${variancePaise! >= 0 ? '+' : ''}₹${((variancePaise || 0) / 100).toFixed(2)}`,
+          ]
+        : [];
 
     // Format street vendor WhatsApp / Thermal print friendly Z-Report
     const zReportText = [
@@ -471,6 +493,7 @@ export class GallaService {
       `📉 *Expenses:*   ₹${(live.totalExpensesPaise / 100).toFixed(2)}`,
       `───────────────────────────────`,
       `💵 *Cash in Galla:* ₹${(live.cashInDrawerPaise / 100).toFixed(2)}`,
+      ...countedLines,
       `✨ *Net Profit:*    ₹${(live.netProfitPaise / 100).toFixed(2)}`,
       `🏆 *Top Dish:*      ${live.topSellingItem || 'None'}`,
       `❌ *Cancelled:*     ${live.cancelledOrders}`,

@@ -52,6 +52,8 @@
       if (v.ownerName) {
         const sOwner = document.getElementById('settings-client-owner');
         if (sOwner) sOwner.textContent = v.ownerName;
+        const hOwner = document.getElementById('sett-header-owner-name');
+        if (hOwner) hOwner.textContent = v.ownerName + (v.phone ? ' · +91 ' + v.phone : '');
         const sAvatar = document.getElementById('settings-client-avatar');
         if (sAvatar) sAvatar.textContent = v.ownerName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
       }
@@ -61,4 +63,28 @@
       }
     }
   } catch (e) {}
+
+  async function hydrateHubGalla() {
+    try {
+      if (!localStorage.getItem('frose_session_active') || navigator.onLine === false) return;
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn('/api/v1/galla/summary', { credentials: 'same-origin' });
+      if (!res || !res.ok) return;
+      const data = await res.json();
+      const s = data && data.summary ? data.summary : null;
+      if (!s) return;
+      const fmt = (paise) => {
+        if (window.FroseUI && typeof window.FroseUI.formatINR === 'function') return window.FroseUI.formatINR(paise);
+        return '₹' + Math.round(Number(paise || 0) / 100);
+      };
+      const tEl = document.getElementById('galla-total-sales');
+      const cEl = document.getElementById('galla-cash-sales');
+      const uEl = document.getElementById('galla-upi-sales');
+      if (tEl) tEl.textContent = fmt(s.totalSalesPaise);
+      if (cEl) cEl.textContent = fmt(s.cashSalesPaise);
+      if (uEl) uEl.textContent = fmt(s.upiSalesPaise);
+    } catch (_) {}
+  }
+
+  hydrateHubGalla();
 })();

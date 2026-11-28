@@ -39,6 +39,14 @@
     if (ws().notify) ws().notify(msg, variant);
   }
 
+  function tr(key, fallback, vars) {
+    if (global.FroseI18n && typeof global.FroseI18n.t === 'function') {
+      var out = global.FroseI18n.t(key, vars);
+      if (out && out !== key) return out;
+    }
+    return fallback || key;
+  }
+
   var state = {
     viewMode: 'active', // 'active' | 'history'
     datePreset: 'today', // 'today' | 'yesterday' | 'custom'
@@ -163,8 +171,8 @@
 
     var headerRow = el('div', { style: 'display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px;' }, [
       el('div', {}, [
-        el('h2', { style: 'margin: 0; font-size: 20px; font-weight: 900;' }, 'Orders'),
-        el('div', { style: 'font-size: 12.5px; color: var(--text-muted);' }, 'Live kitchen tickets, order editing, and history'),
+        el('h2', { style: 'margin: 0; font-size: 20px; font-weight: 900;' }, tr('orders.title', 'Orders')),
+        el('div', { style: 'font-size: 12.5px; color: var(--text-muted);' }, tr('orders.subtitle', 'Live kitchen tickets, order editing, and history')),
       ]),
       el('button', {
         type: 'button',
@@ -186,7 +194,7 @@
             fetchOrders();
           },
         },
-      }, 'Active Queue'),
+      }, tr('orders.active_queue', 'Active Queue')),
       el('button', {
         type: 'button',
         id: 'btn-orders-mode-history',
@@ -197,7 +205,7 @@
             fetchOrders();
           },
         },
-      }, 'History & Receipts'),
+      }, tr('orders.history_receipts', 'History & Receipts')),
     ]);
 
     root.appendChild(headerRow);
@@ -280,7 +288,7 @@
         type: 'search',
         id: 'orders-search-input',
         class: 'saas-search-input',
-        placeholder: 'Search token #, receipt FS-..., or dish name',
+        placeholder: tr('orders.search_placeholder', 'Search token #, receipt FS-..., or dish name'),
         value: state.search,
         on: {
           input: function (e) {
@@ -871,6 +879,16 @@
         saveBtn.textContent = 'Save Order Changes';
       }
     }
+  }
+
+  if (typeof global.addEventListener === 'function') {
+    global.addEventListener('frose:language-changed', function () {
+      var root = global.document && global.document.getElementById('orders-panel-root');
+      if (root && root.children && root.children.length > 0) {
+        renderShell();
+        renderOrdersList();
+      }
+    });
   }
 
   global.FroseOrdersPanel = {

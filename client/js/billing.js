@@ -29,6 +29,8 @@
   let isSubmittingOrder = false;
   let isSubmittingVoid = false;
   let isSubmittingDish = false;
+  let isSubmittingCustomItem = false;
+  let lastCartTotalPaise = 0n;
   let billSearchTimer = null;
   let sharedOrdersChannel = null;
 
@@ -87,6 +89,15 @@
     }
   }
 
+  function tr(key, fallback, vars) {
+    if (window.FroseI18n && typeof window.FroseI18n.t === 'function') {
+      const out = window.FroseI18n.t(key, vars);
+      if (out && out !== key) return out;
+    }
+    if (!vars || !fallback) return fallback || key;
+    return String(fallback).replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`));
+  }
+
   function computeCartTaxBreakdown(subtotalPaiseBig) {
     const sub = typeof subtotalPaiseBig === 'bigint' ? Number(subtotalPaiseBig) : Number(subtotalPaiseBig || 0);
     const v = getActiveVendorProfile();
@@ -124,12 +135,18 @@
     if (!badge || !window.FroseSafeDom) return;
     const { el, clear } = window.FroseSafeDom;
     const state = snapshot?.state || (navigator.onLine ? 'online' : 'offline');
-    const label = snapshot?.label || (navigator.onLine ? 'Online' : 'Offline — 0 pending');
+    const pendingCount = Number(snapshot?.pendingCount || 0);
+    let label = snapshot?.label || '';
+    if (!label) {
+      if (state === 'syncing') label = tr('status.syncing', 'Syncing');
+      else if (state === 'offline') label = tr('status.offline_pending', `Offline — ${pendingCount} pending`, { count: pendingCount });
+      else label = tr('status.online', 'Online');
+    }
 
     badge.classList.remove('is-offline', 'is-syncing');
     if (state === 'syncing') {
       badge.classList.add('is-syncing');
-    } else if (state === 'offline' || (snapshot && snapshot.pendingCount > 0)) {
+    } else if (state === 'offline' || pendingCount > 0) {
       badge.classList.add('is-offline');
     }
     clear(badge);
@@ -418,7 +435,7 @@
     const qty = getQtyForDish(item.id);
 
     if (isSoldOut) {
-      return el('span', { class: 'saas-pill saas-pill-rose' }, 'Sold Out');
+      return el('span', { class: 'saas-pill saas-pill-rose' }, tr('bill.sold_out', 'Sold Out'));
     }
     if (hasVariants) {
       return el('button', {
@@ -430,7 +447,7 @@
             window.openVariantPicker(item.id);
           },
         },
-      }, qty > 0 ? `+ (${qty})` : '+ Add');
+      }, qty > 0 ? `+ (${qty})` : tr('bill.add_short', '+ Add'));
     }
     if (qty === 0) {
       return el('button', {
@@ -442,7 +459,7 @@
             window.addItemToCart(item.id, e);
           },
         },
-      }, '+ Add');
+      }, tr('bill.add_short', '+ Add'));
     }
     return el('div', { class: 'saas-stepper' }, [
       el('button', {
@@ -538,12 +555,13 @@
 
     const catHeaderEl = document.getElementById('pos-category-header');
     if (catHeaderEl) {
-      let label = 'All';
-      if (activeCategory !== 'all') {
+      if (activeCategory === 'all') {
+        catHeaderEl.textContent = tr('bill.all_items', `All · ${filtered.length} ${filtered.length === 1 ? 'item' : 'items'}`, { count: filtered.length });
+      } else {
         const matchedCat = getMergedCategories().find((c) => c.toLowerCase().replace(/\s+/g, '-') === activeCategory || c.toLowerCase() === activeCategory);
-        label = matchedCat || activeCategory;
+        const label = matchedCat || activeCategory;
+        catHeaderEl.textContent = tr('bill.category_items', `${label} · ${filtered.length} ${filtered.length === 1 ? 'item' : 'items'}`, { category: label, count: filtered.length });
       }
-      catHeaderEl.textContent = `${label} · ${filtered.length} ${filtered.length === 1 ? 'item' : 'items'}`;
     }
 
     if (filtered.length === 0) {
@@ -601,14 +619,14 @@
           hasVariants ? el('span', {
             class: 'pos-variant-tag',
             style: 'position: absolute; bottom: 8px; left: 8px; background: var(--bg-glass);',
-          }, `${item.variants.length} sizes`) : null,
+          }, tr('bill.sizes_count', `${item.variants.length} sizes`, { count: item.variants.length })) : null,
         ]),
         el('div', { class: 'saas-dish-body' }, [
           el('div', { class: 'saas-dish-head' }, [
             el('div', { class: 'saas-dish-name', title: item.name }, item.name),
           ]),
           el('div', { class: 'saas-dish-foot' }, [
-            el('div', { class: 'saas-dish-price' }, (hasVariants ? 'From ' : '') + formatINR(minPricePaise)),
+            el('div', { class: 'saas-dish-price' }, hasVariants ? tr('bill.from_price', `From ${formatINR(minPricePaise)}`, { price: formatINR(minPricePaise) }) : formatINR(minPricePaise)),
             el('div', { class: 'saas-dish-action-slot' }, [buildDishActionNode(item)]),
           ]),
         ]),
@@ -706,10 +724,25 @@
     updateCartUI(affectedDishId);
   };
 
-  window.clearCurrentCart = function () {
+  window.clearCurrentCart = async function () {
+    if (cart.size === 0) return;
+    const { totalItems } = getCartTotals();
+    if (window.FroseUI && typeof window.FroseUI.confirmModal === 'function') {
+      const ok = await window.FroseUI.confirmModal({
+        title: 'Clear Current Order?',
+        message: `Remove all ${totalItems} ${totalItems === 1 ? 'item' : 'items'} from the current bill?`,
+        confirmLabel: 'Clear Cart',
+        danger: true,
+      });
+      if (!ok) return;
+    }
     cart.clear();
     const noteEl = document.getElementById('checkout-order-note');
     if (noteEl) noteEl.value = '';
+    const cashIn = document.getElementById('cash-tendered-input');
+    if (cashIn) cashIn.value = '';
+    const splitIn = document.getElementById('split-cash-input');
+    if (splitIn) splitIn.value = '';
     updateCartUI();
     window.closeModal('checkout-drawer-modal');
   };
@@ -720,18 +753,32 @@
     clear(container);
     if (cart.size === 0) {
       container.appendChild(
-        el('div', { style: 'text-align: center; color: var(--text-muted); padding: 20px 8px; font-size: 13px;' }, 'Cart is empty. Tap dishes to add.')
+        el('div', { style: 'text-align: center; color: var(--text-muted); padding: 20px 8px; font-size: 13px;' }, tr('bill.empty_cart', 'Cart is empty. Tap dishes to add.'))
       );
       return;
     }
     cart.forEach((entry, key) => {
       const displayName = entry.variantName ? `${entry.item.name} (${entry.variantName})` : entry.item.name;
       const lineTotal = formatINR(entry.unitPricePaise * BigInt(entry.quantity));
+      const isParcelItem = Boolean(entry.notes && entry.notes.toLowerCase().includes('parcel'));
       container.appendChild(
         el('div', { class: 'pos-cart-row' }, [
           el('div', { class: 'pos-cart-row-info' }, [
             el('div', { class: 'pos-cart-row-title' }, displayName),
-            el('div', { class: 'pos-cart-row-sub' }, `${formatINR(entry.unitPricePaise)} each`),
+            el('div', { class: 'pos-cart-row-sub', style: 'display: flex; align-items: center; gap: 6px; flex-wrap: wrap;' }, [
+              el('span', {}, `${formatINR(entry.unitPricePaise)} each`),
+              el('button', {
+                type: 'button',
+                class: 'saas-chip' + (isParcelItem ? ' active' : ''),
+                style: 'min-height: 26px; padding: 2px 8px; font-size: 11px;',
+                on: {
+                  click: () => {
+                    entry.notes = isParcelItem ? '' : 'Parcel';
+                    renderCartRowsInto(container, refreshCallback);
+                  },
+                },
+              }, isParcelItem ? 'Parcel' : '+ Parcel'),
+            ]),
           ]),
           el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
             el('div', { class: 'saas-stepper' }, [
@@ -801,6 +848,14 @@
 
   function updateCartUI(affectedDishId) {
     const { totalItems, taxInfo } = getCartTotals();
+    const totalPaiseBig = BigInt(taxInfo.totalPaise || 0);
+    if (totalPaiseBig !== lastCartTotalPaise) {
+      lastCartTotalPaise = totalPaiseBig;
+      const cashTenderEl = document.getElementById('cash-tendered-input');
+      if (cashTenderEl) cashTenderEl.value = '';
+      const splitCashEl = document.getElementById('split-cash-input');
+      if (splitCashEl) splitCashEl.value = '';
+    }
     const totalFormatted = formatINR(taxInfo.totalPaise);
 
     const pill = document.getElementById('pos-floating-cart-pill');
@@ -808,7 +863,12 @@
     if (pill && pillStats) {
       pill.classList.toggle('is-empty', totalItems === 0);
       pill.style.display = (activeTab === 'bill' && totalItems > 0) ? 'flex' : 'none';
-      pillStats.textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'items'} · ${totalFormatted}`;
+      const unitWord = totalItems === 1 ? tr('bill.item_singular', 'item') : tr('bill.item_plural', 'items');
+      pillStats.textContent = tr('bill.cart_summary', `${totalItems} ${unitWord} · ${totalFormatted}`, {
+        count: totalItems,
+        unit: unitWord,
+        total: totalFormatted,
+      });
     }
     document.body.classList.toggle('has-cart-items', activeTab === 'bill' && totalItems > 0);
 
@@ -1080,6 +1140,7 @@
       });
       const apiItem = { menuItemId: entry.item.id, quantity: entry.quantity };
       if (entry.variantName) apiItem.variantName = entry.variantName;
+      if (entry.notes) apiItem.notes = entry.notes;
       apiItems.push(apiItem);
     });
 
@@ -1884,11 +1945,194 @@
     }
   };
 
+  window.openOutboxInspector = async function () {
+    const listEl = document.getElementById('outbox-inspector-list');
+    if (listEl && window.FroseSafeDom) {
+      const { el, clear } = window.FroseSafeDom;
+      clear(listEl);
+      let pendingEntries = [];
+      if (window.FroseIdbStore && typeof window.FroseIdbStore.getOutbox === 'function') {
+        try {
+          pendingEntries = await window.FroseIdbStore.getOutbox(getVendorKey(), ['pending', 'syncing', 'failed']);
+        } catch (_) {}
+      }
+      if (pendingEntries.length === 0) {
+        listEl.appendChild(
+          el('div', { class: 'saas-empty-state' }, [
+            el('div', { style: 'font-weight: 800;' }, 'All orders synced to cloud'),
+            el('div', { style: 'font-size: 12px; color: var(--text-muted); margin-top: 4px;' }, navigator.onLine ? 'Online and connected.' : 'Offline mode active — new bills queue here safely.'),
+          ])
+        );
+      } else {
+        pendingEntries.forEach((entry) => {
+          const payload = entry.payload || {};
+          listEl.appendChild(
+            el('div', { class: 'pos-row-card' }, [
+              el('div', { style: 'min-width: 0; flex: 1;' }, [
+                el('div', { style: 'font-size: 14px; font-weight: 800;' }, entry.localTokenDisplay || ('Pending #' + String(entry.client_order_id || '').slice(0, 6))),
+                el('div', { style: 'font-size: 12px; color: var(--text-muted);' }, `${String(payload.paymentMethod || 'cash').toUpperCase()} · Attempts: ${Number(entry.retryCount || 0)}`),
+              ]),
+              el('span', { class: 'saas-pill saas-pill-amber' }, String(entry.status || 'pending').toUpperCase()),
+            ])
+          );
+        });
+      }
+    }
+    window.openModal('outbox-inspector-modal');
+  };
+
+  window.triggerOutboxSync = async function () {
+    const btn = document.getElementById('btn-outbox-sync-now');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Syncing...';
+    }
+    try {
+      if (syncEngine && typeof syncEngine.flushOutbox === 'function') {
+        const res = await syncEngine.flushOutbox({ force: true });
+        await syncEngine.notifyStatus();
+        notify(`Sync finished: ${res.synced} synced`, 'success');
+      } else {
+        notify('Sync completed', 'success');
+      }
+      await window.openOutboxInspector();
+    } catch (_) {
+      notify('Could not sync right now — check connection', 'warning');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Sync Now';
+      }
+    }
+  };
+
+  window.openCustomItemModal = function () {
+    const nameEl = document.getElementById('input-custom-item-name');
+    const priceEl = document.getElementById('input-custom-item-price');
+    const qtyEl = document.getElementById('input-custom-item-qty');
+    if (nameEl) nameEl.value = '';
+    if (priceEl) priceEl.value = '';
+    if (qtyEl) qtyEl.value = '1';
+    window.openModal('modal-custom-item');
+    setTimeout(() => { if (nameEl) nameEl.focus(); }, 60);
+  };
+
+  window.submitCustomItem = async function (e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (isSubmittingCustomItem) return;
+
+    const name = document.getElementById('input-custom-item-name')?.value.trim();
+    const rupeesVal = Number(document.getElementById('input-custom-item-price')?.value || 0);
+    const qty = Math.max(1, parseInt(document.getElementById('input-custom-item-qty')?.value || '1', 10) || 1);
+
+    if (!name || !Number.isFinite(rupeesVal) || rupeesVal <= 0) {
+      notify('Enter a valid item label and ₹ amount', 'danger');
+      return;
+    }
+
+    const pricePaiseNum = Math.round(rupeesVal * 100);
+    if (!Number.isSafeInteger(pricePaiseNum) || pricePaiseNum <= 0) {
+      notify('Invalid ₹ amount', 'danger');
+      return;
+    }
+
+    const saveBtn = document.getElementById('btn-save-custom-item');
+    isSubmittingCustomItem = true;
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Adding...';
+    }
+
+    try {
+      let itemObj = {
+        id: 'custom-' + Date.now().toString(36),
+        name,
+        category: 'Custom Items',
+        pricePaise: BigInt(pricePaiseNum),
+        isVeg: true,
+        isAvailable: true,
+        isUserCreated: true,
+        image: '',
+      };
+
+      if (localStorage.getItem('frose_session_active') && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
+        try {
+          const fn = window.froseApiFetch || fetch;
+          const res = await fn('/api/v1/menu', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
+            body: JSON.stringify({
+              name,
+              category: 'Custom Items',
+              pricePaise: pricePaiseNum,
+              isVeg: true,
+              isAvailable: true,
+            }),
+          });
+          if (res && res.ok) {
+            const json = await res.json();
+            if (json && json.item) {
+              itemObj = {
+                ...json.item,
+                pricePaise: BigInt(json.item.pricePaise || pricePaiseNum),
+                isVeg: json.item.isVeg !== false,
+                isUserCreated: true,
+              };
+            }
+          }
+        } catch (_) {}
+      }
+
+      menuCatalog.push(itemObj);
+      for (let i = 0; i < qty; i++) {
+        addCartKey(itemObj, null, BigInt(itemObj.pricePaise));
+      }
+      window.closeModal('modal-custom-item');
+      renderCategoryChips();
+      renderDishesGrid();
+      notify(`Added ${qty}x ${name} to bill`, 'success');
+    } finally {
+      isSubmittingCustomItem = false;
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Add to Bill';
+      }
+    }
+  };
+
+  async function checkSubscriptionStatus() {
+    const banner = document.getElementById('pos-subscription-banner');
+    const textEl = document.getElementById('pos-subscription-banner-text');
+    if (!banner || !textEl) return;
+    if (!localStorage.getItem('frose_session_active') || (typeof navigator !== 'undefined' && navigator.onLine === false)) return;
+    try {
+      const fn = window.froseApiFetch || fetch;
+      const res = await fn('/api/v1/subscriptions/status', { credentials: 'same-origin' });
+      if (!res || !res.ok) return;
+      const sub = await res.json();
+      const days = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : null;
+      if (sub.isReadOnly || sub.status === 'expired_readonly') {
+        textEl.textContent = 'Subscription expired (read-only mode). Renew plan to punch new bills.';
+        banner.style.display = 'flex';
+      } else if (sub.status === 'grace_period') {
+        textEl.textContent = `Plan expired — grace period (${sub.gracePeriodDaysRemaining || 0} days left). Renew in Settings.`;
+        banner.style.display = 'flex';
+      } else if (sub.status === 'trial_expiring' || (days !== null && days <= 3)) {
+        textEl.textContent = `Plan expires in ${Math.max(0, days || 0)} day${days === 1 ? '' : 's'}. Review subscription in Settings.`;
+        banner.style.display = 'flex';
+      } else {
+        banner.style.display = 'none';
+      }
+    } catch (_) {}
+  }
+
   let _licenseSyncedInSession = false;
 
   async function refreshPOS() {
     await loadCatalog();
     await initOfflineRuntime();
+    checkSubscriptionStatus();
     if (!_licenseSyncedInSession && localStorage.getItem('frose_session_active') && (typeof navigator === 'undefined' || navigator.onLine !== false)) {
       _licenseSyncedInSession = true;
       const storageMod = window.__FROSE_STORAGE__ || {};
@@ -1950,9 +2194,31 @@
           }
           billSearchQuery = searchInput.value || '';
           renderDishesGrid();
+        } else if (e.key === 'Escape') {
+          if (searchInput.value) {
+            searchInput.value = '';
+            billSearchQuery = '';
+            renderDishesGrid();
+          } else {
+            searchInput.blur();
+          }
         }
       });
     }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (activeTab !== 'bill') return;
+      const openBackdrop = document.querySelector('.saas-sheet-backdrop.active, .saas-drawer-backdrop.active, .modal-overlay.active');
+      if (openBackdrop) return;
+      const tag = document.activeElement ? document.activeElement.tagName : '';
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag) || document.activeElement?.isContentEditable) return;
+      const inp = document.getElementById('bill-search-input');
+      if (inp) {
+        e.preventDefault();
+        inp.focus();
+      }
+    });
     const cashTenderInput = document.getElementById('cash-tendered-input');
     if (cashTenderInput) {
       cashTenderInput.addEventListener('input', updateCashChangeCalculator);
@@ -1984,6 +2250,16 @@
     if (window.FroseTheme && typeof window.FroseTheme.subscribe === 'function') {
       window.FroseTheme.subscribe((t) => updateThemeCycleIcon(t));
     }
+    window.addEventListener('frose:language-changed', () => {
+      renderCategoryChips();
+      renderDishesGrid();
+      updateCartUI();
+      if (syncEngine && typeof syncEngine.notifyStatus === 'function') {
+        syncEngine.notifyStatus();
+      } else {
+        renderSyncStatusBadge();
+      }
+    });
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('type') === 'dinein') window.setOrderType('dinein');

@@ -467,6 +467,7 @@
       else labelEl.textContent = fmt(diff) + ' Short';
     }
     countedInput.addEventListener('input', updateVariance);
+    updateVariance();
 
     var notesInput = el('input', { type: 'text', id: 'zreport-notes', class: 'saas-input', placeholder: 'Shift closing notes (optional)' });
 
@@ -512,6 +513,7 @@
                 headers: { 'Content-Type': 'application/json', 'X-FROSE-CSRF': '1' },
                 body: JSON.stringify({
                   date: state.date,
+                  countedCashPaise: Math.max(0, Math.round(Number(countedInput.value || 0) * 100)),
                   notes: notesInput.value.trim() || undefined,
                 }),
               });

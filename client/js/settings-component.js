@@ -8,6 +8,7 @@
 
   var currentVendor = null;
   var pairedDevices = [];
+  var subscriptionStatus = null;
   var GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
   var FSSAI_REGEX = /^\d{14}$/;
 
@@ -62,6 +63,10 @@
         var devJson = await devRes.json();
         if (Array.isArray(devJson.devices)) pairedDevices = devJson.devices;
       }
+      var subRes = await fn('/api/v1/subscriptions/status', { credentials: 'same-origin' });
+      if (subRes && subRes.ok) {
+        subscriptionStatus = await subRes.json();
+      }
     } catch (_) {}
   }
 
@@ -115,9 +120,18 @@
       try { persisted = await navigator.storage.persisted(); } catch (_) {}
     }
 
+    var i18nRef = window.FroseI18n || null;
+    var trSet = function (k, fb) {
+      if (i18nRef && typeof i18nRef.t === 'function') {
+        var out = i18nRef.t(k);
+        if (out && out !== k) return out;
+      }
+      return fb;
+    };
+
     root.appendChild(
       el('div', { style: 'margin-bottom: 14px;' }, [
-        el('h2', { style: 'margin: 0; font-size: 20px; font-weight: 900;' }, 'Settings & Stall Profile'),
+        el('h2', { style: 'margin: 0; font-size: 20px; font-weight: 900;' }, trSet('settings.title', 'Settings & Stall Profile')),
         el('div', { style: 'font-size: 12.5px; color: var(--text-muted);' }, (v.businessName || 'Stall Counter') + (v.phone ? ' · +91 ' + v.phone : '')),
       ])
     );
@@ -412,6 +426,68 @@
             },
           }, 'Update PIN'),
         ]),
+      ])
+    );
+
+    // 6. Subscription & Plan Status
+    var sub = subscriptionStatus || {
+      plan: v.edition || 'cloud',
+      status: v.subscriptionStatus || 'trial_active',
+      daysRemaining: null,
+      periodEnd: v.subscriptionExpiresAt ? String(v.subscriptionExpiresAt).slice(0, 10) : null,
+      isReadOnly: false,
+    };
+    var subDays = typeof sub.daysRemaining === 'number' ? sub.daysRemaining : null;
+    var subBadgeCls = 'saas-pill-emerald';
+    var subStatusLabel = 'Active';
+    if (sub.isReadOnly || sub.status === 'expired_readonly') {
+      subBadgeCls = 'saas-pill-rose';
+      subStatusLabel = 'Expired (Read-Only)';
+    } else if (sub.status === 'grace_period') {
+      subBadgeCls = 'saas-pill-rose';
+      subStatusLabel = 'Grace Period';
+    } else if (sub.status === 'trial_expiring' || (subDays !== null && subDays <= 3)) {
+      subBadgeCls = 'saas-pill-amber';
+      subStatusLabel = 'Expiring Soon';
+    } else if (sub.status === 'trial_active') {
+      subStatusLabel = '14-Day Free Trial';
+    }
+    var planLabel = sub.plan === 'local' ? 'Local Offline Edition' : 'Cloud Sync + Analytics';
+
+    stack.appendChild(
+      el('section', { id: 'settings-subscription-card', class: 'saas-card', style: 'display: flex; flex-direction: column; gap: 10px;' }, [
+        el('div', { style: 'display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;' }, [
+          el('h3', { style: 'margin: 0; font-size: 16px; font-weight: 800;' }, trSet('settings.subscription_heading', '6. Subscription & Plan Status')),
+          el('span', { class: 'saas-pill ' + subBadgeCls, id: 'settings-sub-status-pill' }, subStatusLabel),
+        ]),
+        el('div', { class: 'pos-summary-box' }, [
+          el('div', { class: 'pos-summary-line' }, [
+            el('span', {}, 'Plan Edition'),
+            el('span', { style: 'font-weight: 800; color: var(--text-primary);' }, planLabel),
+          ]),
+          el('div', { class: 'pos-summary-line' }, [
+            el('span', {}, 'Days Remaining'),
+            el('span', { class: 'tabular-nums', style: 'font-weight: 800; color: var(--text-primary);' }, subDays !== null ? String(Math.max(0, subDays)) + ' days' : 'Synced when online'),
+          ]),
+          sub.periodEnd ? el('div', { class: 'pos-summary-line' }, [
+            el('span', {}, 'Valid Through (IST)'),
+            el('span', { class: 'tabular-nums' }, String(sub.periodEnd).slice(0, 10)),
+          ]) : null,
+        ]),
+        el('button', {
+          type: 'button',
+          class: 'saas-btn saas-btn-secondary',
+          style: 'min-height: 44px;',
+          on: {
+            click: function () {
+              if (typeof window.contactSuperAdminWhatsApp === 'function') {
+                window.contactSuperAdminWhatsApp();
+              } else {
+                toast('Contact FROSE Street support to renew or upgrade plan', 'success');
+              }
+            },
+          },
+        }, 'Renew / Upgrade Plan'),
       ])
     );
 
@@ -814,6 +890,12 @@
         if (nowBtn) {
           nowBtn.style.display = snap && snap.hasWaitingUpdate ? '' : 'none';
         }
+      });
+    }
+    if (!window.__FROSE_SETTINGS_LANG_SUBSCRIBED__) {
+      window.__FROSE_SETTINGS_LANG_SUBSCRIBED__ = true;
+      window.addEventListener('frose:language-changed', function () {
+        renderSettingsHub();
       });
     }
   }

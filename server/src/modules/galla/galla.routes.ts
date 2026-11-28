@@ -28,6 +28,7 @@ const ExpenseIdParamSchema = z.object({ id: z.string().min(1).max(100) }).strict
 const CloseDayBodySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   notes: z.string().max(300).optional(),
+  countedCashPaise: z.number().int().nonnegative().optional(),
 }).strict();
 
 const PaginationQuerySchema = z.object({

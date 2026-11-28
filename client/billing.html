@@ -94,9 +94,9 @@
         </div>
 
         <div class="saas-topbar-actions">
-          <div id="pos-sync-status-badge" class="pos-sync-pill" role="status">
+          <button type="button" id="pos-sync-status-badge" class="pos-sync-pill" data-click="openOutboxInspector" title="Offline Outbox & Sync Status" aria-label="Sync Status" style="cursor: pointer; font-family: inherit; min-height: 36px;">
             <span data-i18n="status.online">Online</span>
-          </div>
+          </button>
           <button type="button" class="saas-icon-btn" id="btn-cycle-theme" data-click="cycleWorkspaceTheme" title="Switch Theme (Light / Dark / Sunlight)" aria-label="Switch Theme">
             <span id="theme-cycle-icon" style="display: inline-flex; align-items: center;"></span>
           </button>
@@ -109,6 +109,10 @@
 
       <!-- TAB 1: BILL POS -->
       <section class="saas-view-panel active" id="tab-panel-bill" data-tab-panel="bill">
+        <button type="button" id="pos-subscription-banner" data-click="switchWorkspaceTab" data-arg="settings" style="display: none; width: 100%; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px; margin-bottom: 10px; border-radius: var(--radius-md); background: var(--accent-amber-soft); border: 1.5px solid var(--accent-amber); color: var(--text-primary); font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; text-align: left; min-height: 44px;">
+          <span id="pos-subscription-banner-text">Subscription notice</span>
+          <span style="text-decoration: underline; flex-shrink: 0;">View Plan &rarr;</span>
+        </button>
         <div class="saas-billing-split">
 
           <!-- Left Column: Search, Vertical Category Rail & Menu Grid -->
@@ -121,6 +125,7 @@
                   </span>
                   <input type="search" id="bill-search-input" class="saas-search-input" placeholder="Search dishes..." data-i18n-placeholder="bill.search_placeholder" aria-label="Search menu dishes">
                 </div>
+                <button type="button" class="saas-btn saas-btn-secondary" id="btn-bill-custom-item" data-click="openCustomItemModal" style="flex-shrink: 0; padding: 0 12px;" data-i18n="bill.custom_item">+ Custom &#8377;</button>
                 <button type="button" class="saas-btn saas-btn-secondary" id="btn-bill-quick-add" data-click="openAddDishModal" style="flex-shrink: 0; padding: 0 14px;">
                   <span data-i18n="bill.add_dish">+ Dish</span>
                 </button>
@@ -656,6 +661,48 @@
         <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="device-pairing-sheet" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">&times;</button>
       </div>
       <div id="device-pairing-sheet-body"></div>
+    </div>
+  </div>
+
+  <!-- Offline Outbox Inspector Sheet (VENDOR-05) -->
+  <div class="saas-sheet-backdrop modal-overlay" id="outbox-inspector-modal">
+    <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Offline Outbox Inspector">
+      <div class="saas-sheet-handle"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="outbox-inspector-modal" style="min-height: 44px; padding: 0 12px;" aria-label="Back">&larr; Back</button>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Offline Outbox</h3>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="outbox-inspector-modal" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">&times;</button>
+      </div>
+      <div id="outbox-inspector-list" class="pos-list-stack" style="margin-bottom: 12px; max-height: 46vh; overflow-y: auto;"></div>
+      <button type="button" id="btn-outbox-sync-now" class="saas-btn saas-btn-primary saas-btn-block" data-click="triggerOutboxSync">Sync Now</button>
+    </div>
+  </div>
+
+  <!-- Quick Custom Open-Price Item Sheet (VENDOR-05) -->
+  <div class="saas-sheet-backdrop modal-overlay" id="modal-custom-item">
+    <div class="saas-sheet" role="dialog" aria-modal="true" aria-label="Add Custom Item">
+      <div class="saas-sheet-handle"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="margin: 0; font-size: 17px; font-weight: 800;">Quick Custom Item</h3>
+        <button type="button" class="saas-btn saas-btn-secondary" data-click="closeModal" data-arg="modal-custom-item" style="min-width: 44px; min-height: 44px; padding: 0 12px;" aria-label="Close">&times;</button>
+      </div>
+      <form data-submit="submitCustomItem" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="saas-field">
+          <label class="saas-label" for="input-custom-item-name">Item Label *</label>
+          <input type="text" id="input-custom-item-name" class="saas-input" placeholder="e.g. Extra Parcel / Chef Special" maxlength="80" required>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div class="saas-field">
+            <label class="saas-label" for="input-custom-item-price">Amount (&#8377;) *</label>
+            <input type="number" id="input-custom-item-price" class="saas-input tabular-nums" min="1" step="1" placeholder="20" required>
+          </div>
+          <div class="saas-field">
+            <label class="saas-label" for="input-custom-item-qty">Qty</label>
+            <input type="number" id="input-custom-item-qty" class="saas-input tabular-nums" min="1" max="99" step="1" value="1">
+          </div>
+        </div>
+        <button type="submit" id="btn-save-custom-item" class="saas-btn saas-btn-primary saas-btn-block">Add to Bill</button>
+      </form>
     </div>
   </div>
 

@@ -19,6 +19,14 @@
     if (ws().notify) ws().notify(msg, variant);
   }
 
+  function tr(key, fallback, vars) {
+    if (global.FroseI18n && typeof global.FroseI18n.t === 'function') {
+      var out = global.FroseI18n.t(key, vars);
+      if (out && out !== key) return out;
+    }
+    return fallback || key;
+  }
+
   var state = {
     search: '',
     category: 'all',
@@ -87,7 +95,7 @@
     root.appendChild(
       el('div', { style: 'display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;' }, [
         el('div', {}, [
-          el('h2', { style: 'margin: 0; font-size: 20px; font-weight: 900;' }, 'Menu Manager'),
+          el('h2', { style: 'margin: 0; font-size: 20px; font-weight: 900;' }, tr('menu.title', 'Menu Manager')),
           el('div', { style: 'font-size: 12.5px; color: var(--text-muted);' }, catalog.length + ' items · Instant Sold-Out & variants'),
         ]),
         el('div', { style: 'display: flex; gap: 8px;' }, [
@@ -96,13 +104,13 @@
             id: 'btn-menu-add-category',
             class: 'saas-btn saas-btn-secondary',
             on: { click: function () { if (ws().openAddSectionModal) ws().openAddSectionModal(); } },
-          }, '+ Category'),
+          }, tr('menu.add_category', '+ Category')),
           el('button', {
             type: 'button',
             id: 'btn-menu-add-item',
             class: 'saas-btn saas-btn-primary',
             on: { click: function () { if (ws().openAddDishModal) ws().openAddDishModal(); } },
-          }, '+ Add Item'),
+          }, tr('menu.add_item', '+ Add Item')),
         ]),
       ])
     );
@@ -118,7 +126,7 @@
           type: 'search',
           id: 'menu-manager-search',
           class: 'saas-search-input',
-          placeholder: 'Search menu items...',
+          placeholder: tr('menu.search_placeholder', 'Search menu items...'),
           value: state.search,
           on: {
             input: function (e) {
@@ -136,7 +144,7 @@
         type: 'button',
         class: 'saas-chip' + (state.category === 'all' ? ' active' : ''),
         on: { click: function () { state.category = 'all'; render(); } },
-      }, 'All (' + catalog.length + ')')
+      }, tr('menu.all_count', 'All (' + catalog.length + ')', { count: catalog.length }))
     );
     categories.forEach(function (cat) {
       var slug = cat.toLowerCase().replace(/\s+/g, '-');
@@ -228,12 +236,12 @@
                   },
                 },
               }, [
-                el('span', { style: 'font-size: 12px; font-weight: 700; color: var(--text-secondary);' }, isAvailable ? 'In Stock' : 'Sold Out'),
+                el('span', { style: 'font-size: 12px; font-weight: 700; color: var(--text-secondary);' }, isAvailable ? tr('menu.available', 'In Stock') : tr('menu.sold_out', 'Sold Out')),
                 el('button', {
                   type: 'button',
                   class: 'saas-switch' + (isAvailable ? ' on' : ''),
                   'aria-label': isAvailable ? 'Mark Sold Out' : 'Mark Available',
-                  title: isAvailable ? 'Available' : 'Sold Out',
+                  title: isAvailable ? tr('menu.available', 'Available') : tr('menu.sold_out', 'Sold Out'),
                 }),
               ]),
               el('div', { style: 'display: flex; align-items: center; gap: 8px;' }, [
@@ -258,6 +266,13 @@
         );
       });
     }
+  }
+
+  if (typeof global.addEventListener === 'function') {
+    global.addEventListener('frose:language-changed', function () {
+      var root = global.document && global.document.getElementById('menu-panel-root');
+      if (root && root.children && root.children.length > 0) render();
+    });
   }
 
   global.FroseMenuPanel = {

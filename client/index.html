@@ -6,37 +6,41 @@
   <title>FROSE Street — Formal Enterprise Street Micro-POS</title>
   <meta name="description" content="Ultra-fast, formal enterprise POS for street food stalls and restaurant counters.">
   <meta name="theme-color" content="#5B0612">
+  <script src="/js/theme.js?v=1.0.0"></script>
   <script src="/js/safe-dom.js?v=1.0.0"></script>
   <script src="/js/pwa-updater.js?v=1.0.0"></script>
   <script src="/js/dom-events.js?v=1.0.0"></script>
   <script src="/js/idb-store.js?v=1.0.0"></script>
   <script src="/js/session-guard.js?v=1.0.0"></script>
+  <script src="/js/ui-components.js?v=1.0.0"></script>
   <link rel="manifest" href="/manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css?v=8.0.0">
+  <link rel="stylesheet" href="/css/tokens.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/ui-kit.css?v=1.0.0">
   <style>
-    /* FROSE Street Luxury Burgundy Palette */
+    /* FROSE Street Hub Theme Tokens */
     :root {
       --saas-burgundy-primary: #700A18;
       --saas-burgundy-dark: #5B0612;
       --saas-burgundy-subtle: #FFF5F6;
-      --saas-canvas-bg: #FDFBF9;
-      --saas-card-bg: #FFFFFF;
-      --saas-card-border: #EFE9E4;
+      --saas-canvas-bg: var(--bg-canvas, #F6F7F9);
+      --saas-card-bg: var(--bg-surface, #FFFFFF);
+      --saas-card-border: var(--border-subtle, #E2E8F0);
       --saas-gold: #FBBF24;
-      --saas-text-dark: #1F2937;
-      --saas-text-muted: #6B7280;
+      --saas-text-dark: var(--text-primary, #0F172A);
+      --saas-text-muted: var(--text-muted, #64748B);
     }
 
     body {
-      background-color: var(--saas-canvas-bg);
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-canvas, #F6F7F9);
+      font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
       margin: 0;
       padding: 0;
       padding-bottom: 84px;
-      color: var(--saas-text-dark);
+      color: var(--text-primary, #0F172A);
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
     }
@@ -663,31 +667,31 @@
   <div class="modal-overlay" id="reports-modal">
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: #5B0612;">📊 Shift & Sales Reports</h3>
-        <button data-click="closeModal" data-arg="reports-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <h3 style="margin: 0; font-size: 17px; font-weight: 800; color: var(--text-primary);">Shift &amp; Sales Reports</h3>
+        <button type="button" data-click="closeModal" data-arg="reports-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); min-width: 44px; min-height: 44px;">&times;</button>
       </div>
 
       <!-- Daily Galla Summary -->
-      <div id="galla-drawer" style="background: #F9FAFB; border-radius: 14px; padding: 14px; border: 1px solid #E5E7EB;">
-        <div style="font-size: 13px; font-weight: 800; color: #374151; margin-bottom: 10px;">Today's Daily Summary</div>
+      <div id="galla-drawer" style="background: var(--bg-subtle); border-radius: 14px; padding: 14px; border: 1px solid var(--border-subtle);">
+        <div style="font-size: 13px; font-weight: 800; color: var(--text-secondary); margin-bottom: 10px;">Today's Daily Summary</div>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
-          <div style="background: #fff; padding: 10px 6px; border-radius: 10px; border: 1px solid #E5E7EB;">
-            <div style="font-size: 11px; color: #6B7280; font-weight: 600;">Total Sales</div>
-            <div style="font-size: 15px; font-weight: 900; color: #111827; margin-top: 4px;" id="galla-total-sales">&#8377;3,480</div>
+          <div style="background: var(--bg-surface); padding: 10px 6px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Total Sales</div>
+            <div style="font-size: 15px; font-weight: 900; color: var(--text-primary); margin-top: 4px;" id="galla-total-sales">&#8377;0</div>
           </div>
-          <div style="background: #fff; padding: 10px 6px; border-radius: 10px; border: 1px solid #E5E7EB;">
-            <div style="font-size: 11px; color: #6B7280; font-weight: 600;">Cash Galla</div>
-            <div style="font-size: 15px; font-weight: 900; color: #D97706; margin-top: 4px;" id="galla-cash-sales">&#8377;1,950</div>
+          <div style="background: var(--bg-surface); padding: 10px 6px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">Cash Galla</div>
+            <div style="font-size: 15px; font-weight: 900; color: #D97706; margin-top: 4px;" id="galla-cash-sales">&#8377;0</div>
           </div>
-          <div style="background: #fff; padding: 10px 6px; border-radius: 10px; border: 1px solid #E5E7EB;">
-            <div style="font-size: 11px; color: #6B7280; font-weight: 600;">UPI Online</div>
-            <div style="font-size: 15px; font-weight: 900; color: #059669; margin-top: 4px;" id="galla-upi-sales">&#8377;1,530</div>
+          <div style="background: var(--bg-surface); padding: 10px 6px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+            <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">UPI Online</div>
+            <div style="font-size: 15px; font-weight: 900; color: #059669; margin-top: 4px;" id="galla-upi-sales">&#8377;0</div>
           </div>
         </div>
       </div>
 
       <div style="margin-top: 16px; display: flex; gap: 8px;">
-        <button data-click="closeModal" data-arg="reports-modal" style="width: 100%; height: 44px; border-radius: 12px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Close Reports</button>
+        <button type="button" data-click="closeModal" data-arg="reports-modal" style="width: 100%; height: 44px; border-radius: 12px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Close Reports</button>
       </div>
     </div>
   </div>
@@ -696,19 +700,19 @@
   <div class="modal-overlay" id="pairing-modal">
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #111827;">👥 Helper & Device Pairing</h3>
-        <button data-click="closeModal" data-arg="pairing-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary);">Helper &amp; Device Pairing</h3>
+        <button type="button" data-click="closeModal" data-arg="pairing-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); min-width: 44px; min-height: 44px;">&times;</button>
       </div>
-      <p style="font-size: 12px; color: #6B7280; margin: 0 0 14px 0;">Connect cook or packing helper phone via local Wi-Fi Hotspot P2P.</p>
+      <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 14px 0;">Connect cook or packing helper phone via Settings &rarr; Pair Kitchen / Packaging QR.</p>
 
-      <div style="text-align: center; background: #F9FAFB; padding: 14px; border-radius: 12px; border: 1px solid #E5E7EB;">
-        <div style="font-size: 18px; font-weight: 900; color: #5B0612; letter-spacing: 1px;" id="pairing-code-text">PAIR-8821</div>
-        <div style="font-size: 11px; color: #10B981; font-weight: 700; margin-top: 4px;">P2P HOTSPOT ACTIVE</div>
+      <div style="text-align: center; background: var(--bg-subtle); padding: 14px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+        <div style="font-size: 16px; font-weight: 800; color: var(--text-primary);" id="pairing-code-text">QR Pairing Ready</div>
+        <div style="font-size: 11px; color: #10B981; font-weight: 700; margin-top: 4px;">P2P &amp; CLOUD SYNC</div>
       </div>
 
       <div style="margin-top: 14px; display: flex; gap: 8px;">
-        <button id="btn-open-pairing" style="flex: 1; height: 42px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Generate New QR</button>
-        <button data-click="closeModal" data-arg="pairing-modal" style="flex: 1; height: 42px; border-radius: 10px; border: 1px solid #E5E7EB; background: #fff; font-weight: 700; cursor: pointer;">Done</button>
+        <a href="/billing.html?tab=settings" id="btn-open-pairing" style="flex: 1; height: 44px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none;">Open Pairing QR</a>
+        <button type="button" data-click="closeModal" data-arg="pairing-modal" style="flex: 1; height: 44px; border-radius: 10px; border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-primary); font-weight: 700; cursor: pointer;">Done</button>
       </div>
     </div>
   </div>
@@ -1048,20 +1052,20 @@
       <!-- Header -->
       <div class="sett-header">
         <div>
-          <div class="sett-header-title">⚙️ Stall Settings &amp; Controls</div>
-          <div class="sett-header-sub" id="sett-header-owner-name">Mohammed Feroz &bull; +91 96422 30688</div>
+          <div class="sett-header-title">Stall Settings &amp; Controls</div>
+          <div class="sett-header-sub" id="sett-header-owner-name">Stall Counter</div>
         </div>
-        <button type="button" class="sett-close-btn" data-click="closeModal" data-arg="settings-modal" aria-label="Close Settings">✕</button>
+        <button type="button" class="sett-close-btn" data-click="closeModal" data-arg="settings-modal" aria-label="Close Settings">&times;</button>
       </div>
 
       <!-- Quick Action Navigation Bar -->
       <div class="sett-quick-bar">
-        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="0">🏪 Profile</button>
-        <button type="button" class="sett-quick-pill active" data-click="jumpToAccordion" data-arg-num="1">💳 QR Code</button>
-        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="2">🍽️ Dishes</button>
-        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="3">🧾 Billing</button>
-        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="4">🍳 Kitchen</button>
-        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="5">📦 Packaging</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="0">Profile</button>
+        <button type="button" class="sett-quick-pill active" data-click="jumpToAccordion" data-arg-num="1">QR Code</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="2">Dishes</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="3">Billing</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="4">Kitchen</button>
+        <button type="button" class="sett-quick-pill" data-click="jumpToAccordion" data-arg-num="5">Packaging</button>
       </div>
 
       <!-- Scrollable Accordion Content -->
@@ -1071,10 +1075,9 @@
         <div class="sett-acc-item" id="sett-acc-item-0">
           <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="0">
             <div class="sett-acc-title-group">
-              <span class="sett-acc-icon">🏪</span>
               <span>Stall Profile &amp; Business Info</span>
             </div>
-            <span class="sett-acc-chevron">▶</span>
+            <span class="sett-acc-chevron">+</span>
           </div>
           <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
@@ -1083,7 +1086,7 @@
             </div>
             <div class="sett-input-group">
               <label class="sett-label">Owner Full Name *</label>
-              <input type="text" id="sett-owner-name" class="sett-input" placeholder="e.g. Mohammed Feroz" />
+              <input type="text" id="sett-owner-name" class="sett-input" placeholder="Stall Owner Name" />
             </div>
             <div class="sett-input-group">
               <label class="sett-label">Counter Mobile (Registered)</label>
@@ -1119,7 +1122,7 @@
               <input type="text" id="sett-fssai-number" class="sett-input" maxlength="14" inputmode="numeric" placeholder="e.g. 23626001000123" />
             </div>
             <button type="button" id="btn-save-stall-profile" class="sett-btn-action" data-click="saveStallProfile">
-              <span>💾 Save Profile &amp; Compliance</span>
+              <span>Save Profile &amp; Compliance</span>
             </button>
           </div>
         </div>
@@ -1128,22 +1131,21 @@
         <div class="sett-acc-item" id="sett-acc-item-1">
           <div class="sett-acc-header expanded" data-click="toggleAccordion" data-arg-num="1">
             <div class="sett-acc-title-group">
-              <span class="sett-acc-icon">💳</span>
               <span>Payment Scanner &amp; BharatQR</span>
             </div>
-            <span class="sett-acc-chevron" style="color: #3B82F6;">▼</span>
+            <span class="sett-acc-chevron" style="color: #3B82F6;">-</span>
           </div>
           <div class="sett-acc-body" style="display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div style="border: 2px dashed #CBD5E1; border-radius: 12px; padding: 12px; display: flex; gap: 14px; align-items: center; background: #F8FAFC;">
               <div class="sett-qr-preview-box" id="sett-qr-preview-box">
-                <span style="font-size: 32px;">📱</span>
+                <span style="font-size: 13px; font-weight: 800; color: #64748B;">QR</span>
               </div>
               <div style="flex: 1; min-width: 0;">
                 <div style="font-size: 12.5px; font-weight: 800; color: #0F172A;">Counter Scanner Active</div>
                 <div style="font-size: 11px; color: #64748B; margin-top: 2px;" id="sett-qr-vpa-display">Set up payment QR in settings</div>
                 <input type="file" id="sett-scanner-file" accept="image/*" style="display: none;" data-change="handleScannerImageUpload" />
                 <button type="button" class="sett-btn-secondary" style="margin-top: 6px; border-color: #3B82F6; color: #1D4ED8; background: #EFF6FF;" data-click-target="sett-scanner-file">
-                  <span>📸 Upload New Scanner Image</span>
+                  <span>Upload New Scanner Image</span>
                 </button>
               </div>
             </div>
@@ -1165,7 +1167,7 @@
               </div>
             </div>
             <button type="button" class="sett-btn-action" data-click="savePaymentScanner">
-              <span>💾 Save Payment Scanner</span>
+              <span>Save Payment Scanner</span>
             </button>
           </div>
         </div>
@@ -1174,10 +1176,9 @@
         <div class="sett-acc-item" id="sett-acc-item-2">
           <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="2">
             <div class="sett-acc-title-group">
-              <span class="sett-acc-icon">🍽️</span>
               <span>Menu Dishes, Prices &amp; Stock</span>
             </div>
-            <span class="sett-acc-chevron">▶</span>
+            <span class="sett-acc-chevron">+</span>
           </div>
           <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -1189,10 +1190,10 @@
             </div>
             <div style="display: flex; gap: 8px; margin-top: 6px;">
               <a href="/menu-setup" id="btn-settings-menu-setup" class="sett-btn-secondary" style="flex: 1; text-decoration: none; border-color: #CBD5E1; color: #0F172A;">
-                <span>📋 Open Menu Studio</span>
+                <span>Open Menu Studio</span>
               </a>
               <button type="button" class="sett-btn-action" style="flex: 1;" data-click="saveDishChanges">
-                <span>💾 Save Dish Changes</span>
+                <span>Save Dish Changes</span>
               </button>
             </div>
           </div>
@@ -1202,10 +1203,9 @@
         <div class="sett-acc-item" id="sett-acc-item-3">
           <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="3">
             <div class="sett-acc-title-group">
-              <span class="sett-acc-icon">🧾</span>
               <span>Billing POS, GST &amp; Thermal Printer</span>
             </div>
-            <span class="sett-acc-chevron">▶</span>
+            <span class="sett-acc-chevron">+</span>
           </div>
           <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
@@ -1219,9 +1219,9 @@
             <div class="sett-input-group">
               <label class="sett-label">Default Checkout Mode</label>
               <select id="sett-default-payment" class="sett-input">
-                <option value="cash">💵 Cash Counter Default</option>
-                <option value="upi">📱 BharatQR / UPI Intent Default</option>
-                <option value="split">⚡ Split Tender (Cash + UPI)</option>
+                <option value="cash">Cash Counter Default</option>
+                <option value="upi">BharatQR / UPI Intent Default</option>
+                <option value="split">Split Tender (Cash + UPI)</option>
               </select>
             </div>
             <div class="sett-input-group">
@@ -1233,10 +1233,10 @@
             </div>
             <div style="display: flex; gap: 8px;">
               <button type="button" class="sett-btn-secondary" style="flex: 1;" data-click="testThermalPrint">
-                <span>🖨️ Test Thermal Slip</span>
+                <span>Test Thermal Slip</span>
               </button>
               <button type="button" class="sett-btn-action" style="flex: 1;" data-click="saveSubsystemPreferences">
-                <span>💾 Save POS Defaults</span>
+                <span>Save POS Defaults</span>
               </button>
             </div>
           </div>
@@ -1246,18 +1246,17 @@
         <div class="sett-acc-item" id="sett-acc-item-4">
           <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="4">
             <div class="sett-acc-title-group">
-              <span class="sett-acc-icon">🍳</span>
               <span>Kitchen Display (KDS) &amp; Chimes</span>
             </div>
-            <span class="sett-acc-chevron">▶</span>
+            <span class="sett-acc-chevron">+</span>
           </div>
           <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
               <label class="sett-label">New Order Audio Alert (KOT Chime)</label>
               <select id="sett-kitchen-chime" class="sett-input">
-                <option value="loud">🔔 High Bell Ding (Loud Kitchen Mode)</option>
-                <option value="soft">🎵 Soft Electronic Tone</option>
-                <option value="mute">🔇 Mute / Visual Pulse Only</option>
+                <option value="loud">High Bell Ding (Loud Kitchen Mode)</option>
+                <option value="soft">Soft Electronic Tone</option>
+                <option value="mute">Mute / Visual Pulse Only</option>
               </select>
             </div>
             <div class="sett-input-group">
@@ -1269,7 +1268,7 @@
               </select>
             </div>
             <button type="button" class="sett-btn-action" data-click="saveSubsystemPreferences">
-              <span>💾 Save Kitchen Defaults</span>
+              <span>Save Kitchen Defaults</span>
             </button>
           </div>
         </div>
@@ -1278,10 +1277,9 @@
         <div class="sett-acc-item" id="sett-acc-item-5">
           <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="5">
             <div class="sett-acc-title-group">
-              <span class="sett-acc-icon">📦</span>
               <span>Packaging Station &amp; Tokens</span>
             </div>
-            <span class="sett-acc-chevron">▶</span>
+            <span class="sett-acc-chevron">+</span>
           </div>
           <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div class="sett-input-group">
@@ -1301,7 +1299,7 @@
               </div>
             </div>
             <button type="button" class="sett-btn-action" data-click="saveSubsystemPreferences">
-              <span>💾 Save Packaging Defaults</span>
+              <span>Save Packaging Defaults</span>
             </button>
           </div>
         </div>
@@ -1310,18 +1308,17 @@
         <div class="sett-acc-item" id="sett-acc-item-6">
           <div class="sett-acc-header" data-click="toggleAccordion" data-arg-num="6">
             <div class="sett-acc-title-group">
-              <span class="sett-acc-icon">☁️</span>
               <span>Offline Database &amp; Cloud Telemetry</span>
             </div>
-            <span class="sett-acc-chevron">▶</span>
+            <span class="sett-acc-chevron">+</span>
           </div>
           <div class="sett-acc-body" style="display: none; flex-direction: column; width: 100%; box-sizing: border-box;">
             <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div style="font-size: 12px; font-weight: 800; color: #0F172A;">Phone Storage (IndexedDB)</div>
-                <div style="font-size: 11px; color: #15803D; font-weight: 700;">● Operational &bull; Zero Pending Mutations</div>
+                <div style="font-size: 11px; color: #15803D; font-weight: 700;">Operational &bull; Local Cache Active</div>
               </div>
-              <button type="button" class="sett-btn-action" style="height: 32px; padding: 0 12px; background: #059669;" data-click="forceCloudSync">
+              <button type="button" class="sett-btn-action" style="height: 36px; padding: 0 12px; background: #059669;" data-click="forceCloudSync">
                 <span>Sync Now</span>
               </button>
             </div>
@@ -1338,7 +1335,7 @@
 
         <!-- Exit & Sign Out -->
         <button type="button" data-click="logoutFallback" style="width: 100%; height: 44px; border-radius: 12px; border: 1.5px solid #FECACA; background: #FFF5F5; color: #DC2626; font-weight: 800; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;">
-          <span>🚪 Sign Out of Counter Account</span>
+          <span>Sign Out of Counter Account</span>
         </button>
 
       </div>
@@ -1352,24 +1349,24 @@
   <div class="modal-overlay" id="notifications-modal">
     <div class="modal-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: #111827;">🔔 Stall Notifications</h3>
-        <button data-click="closeModal" data-arg="notifications-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #6B7280;">✕</button>
+        <h3 style="margin: 0; font-size: 16px; font-weight: 800; color: var(--text-primary);">Stall Notifications</h3>
+        <button type="button" data-click="closeModal" data-arg="notifications-modal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); min-width: 44px; min-height: 44px;">&times;</button>
       </div>
       <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12.5px;">
-        <div style="background: #F0FDF4; border: 1px solid #DCFCE7; padding: 10px; border-radius: 10px;">
-          <div style="font-weight: 800; color: #166534;">✅ Daily Shift Active</div>
-          <div style="color: #4B5563; font-size: 11.5px;">Counter open and ready to accept orders.</div>
+        <div style="background: var(--accent-emerald-soft); border: 1px solid var(--border-subtle); padding: 10px; border-radius: 10px;">
+          <div style="font-weight: 800; color: var(--accent-emerald);">Daily Shift Active</div>
+          <div style="color: var(--text-secondary); font-size: 11.5px;">Counter open and ready to accept orders.</div>
         </div>
-        <div style="background: #FEF3C7; border: 1px solid #FDE68A; padding: 10px; border-radius: 10px;">
-          <div style="font-weight: 800; color: #92400E;">📦 2 Orders in Kitchen Queue</div>
-          <div style="color: #4B5563; font-size: 11.5px;">Prep queue running smoothly.</div>
+        <div style="background: var(--accent-amber-soft); border: 1px solid var(--border-subtle); padding: 10px; border-radius: 10px;">
+          <div style="font-weight: 800; color: var(--accent-amber);">Kitchen &amp; Packaging Sync</div>
+          <div style="color: var(--text-secondary); font-size: 11.5px;">Live tickets stream automatically to paired screens.</div>
         </div>
-        <div style="background: #EFF6FF; border: 1px solid #DBEAFE; padding: 10px; border-radius: 10px;">
-          <div style="font-weight: 800; color: #1E40AF;">💳 Static UPI QR Ready</div>
-          <div style="color: #4B5563; font-size: 11.5px;">Confirm customer UPI payments manually on your Soundbox / Bank App.</div>
+        <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); padding: 10px; border-radius: 10px;">
+          <div style="font-weight: 800; color: var(--accent-primary);">Manual UPI QR Ready</div>
+          <div style="color: var(--text-secondary); font-size: 11.5px;">Confirm customer UPI payments manually on your Soundbox or Bank App.</div>
         </div>
       </div>
-      <button data-click="closeModal" data-arg="notifications-modal" style="width: 100%; height: 42px; margin-top: 14px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Dismiss</button>
+      <button type="button" data-click="closeModal" data-arg="notifications-modal" style="width: 100%; height: 44px; margin-top: 14px; border-radius: 10px; border: none; background: #5B0612; color: #fff; font-weight: 800; cursor: pointer;">Dismiss</button>
     </div>
   </div>
 

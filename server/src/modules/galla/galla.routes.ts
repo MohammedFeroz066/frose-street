@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { GallaService } from './galla.service.js';
+import { generatePeriodReportPdf, generatePeriodReportDocx } from './report-exporter.js';
 import { requireAuth, requireRole } from '../../middleware/auth.js';
 import { validateSchema } from '../auth/auth.schemas.js';
 import { withTenantContext } from '../../db/rls-context.js';
@@ -53,6 +54,12 @@ const ProfitAdjustmentSchema = z.object({
 const ReportQuerySchema = z.object({
   from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+}).strict();
+
+const ReportExportQuerySchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  format: z.enum(['pdf', 'docx']),
 }).strict();
 
 const CloseDayBodySchema = z.object({
@@ -242,6 +249,43 @@ export const gallaRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         status: 'success',
         report,
       });
+    },
+  );
+
+  /**
+   * GET /api/v1/galla/report/export
+   * Downloads real binary PDF (%PDF-1.4) or OOXML Word (.docx) business report
+   */
+  app.get(
+    '/report/export',
+    { preHandler: [requireAuth, requireRole('owner', 'cashier')] },
+    async (request, reply) => {
+      const query = validateSchema(ReportExportQuerySchema, request.query || {});
+
+      const report = await withTenantContext(request.user!.sub, (db) =>
+        GallaService.getPeriodReport(db, request.user!.sub, query.from, query.to),
+      );
+
+      if (query.format === 'pdf') {
+        const pdfBuf = generatePeriodReportPdf(report);
+        reply.header('Content-Type', 'application/pdf');
+        reply.header(
+          'Content-Disposition',
+          `attachment; filename="frose-street-report-${report.from}-to-${report.to}.pdf"`,
+        );
+        return reply.status(200).send(pdfBuf);
+      }
+
+      const docxBuf = generatePeriodReportDocx(report);
+      reply.header(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      );
+      reply.header(
+        'Content-Disposition',
+        `attachment; filename="frose-street-report-${report.from}-to-${report.to}.docx"`,
+      );
+      return reply.status(200).send(docxBuf);
     },
   );
 

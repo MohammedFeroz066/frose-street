@@ -208,18 +208,37 @@
     if (window.__FROSE_SETTINGS_REFRESH__) window.__FROSE_SETTINGS_REFRESH__();
   };
 
+  const WORKSPACE_TAB_ALIASES = {
+    bill: 'bill',
+    orders: 'orders',
+    menu: 'menu',
+    payments: 'payments',
+    reports: 'payments',
+    analytics: 'payments',
+    settings: 'settings',
+  };
+
+  function normalizeWorkspaceTab(tabName) {
+    if (!tabName) return 'bill';
+    const key = String(tabName).trim().replace(/^#/, '').toLowerCase();
+    return WORKSPACE_TAB_ALIASES[key] || 'bill';
+  }
+
   window.switchWorkspaceTab = function (tabName, opts) {
-    const valid = ['bill', 'orders', 'menu', 'payments', 'settings'];
-    const target = valid.includes(tabName) ? tabName : 'bill';
+    const target = normalizeWorkspaceTab(tabName);
     const prevTab = activeTab;
     activeTab = target;
 
-    if ((!opts || !opts.fromPopstate) && target !== prevTab && window.history && typeof window.history.pushState === 'function') {
-      try {
-        if (target !== 'bill') {
-          window.history.pushState({ view: 'billing', froseTab: target }, '', '');
-        }
-      } catch (_) {}
+    if (!opts || (!opts.fromPopstate && !opts.fromNavStack)) {
+      if (window.FroseNav && typeof window.FroseNav.recordTab === 'function') {
+        window.FroseNav.recordTab(target);
+      } else if (target !== prevTab && window.history && typeof window.history.pushState === 'function') {
+        try {
+          if (target !== 'bill') {
+            window.history.pushState({ view: 'billing', froseTab: target }, '', '');
+          }
+        } catch (_) {}
+      }
     }
 
     document.querySelectorAll('.saas-view-panel').forEach((p) => {
@@ -2425,6 +2444,13 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('type') === 'dinein') window.setOrderType('dinein');
-    if (urlParams.get('tab')) window.switchWorkspaceTab(urlParams.get('tab'));
+    const initialTab = urlParams.get('tab') || window.location.hash;
+    if (initialTab) window.switchWorkspaceTab(initialTab, { fromNavStack: true });
+
+    window.addEventListener('hashchange', () => {
+      if (window.location.hash) {
+        window.switchWorkspaceTab(window.location.hash);
+      }
+    });
   });
 })();

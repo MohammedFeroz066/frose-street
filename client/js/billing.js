@@ -1328,11 +1328,15 @@
     }
   }
 
+  let activeReceiptWidth = '58';
+  let whatsappTargetOrder = null;
+
   window.setReceiptPaperWidth = function (width) {
     const area = document.getElementById('receipt-print-area');
     const b58 = document.getElementById('btn-width-58mm');
     const b80 = document.getElementById('btn-width-80mm');
     const w = String(width) === '80' ? '80' : '58';
+    activeReceiptWidth = w;
     if (area) {
       area.classList.remove('thermal-58mm', 'thermal-80mm');
       area.classList.add(w === '80' ? 'thermal-80mm' : 'thermal-58mm');
@@ -1391,6 +1395,164 @@
   window.copyLastBillTextWhatsApp = function () {
     return copyOrderReceiptText(lastCompletedOrder);
   };
+
+  function tr(key, fallback) {
+    if (window.FroseI18n && typeof window.FroseI18n.t === 'function') {
+      const val = window.FroseI18n.t(key);
+      if (val && val !== key) return val;
+    }
+    return fallback;
+  }
+
+  function sanitizePhoneInputEl(inputEl) {
+    if (!inputEl) return;
+    let digits = String(inputEl.value || '').replace(/\D/g, '');
+    if (digits.length === 12 && digits.startsWith('91')) {
+      digits = digits.slice(2);
+    }
+    if (digits.length > 10) {
+      digits = digits.slice(0, 10);
+    }
+    if (inputEl.value !== digits) {
+      inputEl.value = digits;
+    }
+  }
+
+  function showWaPhoneError(msg) {
+    const errEl = document.getElementById('wa-phone-error');
+    if (!errEl) return;
+    if (msg) {
+      errEl.textContent = msg;
+      errEl.style.display = 'block';
+    } else {
+      errEl.textContent = '';
+      errEl.style.display = 'none';
+    }
+  }
+
+  function triggerPngDownload(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
+  function openWhatsAppPhoneSheetForOrder(orderObj) {
+    if (!orderObj || !window.FroseReceiptView) return;
+    whatsappTargetOrder = orderObj;
+    const inputEl = document.getElementById('wa-phone-input');
+    const directLink = document.getElementById('btn-wa-direct-link');
+    if (inputEl) inputEl.value = '';
+    if (directLink) {
+      directLink.style.display = 'none';
+      directLink.setAttribute('href', 'https://wa.me/');
+    }
+    showWaPhoneError('');
+    window.openModal('whatsapp-phone-sheet');
+    if (inputEl) {
+      setTimeout(() => inputEl.focus(), 60);
+    }
+  }
+
+  window.openWhatsAppPhoneSheet = function () {
+    openWhatsAppPhoneSheetForOrder(activeReceiptOrder);
+  };
+
+  window.openLastWhatsAppPhoneSheet = function () {
+    window.closeModal('token-flash-modal');
+    openWhatsAppPhoneSheetForOrder(lastCompletedOrder);
+  };
+
+  window.submitWhatsAppReceipt = async function (e) {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const orderObj = whatsappTargetOrder || activeReceiptOrder || lastCompletedOrder;
+    if (!orderObj || !window.FroseReceiptView) return;
+
+    const inputEl = document.getElementById('wa-phone-input');
+    sanitizePhoneInputEl(inputEl);
+    const norm = window.FroseReceiptView.normalizeWhatsAppPhone(inputEl ? inputEl.value : '');
+    if (!norm.valid) {
+      showWaPhoneError(tr('receipt.wa_phone_invalid', 'Enter a valid 10-digit Indian mobile number.'));
+      if (inputEl) inputEl.focus();
+      return;
+    }
+    showWaPhoneError('');
+
+    const submitBtn = document.getElementById('btn-submit-wa-phone');
+    const directLink = document.getElementById('btn-wa-direct-link');
+    if (submitBtn) submitBtn.disabled = true;
+
+    try {
+      const vendorProfile = getActiveVendorProfile();
+      const img = await window.FroseReceiptView.buildThermalReceiptImage(orderObj, vendorProfile, {
+        paperWidth: activeReceiptWidth,
+      });
+      const caption = window.FroseReceiptView.buildWhatsAppCaption(orderObj, vendorProfile);
+      const waUrl = window.FroseReceiptView.buildWhatsAppUrl(norm.e164Digits, caption);
+
+      if (directLink && waUrl) {
+        directLink.setAttribute('href', waUrl);
+        directLink.style.display = 'inline-flex';
+      }
+
+      const canShareFiles = Boolean(
+        navigator.canShare &&
+        typeof navigator.canShare === 'function' &&
+        typeof navigator.share === 'function' &&
+        img.file &&
+        navigator.canShare({ files: [img.file] })
+      );
+
+      if (canShareFiles) {
+        try {
+          await navigator.share({ files: [img.file], text: caption });
+          notify(tr('receipt.wa_share_sent', 'Thermal receipt shared to WhatsApp.'), 'success');
+          window.closeModal('whatsapp-phone-sheet');
+          return;
+        } catch (shareErr) {
+          if (shareErr && shareErr.name === 'AbortError') return;
+        }
+      }
+
+      triggerPngDownload(img.blob, img.fileName);
+      notify(tr('receipt.wa_image_ready', 'Thermal receipt PNG downloaded — attach and send in WhatsApp chat.'), 'success');
+      window.closeModal('whatsapp-phone-sheet');
+      if (waUrl) {
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (_) {
+      notify('Could not generate thermal receipt image', 'error');
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  };
+
+  (function bindWhatsAppPhoneInput() {
+    const inputEl = document.getElementById('wa-phone-input');
+    if (!inputEl || inputEl.dataset.waBound === '1') return;
+    inputEl.dataset.waBound = '1';
+    inputEl.addEventListener('input', () => {
+      sanitizePhoneInputEl(inputEl);
+      showWaPhoneError('');
+    });
+    inputEl.addEventListener('paste', (ev) => {
+      const pasted = ev.clipboardData && ev.clipboardData.getData('text');
+      if (!pasted) return;
+      const digits = pasted.replace(/\D/g, '');
+      if (digits.length >= 10) {
+        ev.preventDefault();
+        inputEl.value = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits.slice(-10);
+        showWaPhoneError('');
+      }
+    });
+  })();
 
   window.openVoidOrderModal = function (orderId, tokenLabel) {
     const idEl = document.getElementById('void-order-id');
